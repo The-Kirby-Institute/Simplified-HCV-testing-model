@@ -288,6 +288,14 @@ tarpop <- function(nlist, indic, endval){
       
       nlist[[indic]][2,i,  uptake_pt: dim(nlist[[indic]])[3]] <- 
         as.numeric(unlist(endval[[indic]])[i])
+      
+      nlist[[indic]][4,i,  scenario_pt:uptake_pt] <- 
+        seq(as.numeric(nlist[[indic]][2, i, scenario_pt]), 
+            as.numeric(unlist(endval[[indic]])[2]), 
+            length = (uptake_pt - scenario_pt + 1))
+      
+      nlist[[indic]][4,i,  uptake_pt: dim(nlist[[indic]])[3]] <- 
+        as.numeric(unlist(endval[[indic]])[i])
     
       
       }

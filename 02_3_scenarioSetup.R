@@ -14,10 +14,10 @@ Rcode <- file.path(basePath, "03. Code")
 project <- "Taiwanese MSM HCV model"
 project_name <- "HCVModel"
 
-projectFolder <- file.path(basePath)
+projectFolder <- "C:/Users/user/OneDrive - UNSW/05. PhD Project/Taiwan-MSM-HCV-model"
 source(file.path(Rcode, "/Functions/Scenarios_wrangling.R")) 
 
-projectFile <- file.path(basePath,
+projectFile <- file.path(projectFolder,
                          paste0(project_name, ".rda"))
 projectVars <- load(projectFile)
 load(file.path(projectFolder, paste0(project_name, ".rda")))
@@ -183,7 +183,11 @@ for( i in 1: length(endP)){
 }
 
 
-Scen_targetpop <- Scen_main
+Scen_targetpop <- Scen_main # get structure of scenarios 
+
+# change data same as base estimate for each scenario
+Scen_targetpop <- lapply(Scen_targetpop, function(x) x <- dfList)
+
 
 for( m in names(Scen_targetpop)){
   for (x in names(Param_scen)){ 
@@ -191,6 +195,8 @@ for( m in names(Scen_targetpop)){
     Scen_targetpop[[m]][[x]] <- tarpop(Scen_targetpop[[m]], x , endP[[m]])
     }
   }
+
+
 
 # uncertainty 
 # extract initial % for HIV diagnosed subgroup for uncertainty 
@@ -230,7 +236,9 @@ for( m in SceName){
   }
 }
 
-Scen_targetpopParam <-Scen_mainParam
+Scen_targetpopParam <-Scen_mainParam 
+Scen_targetpopParam <- lapply(Scen_targetpopParam, function(x) x <- paramResults)
+
 
 ldt <- dim(Scen_targetpopParam[[1]][[1]][[1]])[3]
 

@@ -2043,7 +2043,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     if(tau_poct_dt[1, "f1", t]==0){
       costTestingAg[, t] <- costflow[,"ctau_ag", t]*
       (newTestingAg[, t] + 
-         ((S[,] - oldPop[,"s"] - oldPop[,"a_cured"])*tau_ag_dt[, "f0", t]))
+         ((S[,] - oldPop[,"s"] - oldPop[, "a_cured"])*tau_ag_dt[, "f0", t]))
     }else if(tau_poct_dt[1, "f1", t]!=0){ 
       costTestingAg[, t] <- costflow[,"ctau_ag", t]*newTestingAg[, t]
       
