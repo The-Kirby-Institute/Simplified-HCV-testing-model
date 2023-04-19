@@ -2,7 +2,7 @@
 ## About TWHCV model
 This project contains the code for investigating the impact of point-of-care testing and other simplified HCV diagnosis strategies for HCV prevention on HCV incidence and prevalence across the different key populations in Taiwan. 
 
-[![DOI](https://zenodo.org/badge/{R_kgDOJIg29A}.svg)](https://zenodo.org/badge/latestdoi/{R_kgDOJIg29A})
+[![DOI](https://zenodo.org/badge/612906740.svg)](https://zenodo.org/badge/latestdoi/612906740)
 
 Model developer, coder and maintainer of this repository: [Joyce Huei-Jiuan Wu](https://github.com/ninowwss)
 
@@ -47,8 +47,15 @@ You need the following software & associated packages to run the TWHCV model:
 │    ├── Result_data   
 │    ├── Result_figure
 │    └── Results               # the associated simulation results are stored as .rda files in this subfolder
-
-
+├── 00_CreatProject.R
+├── 01.SetupModel.R
+├── 02_CalibrateHCVmodel.R
+├── 02_2_Uncertainty.R
+├── 02_3_scenarioSetup.R
+├── 03_RunningHCVModel.R
+├── 04. SummaryResults_update.R
+├── 04_1_SummaryScenarios.R
+├── 04_2_Impact estimation.R
 ```
 Note: Files in `01.DATA`,`02.Documents` and `04.Output` folder are stored locally and are not available in this online repository.
 
