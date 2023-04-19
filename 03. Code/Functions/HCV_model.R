@@ -46,12 +46,10 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     
     pop_array <- pop_array[ , , 1:npts] 
     
-    cost <- lapply(cost, function(x) x[, , 1:(npts+1)])
-    costflow <- costflow[ , , 1:npts]
+    # cost <- lapply(cost, function(x) x[, , 1:(npts+1)])
     
-    #### revise needed 
+    # costflow <- costflow[ , , 1:npts]
     
-    # param_cascade <- lapply(param_cascade, function(x) x[, ,1:(npts+1)]) 
     
   }else{
     
@@ -67,9 +65,10 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     
     pop_array <- pop_array[ , , 1:npts] 
     
-    cost <- lapply(cost, function(x) x[, , 1:(npts+1)])
-    costflow <- costflow[ , , 1:npts]
-    #param_cascade <- lapply(param_cascade, function(x) x[, ,1:(npts+1)]) 
+    # cost <- lapply(cost, function(x) x[, , 1:(npts+1)])
+    
+    # costflow <- costflow[ , , 1:npts]
+    
     
   }
   
@@ -203,7 +202,10 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     costRetreat <- ResultMatrix 
 
     costPops <- array(0, c(npops, ncomponent, npts), dimnames = dimNames) 
+    
     QALYPops <- array(0, c(npops, ncomponent, npts), dimnames = dimNames) 
+    
+    
     }
   
   #### pop_array ####
@@ -2034,23 +2036,24 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     
     #### cost ####
     if (!is.null(cost)){ 
-    costPops[, , t] <- allPops[, , t]*cost[["state"]][,,t]
+    costPops[, , t] <- allPops[, , t]*cost$state[,,t]
+   
     
     costTestingAb[, t] <- costflow[,"ctau_ab", t]*
       (newTestingAb[, t] + 
          ((oldPop[, "s"] + oldPop[, "a_cured"])*tau_ab_dt[, "f0", t]))
     
-    if(tau_poct_dt[1, "f1", t]==0){
+    if(tau_poct_dt[2, "f0", t]==0){
       costTestingAg[, t] <- costflow[,"ctau_ag", t]*
       (newTestingAg[, t] + 
          ((S[,] - oldPop[,"s"] - oldPop[, "a_cured"])*tau_ag_dt[, "f0", t]))
-    }else if(tau_poct_dt[1, "f1", t]!=0){ 
+    }else if(tau_poct_dt[2, "f0", t]!=0){ 
       costTestingAg[, t] <- costflow[,"ctau_ag", t]*newTestingAg[, t]
       
       }
     
     costnewTestingPOCT[, t] <- costflow[,"ctau_poct",t ]*
-      (newTestingPOCT[, t] + S[,]*tau_poct_dt[, "f1", t])
+      (newTestingPOCT[, t] + S[,]*tau_poct_dt[, "f0", t])
     
     
     
@@ -2060,10 +2063,10 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     costCured[, t] <- newCured[, t]*costflow[,"ccured", t]
     
     
-    costRetreat[, t] <- newTreatment[, t]*costflow[,"crho", t]
+    costRetreat[, t] <- newRetreat[, t]*costflow[,"crho", t]
     
     
-    QALYPops[, , t] <- allPops[, , t]*cost[["QALY"]][,,t]
+    QALYPops[, , t] <- allPops[, , t]*cost$QALY[,,t]
     
     }
     
