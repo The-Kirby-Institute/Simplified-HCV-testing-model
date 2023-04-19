@@ -1,4 +1,4 @@
-# TWHCV model 
+# Taiwanese HCV model 
 ## About TWHCV model
 This project contains the code for investigating the impact of point-of-care testing and other simplified HCV diagnosis strategies for HCV prevention on HCV incidence and prevalence across the different key populations in Taiwan. 
 
