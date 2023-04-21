@@ -1,6 +1,6 @@
 # Simplified HCV testing model
 
-This project contains the code for investigating the impact of point-of-care testing and other simplified HCV diagnosis strategies for HCV prevention on HCV incidence and prevalence across the different key populations. 
+This project contains the code for a model of HCV transmission that can be used to investigate the impact of point-of-care testing and other simplified HCV diagnosis strategies on HCV epidemiology. 
 
 
 [![DOI](https://zenodo.org/badge/612906740.svg)](https://zenodo.org/badge/latestdoi/612906740)
@@ -18,7 +18,7 @@ You need the following software & associated packages to run this model:
 
 * R, a free statistical program to run and analyze the model results using the provided scripts.
 * (Optional) RStudio, a useful user interface for the R program.
-* R packages associated with TWHCV model: 
+* R packages associated with Simplified HCV testing model: 
 
     `gt_0.8.0`, `expss_0.11.4`, `maditr_0.8.3`, `officer_0.6.1`, `flextable_0.8.6`, `ggthemes_4.2.4`,
  
@@ -60,7 +60,8 @@ You need the following software & associated packages to run this model:
 ```
 Note: Files in `01.DATA`,`02.Documents` and `04.Output` folder are stored locally and are not available in this online repository.
 
-# Set up and run the TWHCV model
+# Set up and run the Simplified HCV testing model
+
 All the project files are stored in the main directory and 4 main sub-directories. This main README file describes the overall project. 
 
 The project code is written in `R` version 4.2.2 as R or R markdown scripts with `Rstudio` version 2022.12.0.353. 
@@ -116,7 +117,7 @@ Once a user finish calibration, can further produce parameter sets of uncertaint
 `02_3_scenarioSetup.R`: This script is for producing the parameter sets for each scenario. 
  
 
-`03_RunningHCVModel.R`: This script is for HCV model simulation and save the results in a `.rda` file. 
+`03_RunningHCVModel.R`: This script is for Simplified HCV testing model simulation and save the results in a `.rda` file. 
 
 `04_1_SummaryScenarios.R`: This script is used to produce figures of summary main results for a specified project.
 
@@ -126,18 +127,6 @@ Note as these are scripts, not functions, care should be taken to ensure the pro
 
 
 
-
-
-
-# Publication 
-The following publication is associated with this project and used the code in this repository to generate all of the results and figures.
-
-* 
-
-
-
 # Disclaimer
-This study is made possible as part of a research-funded PhD being undertaken by [Joyce Huei-Jiuan Wu](https://github.com/ninowwss) under the University of New South Wales (UNSW) Scientia scholarship and associated with the Rapid Point of Care Research Consortium for infectious disease in the Asia Pacific (RAPID), which is funded by an NHMRC Centre for Research Excellence.
-The Kirby Institute is funded by the Australian Government Department of Health and is affiliated with the Faculty of Medicine, UNSW Sydney, Australia. 
-The views expressed in this publication do not necessarily represent the position of the Australian Government.
+The model has been made publicly available for transparency and replication purposes and in the hope it will be useful. We take no responsibility for results generated with the model and their interpretation but are happy to assist with its use and application."
 
