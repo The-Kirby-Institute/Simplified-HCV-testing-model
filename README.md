@@ -1,6 +1,7 @@
-# Taiwanese HCV model 
-## About Taiwanese HCV model 
-This project contains the code for investigating the impact of point-of-care testing and other simplified HCV diagnosis strategies for HCV prevention on HCV incidence and prevalence across the different key populations in Taiwan. 
+# Simplified HCV testing model
+
+This project contains the code for investigating the impact of point-of-care testing and other simplified HCV diagnosis strategies for HCV prevention on HCV incidence and prevalence across the different key populations. 
+
 
 [![DOI](https://zenodo.org/badge/612906740.svg)](https://zenodo.org/badge/latestdoi/612906740)
 
@@ -13,7 +14,7 @@ Affiliation: The Kirby Institute, UNSW Sydney, NSW, Australia
 
 
 # Installation
-You need the following software & associated packages to run the TWHCV model:
+You need the following software & associated packages to run this model:
 
 * R, a free statistical program to run and analyze the model results using the provided scripts.
 * (Optional) RStudio, a useful user interface for the R program.
@@ -43,7 +44,7 @@ You need the following software & associated packages to run the TWHCV model:
 ├── 02.Documents/	# model structure diagram 
 ├── 03.Code/
 │    └── Functions             # functions for data wrangling, model simulation and results generation(plots) 
-├── 04.Output/		# TWHCV models outputs
+├── 04.Output/		#  models outputs
 │    ├── Result_data   
 │    ├── Result_figure
 │    └── Results               # the associated simulation results are stored as .rda files in this subfolder
