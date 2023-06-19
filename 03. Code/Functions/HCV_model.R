@@ -142,10 +142,8 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   
   reinfP <- matrix(0, ncol = npts + 1, nrow = npops)
   if(is.null(scenario)){ 
-    reinfP[1,] <- 1
-    reinfP[2,] <- 1
-    reinfP[3,] <- 1
-    reinfP[4,] <- 1
+    reinfP[ , ] <- 1
+  
     
   } else{ 
     reinfP <- scenario
@@ -218,69 +216,59 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   
   entry <- matrix(0, ncol = npts + 1, nrow = npops)
   entry[1,] <- parama$entry
-  entry[2,] <- 0
-  entry[3,] <- 0
-  entry[4,] <- 0
+  for(i in 2: npops){ 
+    entry[i,] <- 0
+    }
   entry_dt <- entry*dt  
   
-  ####background mortality =rate to leave the model####
+  ####mortality =rate to leave the model####
   ## 
   morb <- matrix(0, ncol = npts + 1, nrow = npops)
-  morb[1, ] <- parama$mortality_b
-  morb[2, ] <- parama$mortality_b
-  morb[3, ] <- parama$HIV_mor
-  morb[4, ] <- parama$HIVd_mor
+  
+  mordc <- matrix(0, ncol = npts + 1, nrow = npops)
+  
+  morhcc <- matrix(0, ncol = npts + 1, nrow = npops)
+  
+  morlt <- matrix(0, ncol = npts + 1, nrow = npops)
+  
+  morplt <- matrix(0, ncol = npts + 1, nrow = npops)
+  
+  for(i in 1:npops){
+    morb[i, ] <- parama[ , paste0("morb", i)]
+    
+    mordc[i, ] <- parama[ , paste0("mordc", i)]
+    
+    morhcc[i, ] <- parama[ , paste0("morhcc", i)]
+    
+    morlt[i, ] <- parama[ , paste0("morlt", i)]
+    
+    morplt[i, ] <- parama[ , paste0("morplt", i)]
+    
+    
+  }
+  
   morb_dt <-1-(1-morb)^dt
   
-  ####HCV_related mortality####
-  ## DC, HCC, LT, PLT, DCcured, HCCcured, LTcured, PLTcured
-  
-  #####DC#####
-  mordc <- matrix(0, ncol = npts + 1, nrow = npops)
-  mordc[1, ] <- parama$mordc
-  mordc[2, ] <- parama$mordc
-  mordc[3, ] <- parama$mordc*parama$oddsOfmordc_HIVp
-  mordc[4, ] <- parama$mordc*parama$oddsOfmordc_HIVp
   mordc_dt <- 1-(1-mordc)^dt
   
-  #####HCC#####
-  morhcc <- matrix(0, ncol = npts + 1, nrow = npops)
-  morhcc[1, ] <- parama$morhcc
-  morhcc[2, ] <- parama$morhcc
-  morhcc[3, ] <- parama$morhcc*parama$oddsOfmorhcc_HIVp
-  morhcc[4, ] <- parama$morhcc*parama$oddsOfmorhcc_HIVp
   morhcc_dt <- 1-(1-morhcc)^dt
   
-  #####LT####
-  morlt <- matrix(0, ncol = npts + 1, nrow = npops)
-  morlt[1, ] <- parama$morlt
-  morlt[2, ] <- parama$morlt
-  morlt[3, ] <- parama$morlt
-  morlt[4, ] <- parama$morlt
   morlt_dt <- 1-(1-morlt)^dt
   
-  #####PLT#####
-  morplt <- matrix(0, ncol = npts + 1, nrow = npops)
-  morplt[1, ] <- parama$morplt
-  morplt[2, ] <- parama$morplt
-  morplt[3, ] <- parama$morplt
-  morplt[4, ] <- parama$morplt
   morplt_dt <- 1-(1-morplt)^dt
   
-  #####DC cured####
+  #####cured####
   mordcCure <- matrix(0, ncol = npts + 1, nrow = npops)
-  mordcCure[1, ] <- mordc[1,]*parama$Cure_mordc_Reduction
-  mordcCure[2, ] <- mordc[2,]*parama$Cure_mordc_Reduction
-  mordcCure[3, ] <- mordc[3,]*parama$Cure_mordc_Reduction
-  mordcCure[4, ] <- mordc[4,]*parama$Cure_mordc_Reduction
+  
+  morhccCure <- matrix(0, ncol = npts + 1, nrow = npops)
+  
+  for(i in 1:npops){
+    mordcCure[i, ] <- mordc[i,]*parama$Cure_mordc_Reduction
+    morhccCure[i, ]<- morhcc[i,]*(1-parama$Cure_morhcc_Reduction)
+  }
+   
   mordcCure_dt <- 1-(1-mordcCure)^dt
   
-  #####HCC cured####
-  morhccCure <- matrix(0, ncol = npts + 1, nrow = npops)
-  morhccCure[1, ]<- morhcc[1,]*(1-parama$Cure_morhcc_Reduction)
-  morhccCure[2, ]<- morhcc[2,]*(1-parama$Cure_morhcc_Reduction)
-  morhccCure[3, ]<- morhcc[3,]*(1-parama$Cure_morhcc_Reduction)
-  morhccCure[4, ]<- morhcc[4,]*(1-parama$Cure_morhcc_Reduction)
   morhccCure_dt <- 1-(1-morhccCure)^dt
   
   ## temporarily ignore HIV excess HIV  
@@ -293,25 +281,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   
   trans <- as.matrix(disease_progress, nrow = npops, ncol= diseaseprogress_n)
   
-  transition[1, ]<- trans[1, ]
-  transition[2, ]<- trans[2, ]
-  transition[3, ]<- trans[3, ]
-  transition[4, ]<- trans[4, ] 
-  
-  transition[3, "f3_hcc"] <- trans[3 ,"f3_hcc"]*parama$HIV_undiag_diseaseprog[1]
-  transition[4, "f3_hcc"] <- trans[4,"f3_hcc"]*parama$HIV_diag_diseaseprog[1]
-  
-  transition[3, "f4_hcc"] <- trans[3 ,"f4_hcc"]*parama$HIV_undiag_diseaseprog[1]
-  transition[4, "f4_hcc"] <- trans[4,"f4_hcc"]*parama$HIV_diag_diseaseprog[1]
-  
-  transition[3, "dc_hcc"] <- trans[3 ,"dc_hcc"]*parama$HIV_undiag_diseaseprog[1]
-  transition[4, "dc_hcc"] <- trans[4,"dc_hcc"]*parama$HIV_diag_diseaseprog[1]
-  
-  transition[3, "dc_lt"] <- trans[3 ,"dc_lt"]*parama$HIV_undiag_diseaseprog[1]
-  transition[4, "dc_lt"] <- trans[4,"dc_lt"]*parama$HIV_diag_diseaseprog[1]
-  
-  transition[3, "hcc_lt"] <- trans[3 ,"hcc_lt"]*parama$HIV_undiag_diseaseprog[1]
-  transition[4, "hcc_lt"] <- trans[4,"hcc_lt"]*parama$HIV_diag_diseaseprog[1]
+  transition[, ]<- trans[, ]
   
   transition_dt <- 1-(1-transition)^dt 
   
@@ -330,10 +300,11 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   ####spontaneously clearance####
   
   spc1 <-  matrix(0, ncol = npts + 1, nrow = npops)
-  spc1[1, ] <- parama$spc1
-  spc1[2, ] <- parama$spc2
-  spc1[3, ] <- parama$spc3
-  spc1[4, ] <- parama$spc4
+  
+  for(i in 1:npops){
+    spc1[i, ] <- parama[ , paste0("spc", i)]
+  }
+  
   spc1_dt <- 1-(1-spc1)^dt 
   
   ####testing rate#### 
@@ -376,7 +347,13 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   ####population transition#### 
   pop_array <- 1-(1-pop_array)^dt 
   
+  #### cost dt ####
+  cost <- lapply(cost, function(x){ 
+    
+    a <- x*dt
+  })
   
+  costflow <- costflow*dt
   
   #------------------------------------------------------------------------------#
   ####                     Equations                                        ####   
@@ -389,23 +366,11 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     #####FOI#####
     
     foi <- matrix(0, ncol = 1, nrow = npops)
-    
-    foi[1,] <- parama$beta1[t]
-    
-    foi[2, ] <- parama$beta2[t]
-    
-    
-    foi[3, ] <- parama$beta3[t]
-    
-    
-    foi[4, ] <- parama$beta4[t]
-    
+    for(i in 1:npops){
+      foi[i, ] <- parama[ , paste0("beta", i)][t]
+    }
     
     foi_dt <- foi*dt 
-    
-    
-   
-   
     
     ##### mortality ####
     death[,] <- morb_dt[,t]*oldPop[,] 
@@ -441,61 +406,44 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     
     # total num
     N <- matrix(0, ncol = 1, nrow = npops)
-    N[1, ] <- sum(oldPop[1, ], na.rm = TRUE)
-    N[2, ] <- sum(oldPop[2, ], na.rm = TRUE)
-    N[3, ] <- sum(oldPop[3, ], na.rm = TRUE)
-    N[4, ] <- sum(oldPop[4, ], na.rm = TRUE)
     
-   
-    # S 
-    S <- matrix(0, ncol = 1, nrow = npops)
-    S[1, ] <- (oldPop[1 , "s"] + 
-                 oldPop[1 , "a_cured"] +
-                 oldPop[1 , "f0_cured"] +
-                 oldPop[1 , "f1_cured"] +
-                 oldPop[1 , "f2_cured"] +
-                 oldPop[1 , "f3_cured"] +
-                 oldPop[1 , "f4_cured"] +
-                 oldPop[1 , "dc_cured"] +
-                 oldPop[1 , "hcc_cured"] +
-                 oldPop[1 , "lt_cured"] +
-                 oldPop[1 , "plt_cured"])
-    S[2, ] <- (oldPop[2 , "s"] + 
-                    oldPop[2 , "a_cured"] +
-                    oldPop[2 , "f0_cured"] +
-                    oldPop[2 , "f1_cured"] +
-                    oldPop[2 , "f2_cured"] +
-                    oldPop[2 , "f3_cured"] +
-                    oldPop[2 , "f4_cured"] +
-                    oldPop[2 , "dc_cured"] +
-                    oldPop[2 , "hcc_cured"] +
-                    oldPop[2 , "lt_cured"] +
-                    oldPop[2 , "plt_cured"])
-    S[3, ] <- (oldPop[3 , "s"] + 
-                    oldPop[3 , "a_cured"] +
-                    oldPop[3 , "f0_cured"] +
-                    oldPop[3 , "f1_cured"] +
-                    oldPop[3 , "f2_cured"] +
-                    oldPop[3 , "f3_cured"] +
-                    oldPop[3 , "f4_cured"] +
-                    oldPop[3 , "dc_cured"] +
-                    oldPop[3 , "hcc_cured"] +
-                    oldPop[3 , "lt_cured"] +
-                    oldPop[3 , "plt_cured"])
-    S[4, ] <- (oldPop[4 , "s"] + 
-                    oldPop[4 , "a_cured"] +
-                    oldPop[4 , "f0_cured"] +
-                    oldPop[4 , "f1_cured"] +
-                    oldPop[4 , "f2_cured"] +
-                    oldPop[4 , "f3_cured"] +
-                    oldPop[4 , "f4_cured"] +
-                    oldPop[4 , "dc_cured"] +
-                    oldPop[4 , "hcc_cured"] +
-                    oldPop[4 , "lt_cured"] +
-                    oldPop[4 , "plt_cured"])
+    S <- matrix(0, ncol = 1, nrow = npops) 
+    
+    # I
+    I <- matrix(0, ncol = 1, nrow = npops)
+    
+    for(i in 1: npops){ 
+      N[i, ] <- sum(oldPop[i, ], na.rm = TRUE)
+      S[i, ] <- (oldPop[i , "s"] + 
+                   oldPop[i , "a_cured"] +
+                   oldPop[i , "f0_cured"] +
+                   oldPop[i , "f1_cured"] +
+                   oldPop[i , "f2_cured"] +
+                   oldPop[i , "f3_cured"] +
+                   oldPop[i , "f4_cured"] +
+                   oldPop[i , "dc_cured"] +
+                   oldPop[i , "hcc_cured"] +
+                   oldPop[i , "lt_cured"] +
+                   oldPop[i , "plt_cured"])
+      }
+    
+    for(i in 1: npops){ 
+      
+      I[i, ] <- N[i, ] - S[i,]
+      
+      }
     
     Sall <- matrix(0, ncol = 1, nrow = 1)
-    Sall <- sum(S[1,], S[2,], S[3,], S[4,])
+    
+    Iall <- matrix(0, ncol = 1, nrow = 1)
+    
+    Sall <- colSums(S)
+    
+    Iall <- colSums(I)
+    
+    II <- Iall/Sall
+    
+    II[is.nan(II)] <- 0
     
     
     Ps<- matrix(0, ncol = 1, nrow = npops)
@@ -534,23 +482,6 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     Pchcc[is.nan(Pchcc)] <- 0
     Pclt[is.nan(Pclt)] <- 0
     Pcplt[is.nan(Pcplt)] <- 0
-    
-    
-    # I
-    I <- matrix(0, ncol = 1, nrow = npops)
-    
-    I[1, ] <- N[1, ] - S[1,]
-    I[2, ] <- N[2, ] - S[2,]
-    I[3, ] <- N[3, ] - S[3,]
-    I[4, ] <- N[4, ] - S[4,]
-    
-    
-    Iall <- matrix(0, ncol = 1, nrow = 1)
-    Iall <- sum(I[1,], I[2,], I[3,], I[4,])
-    
-    II <- Iall/Sall
-    II[is.nan(II)] <- 0
-    
     
     #####Entry of new people####
     
@@ -602,7 +533,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       tau_ab_dt[, "a", t]*(1-spc1_dt[, t])*oldPop[,"a_undiag"] - 
       tau_ag_dt[, "a", t]*oldPop[,"a_diag_ab"]
     
-    ## a_testing, ag+
+    ## a_testing, RNA+
     newPop[, "a_diag_RNA"] <- oldPop[ ,"a_diag_RNA"] +
       (colSums(pop_array[, , t]*oldPop[, "a_diag_RNA"]) -
          rowSums(pop_array[, , t]*oldPop[, "a_diag_RNA"])) -
@@ -1358,22 +1289,13 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     newEntry[1,t] <- sum(entry1)
     
     ##### background death ##### 
-    newDeath[1, t] <- sum(death[1,])
-    newDeath[2, t] <- sum(death[2, ])
-    newDeath[3, t] <- sum(death[3,])
-    newDeath[4, t] <- sum(death[4,])
     
-    newDeathState[1, ,t] <- morb_dt[1,t]*oldPop[1,] 
-    newDeathState[2, ,t] <- morb_dt[2,t]*oldPop[2,] 
-    newDeathState[3, ,t] <- morb_dt[3,t]*oldPop[3,]
-    newDeathState[4, ,t] <- morb_dt[4,t]*oldPop[4,]
+    for(i in 1: npops){ 
+      newDeath[i, t] <- sum(death[i,])
+      newDeathState[i, ,t] <- morb_dt[i,t]*oldPop[i,] 
+      }
+    
     ##### new HCV deaths in this timestep ##### 
-    ## question: should post-liver transplant count in the new HCV death??
-    # newHCVdeaths[1, t] <- sum(death_hcv[1, ])
-    # newHCVdeaths[2, t] <- sum(death_hcv[2, ])
-    # newHCVdeaths[3, t] <- sum(death_hcv[3, ])
-    # newHCVdeaths[4, t] <- sum(death_hcv[4, ])
-    
     HCVdeathState[,"dc_undiag" ,t] <- mordc_dt[, t]*oldPop[, "dc_undiag"]
     HCVdeathState[,"dc_diag_ab" ,t] <- mordc_dt[, t]*oldPop[, "dc_diag_ab"]
     HCVdeathState[,"dc_diag_RNA" ,t] <- mordc_dt[, t]*oldPop[, "dc_diag_RNA"]
@@ -1398,382 +1320,112 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     HCVdeathState[,"plt_treat" ,t] <- mordc_dt[, t]*oldPop[, "plt_treat"]
     HCVdeathState[,"plt_treat_f" ,t] <- mordc_dt[, t]*oldPop[, "plt_treat_f"]
     
-    newHCVdeaths[1, t] <- sum(mordc_dt[1, t]*oldPop[1, "dc_undiag"],
-                              mordc_dt[1, t]*oldPop[1, "dc_diag_ab"],
-                              mordc_dt[1, t]*oldPop[1, "dc_diag_RNA"],
-                              mordc_dt[1,t]*oldPop[1, "dc_treat"],
-                              mordc_dt[1,t]*oldPop[1, "dc_treat_f"],
-                              mordcCure_dt[1,t]*oldPop[1, "dc_cured"],                      
-                              morhcc_dt[1, t]*oldPop[1, "hcc_undiag"],                        
-                              morhcc_dt[1, t]*oldPop[1, "hcc_diag_ab"],                       
-                              morhcc_dt[1,t]*oldPop[1, "hcc_diag_RNA"],
-                              morhcc_dt[1,t]*oldPop[1, "hcc_treat"],
-                              morhcc_dt[1,t]*oldPop[1, "hcc_treat_f"],
-                              morhccCure_dt[1,t]*oldPop[1, "hcc_cured"],
-                              morlt_dt[1, t]*oldPop[1, "lt_undiag"],
-                              morlt_dt[1, t]*oldPop[1, "lt_diag_ab"],
-                              morlt_dt[1,t]*oldPop[1, "lt_diag_RNA"],
-                              morlt_dt[1,t]*oldPop[1, "lt_treat"],
-                              morlt_dt[1,t]*oldPop[1, "lt_treat_f"],
-                              morlt_dt[1,t]*oldPop[1, "lt_cured"],
-                              morplt_dt[1, t]*oldPop[1, "plt_undiag"],
-                              morplt_dt[1, t]*oldPop[1, "plt_diag_ab"],
-                              morplt_dt[1,t]*oldPop[1, "plt_diag_RNA"],
-                              morplt_dt[1,t]*oldPop[1, "plt_treat"],
-                              morplt_dt[1,t]*oldPop[1, "plt_treat_f"],
-                              morplt_dt[1,t]*oldPop[1, "plt_cured"])
-    
-    newHCVdeaths[2, t] <- sum(mordc_dt[2, t]*oldPop[2, "dc_undiag"],
-                              mordc_dt[2, t]*oldPop[2, "dc_diag_ab"],
-                              mordc_dt[2, t]*oldPop[2, "dc_diag_RNA"],
-                              mordc_dt[2,t]*oldPop[2, "dc_treat"],
-                              mordc_dt[2,t]*oldPop[2, "dc_treat_f"],
-                              mordcCure_dt[2,t]*oldPop[2, "dc_cured"],                      
-                              morhcc_dt[2, t]*oldPop[2, "hcc_undiag"],                        
-                              morhcc_dt[2, t]*oldPop[2, "hcc_diag_ab"],                       
-                              morhcc_dt[2,t]*oldPop[2, "hcc_diag_RNA"],
-                              morhcc_dt[2,t]*oldPop[2, "hcc_treat"],
-                              morhcc_dt[2,t]*oldPop[2, "hcc_treat_f"],
-                              morhccCure_dt[2,t]*oldPop[2, "hcc_cured"],
-                              morlt_dt[2, t]*oldPop[2, "lt_undiag"],
-                              morlt_dt[2, t]*oldPop[2, "lt_diag_ab"],
-                              morlt_dt[2,t]*oldPop[2, "lt_diag_RNA"],
-                              morlt_dt[2,t]*oldPop[2, "lt_treat"],
-                              morlt_dt[2,t]*oldPop[2, "lt_treat_f"],
-                              morlt_dt[2,t]*oldPop[2, "lt_cured"],
-                              morplt_dt[2, t]*oldPop[2, "plt_undiag"],
-                              morplt_dt[2, t]*oldPop[2, "plt_diag_ab"],
-                              morplt_dt[2,t]*oldPop[2, "plt_diag_RNA"],
-                              morplt_dt[2,t]*oldPop[2, "plt_treat"],
-                              morplt_dt[2,t]*oldPop[2, "plt_treat_f"],
-                              morplt_dt[2,t]*oldPop[2, "plt_cured"])
-    
-    newHCVdeaths[3, t] <- sum(mordc_dt[3, t]*oldPop[3, "dc_undiag"],
-                              mordc_dt[3, t]*oldPop[3, "dc_diag_ab"],
-                              mordc_dt[3, t]*oldPop[3, "dc_diag_RNA"],
-                              mordc_dt[3,t]*oldPop[3, "dc_treat"],
-                              mordc_dt[3,t]*oldPop[3, "dc_treat_f"],
-                              mordcCure_dt[3,t]*oldPop[3, "dc_cured"],                      
-                              morhcc_dt[3, t]*oldPop[3, "hcc_undiag"],                        
-                              morhcc_dt[3, t]*oldPop[3, "hcc_diag_ab"],                       
-                              morhcc_dt[3,t]*oldPop[3, "hcc_diag_RNA"],
-                              morhcc_dt[3,t]*oldPop[3, "hcc_treat"],
-                              morhcc_dt[3,t]*oldPop[3, "hcc_treat_f"],
-                              morhccCure_dt[3,t]*oldPop[3, "hcc_cured"],
-                              morlt_dt[3, t]*oldPop[3, "lt_undiag"],
-                              morlt_dt[3, t]*oldPop[3, "lt_diag_ab"],
-                              morlt_dt[3,t]*oldPop[3, "lt_diag_RNA"],
-                              morlt_dt[3,t]*oldPop[3, "lt_treat"],
-                              morlt_dt[3,t]*oldPop[3, "lt_treat_f"],
-                              morlt_dt[3,t]*oldPop[3, "lt_cured"],
-                              morplt_dt[3, t]*oldPop[3, "plt_undiag"],
-                              morplt_dt[3, t]*oldPop[3, "plt_diag_ab"],
-                              morplt_dt[3,t]*oldPop[3, "plt_diag_RNA"],
-                              morplt_dt[3,t]*oldPop[3, "plt_treat"],
-                              morplt_dt[3,t]*oldPop[3, "plt_treat_f"],
-                              morplt_dt[3,t]*oldPop[3, "plt_cured"])
-    
-    newHCVdeaths[4, t] <- sum(mordc_dt[4, t]*oldPop[4, "dc_undiag"],
-                              mordc_dt[4, t]*oldPop[4, "dc_diag_ab"],
-                              mordc_dt[4, t]*oldPop[4, "dc_diag_RNA"],
-                              mordc_dt[4,t]*oldPop[4, "dc_treat"],
-                              mordc_dt[4,t]*oldPop[4, "dc_treat_f"],
-                              mordcCure_dt[4,t]*oldPop[4, "dc_cured"],                      
-                              morhcc_dt[4, t]*oldPop[4, "hcc_undiag"],                        
-                              morhcc_dt[4, t]*oldPop[4, "hcc_diag_ab"],                       
-                              morhcc_dt[4,t]*oldPop[4, "hcc_diag_RNA"],
-                              morhcc_dt[4,t]*oldPop[4, "hcc_treat"],
-                              morhcc_dt[4,t]*oldPop[4, "hcc_treat_f"],
-                              morhccCure_dt[4,t]*oldPop[4, "hcc_cured"],
-                              morlt_dt[4, t]*oldPop[4, "lt_undiag"],
-                              morlt_dt[4, t]*oldPop[4, "lt_diag_ab"],
-                              morlt_dt[4,t]*oldPop[4, "lt_diag_RNA"],
-                              morlt_dt[4,t]*oldPop[4, "lt_treat"],
-                              morlt_dt[4,t]*oldPop[4, "lt_treat_f"],
-                              morlt_dt[4,t]*oldPop[4, "lt_cured"],
-                              morplt_dt[4, t]*oldPop[4, "plt_undiag"],
-                              morplt_dt[4, t]*oldPop[4, "plt_diag_ab"],
-                              morplt_dt[4,t]*oldPop[4, "plt_diag_RNA"],
-                              morplt_dt[4,t]*oldPop[4, "plt_treat"],
-                              morplt_dt[4,t]*oldPop[4, "plt_treat_f"],
-                              morplt_dt[4,t]*oldPop[4, "plt_cured"])
-    
-    ##### new treat #####
-    
-    newTreatment[1, t] <- sum(eta_dt[1, "a", t]*oldPop[1,"a_diag_RNA"],
-                              eta_dt[1, "f0", t]*oldPop[1,"f0_diag_RNA"],
-                              eta_dt[1, "f1", t]*oldPop[1,"f1_diag_RNA"],
-                              eta_dt[1, "f2", t]*oldPop[1,"f2_diag_RNA"],
-                              eta_dt[1, "f3", t]*oldPop[1,"f3_diag_RNA"],
-                              eta_dt[1, "f4", t]*oldPop[1,"f4_diag_RNA"],
-                              eta_dt[1, "dc", t]*oldPop[1,"dc_diag_RNA"],
-                              eta_dt[1, "hcc", t]*oldPop[1,"hcc_diag_RNA"],
-                              eta_dt[1, "lt", t]*oldPop[1,"lt_diag_RNA"],
-                              eta_dt[1, "plt", t]*oldPop[1,"plt_diag_RNA"]) 
-    
-    
-    newTreatment[2, t] <- sum(eta_dt[2, "a", t]*oldPop[2,"a_diag_RNA"],
-                              eta_dt[2, "f0", t]*oldPop[2,"f0_diag_RNA"],
-                              eta_dt[2, "f1", t]*oldPop[2,"f1_diag_RNA"],
-                              eta_dt[2, "f2", t]*oldPop[2,"f2_diag_RNA"],
-                              eta_dt[2, "f3", t]*oldPop[2,"f3_diag_RNA"],
-                              eta_dt[2, "f4", t]*oldPop[2,"f4_diag_RNA"],
-                              eta_dt[2, "dc", t]*oldPop[2,"dc_diag_RNA"],
-                              eta_dt[2, "hcc", t]*oldPop[2,"hcc_diag_RNA"],
-                              eta_dt[2, "lt", t]*oldPop[2,"lt_diag_RNA"],
-                              eta_dt[2, "plt", t]*oldPop[2,"plt_diag_RNA"])
-    
-    newTreatment[3, t] <- sum(eta_dt[3, "a", t]*oldPop[3,"a_diag_RNA"],
-                              eta_dt[3, "f0", t]*oldPop[3,"f0_diag_RNA"],
-                              eta_dt[3, "f1", t]*oldPop[3,"f1_diag_RNA"],
-                              eta_dt[3, "f2", t]*oldPop[3,"f2_diag_RNA"],
-                              eta_dt[3, "f3", t]*oldPop[3,"f3_diag_RNA"],
-                              eta_dt[3, "f4", t]*oldPop[3,"f4_diag_RNA"],
-                              eta_dt[3, "dc", t]*oldPop[3,"dc_diag_RNA"],
-                              eta_dt[3, "hcc", t]*oldPop[3,"hcc_diag_RNA"],
-                              eta_dt[3, "lt", t]*oldPop[3,"lt_diag_RNA"],
-                              eta_dt[3, "plt", t]*oldPop[3,"plt_diag_RNA"])
-    
-    
-    newTreatment[4, t] <- sum(eta_dt[4, "a", t]*oldPop[4,"a_diag_RNA"],
-                              eta_dt[4, "f0", t]*oldPop[4,"f0_diag_RNA"],
-                              eta_dt[4, "f1", t]*oldPop[4,"f1_diag_RNA"],
-                              eta_dt[4, "f2", t]*oldPop[4,"f2_diag_RNA"],
-                              eta_dt[4, "f3", t]*oldPop[4,"f3_diag_RNA"],
-                              eta_dt[4, "f4", t]*oldPop[4,"f4_diag_RNA"],
-                              eta_dt[4, "dc", t]*oldPop[4,"dc_diag_RNA"],
-                              eta_dt[4, "hcc", t]*oldPop[4,"hcc_diag_RNA"],
-                              eta_dt[4, "lt", t]*oldPop[4,"lt_diag_RNA"],
-                              eta_dt[4, "plt", t]*oldPop[4,"plt_diag_RNA"])
-    
-    ##### new retreat #####  
-    
-    newRetreat[1 ,t] <- sum(rho_dt[1, "a", t]*oldPop[1,"a_treat_f"],
-                            rho_dt[1, "f0", t]*oldPop[1,"f0_treat_f"],
-                            rho_dt[1, "f1", t]*oldPop[1,"f1_treat_f"],
-                            rho_dt[1, "f2", t]*oldPop[1,"f2_treat_f"],
-                            rho_dt[1, "f3", t]*oldPop[1,"f3_treat_f"],
-                            rho_dt[1, "f4", t]*oldPop[1,"f4_treat_f"],
-                            rho_dt[1, "dc", t]*oldPop[1,"dc_treat_f"],
-                            rho_dt[1, "hcc", t]*oldPop[1,"hcc_treat_f"],
-                            rho_dt[1, "lt", t]*oldPop[1,"lt_treat_f"],
-                            rho_dt[1, "plt", t]*oldPop[1,"plt_treat_f"])
-    
-    newRetreat[2, t] <- sum(rho_dt[2, "a", t]*oldPop[2,"a_treat_f"],
-                            rho_dt[2, "f0", t]*oldPop[2,"f0_treat_f"],
-                            rho_dt[2, "f1", t]*oldPop[2,"f1_treat_f"],
-                            rho_dt[2, "f2", t]*oldPop[2,"f2_treat_f"],
-                            rho_dt[2, "f3", t]*oldPop[2,"f3_treat_f"],
-                            rho_dt[2, "f4", t]*oldPop[2,"f4_treat_f"],
-                            rho_dt[2, "dc", t]*oldPop[2,"dc_treat_f"],
-                            rho_dt[2, "hcc", t]*oldPop[2,"hcc_treat_f"],
-                            rho_dt[2, "lt", t]*oldPop[2,"lt_treat_f"],
-                            rho_dt[2, "plt", t]*oldPop[2,"plt_treat_f"])
-    
-    newRetreat[3, t] <- sum(rho_dt[3, "a", t]*oldPop[3,"a_treat_f"],
-                            rho_dt[3, "f0", t]*oldPop[3,"f0_treat_f"],
-                            rho_dt[3, "f1", t]*oldPop[3,"f1_treat_f"],
-                            rho_dt[3, "f2", t]*oldPop[3,"f2_treat_f"],
-                            rho_dt[3, "f3", t]*oldPop[3,"f3_treat_f"],
-                            rho_dt[3, "f4", t]*oldPop[3,"f4_treat_f"],
-                            rho_dt[3, "dc", t]*oldPop[3,"dc_treat_f"],
-                            rho_dt[3, "hcc", t]*oldPop[3,"hcc_treat_f"],
-                            rho_dt[3, "lt", t]*oldPop[3,"lt_treat_f"],
-                            rho_dt[3, "plt", t]*oldPop[3,"plt_treat_f"])
-    
-    newRetreat[4, t] <- sum(rho_dt[4, "a", t]*oldPop[4,"a_treat_f"],
-                            rho_dt[4, "f0", t]*oldPop[4,"f0_treat_f"],
-                            rho_dt[4, "f1", t]*oldPop[4,"f1_treat_f"],
-                            rho_dt[4, "f2", t]*oldPop[4,"f2_treat_f"],
-                            rho_dt[4, "f3", t]*oldPop[4,"f3_treat_f"],
-                            rho_dt[4, "f4", t]*oldPop[4,"f4_treat_f"],
-                            rho_dt[4, "dc", t]*oldPop[4,"dc_treat_f"],
-                            rho_dt[4, "hcc", t]*oldPop[4,"hcc_treat_f"],
-                            rho_dt[4, "lt", t]*oldPop[4,"lt_treat_f"],
-                            rho_dt[4, "plt", t]*oldPop[4,"plt_treat_f"])
-    
-    ##### antibody test ##### 
-    
-    newTestingAb[1 , t] <- sum( tau_ab_dt[1,"a", t]*(1-spc1_dt[1, t])*oldPop[1,"a_undiag"],
-                                tau_ab_dt[1, "f0", t]*oldPop[1,"f0_undiag"],
-                                tau_ab_dt[1, "f1", t]*oldPop[1,"f1_undiag"],
-                                tau_ab_dt[1, "f2", t]*oldPop[1,"f2_undiag"],
-                                tau_ab_dt[1, "f3", t]*oldPop[1,"f3_undiag"],
-                                tau_ab_dt[1, "f4", t]*oldPop[1,"f4_undiag"],
-                                tau_ab_dt[1, "dc", t]*oldPop[1,"dc_undiag"],
-                                tau_ab_dt[1, "hcc", t]*oldPop[1,"hcc_undiag"],
-                                tau_ab_dt[1, "lt", t]*oldPop[1,"lt_undiag"],
-                                tau_ab_dt[1, "plt", t]*oldPop[1,"plt_undiag"])
-    
-    newTestingAb[2, t] <- sum( tau_ab_dt[2,"a", t]*(1-spc1_dt[2, t])*oldPop[2,"a_undiag"],
-                               tau_ab_dt[2, "f0", t]*oldPop[2,"f0_undiag"],
-                               tau_ab_dt[2, "f1", t]*oldPop[2,"f1_undiag"],
-                               tau_ab_dt[2, "f2", t]*oldPop[2,"f2_undiag"],
-                               tau_ab_dt[2, "f3", t]*oldPop[2,"f3_undiag"],
-                               tau_ab_dt[2, "f4", t]*oldPop[2,"f4_undiag"],
-                               tau_ab_dt[2, "dc", t]*oldPop[2,"dc_undiag"],
-                               tau_ab_dt[2, "hcc", t]*oldPop[2,"hcc_undiag"],
-                               tau_ab_dt[2, "lt", t]*oldPop[2,"lt_undiag"],
-                               tau_ab_dt[2, "plt", t]*oldPop[2,"plt_undiag"])
-    
-    newTestingAb[3, t] <- sum( tau_ab_dt[3,"a", t]*(1-spc1_dt[3, t])*oldPop[3,"a_undiag"],
-                               tau_ab_dt[3, "f0", t]*oldPop[3,"f0_undiag"],
-                               tau_ab_dt[3, "f1", t]*oldPop[3,"f1_undiag"],
-                               tau_ab_dt[3, "f2", t]*oldPop[3,"f2_undiag"],
-                               tau_ab_dt[3, "f3", t]*oldPop[3,"f3_undiag"],
-                               tau_ab_dt[3, "f4", t]*oldPop[3,"f4_undiag"],
-                               tau_ab_dt[3, "dc", t]*oldPop[3,"dc_undiag"],
-                               tau_ab_dt[3, "hcc", t]*oldPop[3,"hcc_undiag"],
-                               tau_ab_dt[3, "lt", t]*oldPop[3,"lt_undiag"],
-                               tau_ab_dt[3, "plt", t]*oldPop[3,"plt_undiag"])
-    
-    newTestingAb[4, t] <- sum( tau_ab_dt[4,"a", t]*(1-spc1_dt[4, t])*oldPop[4,"a_undiag"],
-                               tau_ab_dt[4, "f0", t]*oldPop[4,"f0_undiag"],
-                               tau_ab_dt[4, "f1", t]*oldPop[4,"f1_undiag"],
-                               tau_ab_dt[4, "f2", t]*oldPop[4,"f2_undiag"],
-                               tau_ab_dt[4, "f3", t]*oldPop[4,"f3_undiag"],
-                               tau_ab_dt[4, "f4", t]*oldPop[4,"f4_undiag"],
-                               tau_ab_dt[4, "dc", t]*oldPop[4,"dc_undiag"],
-                               tau_ab_dt[4, "hcc", t]*oldPop[4,"hcc_undiag"],
-                               tau_ab_dt[4, "lt", t]*oldPop[4,"lt_undiag"],
-                               tau_ab_dt[4, "plt", t]*oldPop[4,"plt_undiag"])
-    
-    ##### antigen test ##### 
-    
-    newTestingAg[1 ,t] <- sum(tau_ag_dt[1, "a", t]*oldPop[1,"a_diag_ab"],
-                              tau_ag_dt[1, "f0", t]*oldPop[1,"f0_diag_ab"],
-                              tau_ag_dt[1, "f1", t]*oldPop[1,"f1_diag_ab"],
-                              tau_ag_dt[1, "f2", t]*oldPop[1,"f2_diag_ab"],
-                              tau_ag_dt[1, "f3", t]*oldPop[1,"f3_diag_ab"],
-                              tau_ag_dt[1, "f4", t]*oldPop[1,"f4_diag_ab"],
-                              tau_ag_dt[1, "dc", t]*oldPop[1,"dc_diag_ab"],
-                              tau_ag_dt[1, "hcc", t]*oldPop[1,"hcc_diag_ab"],
-                              tau_ag_dt[1, "lt", t]*oldPop[1,"lt_diag_ab"],
-                              tau_ag_dt[1, "plt", t]*oldPop[1,"plt_diag_ab"])
-    
-    newTestingAg[2, t] <- sum(tau_ag_dt[2, "a", t]*oldPop[2,"a_diag_ab"],
-                              tau_ag_dt[2, "f0", t]*oldPop[2,"f0_diag_ab"],
-                              tau_ag_dt[2, "f1", t]*oldPop[2,"f1_diag_ab"],
-                              tau_ag_dt[2, "f2", t]*oldPop[2,"f2_diag_ab"],
-                              tau_ag_dt[2, "f3", t]*oldPop[2,"f3_diag_ab"],
-                              tau_ag_dt[2, "f4", t]*oldPop[2,"f4_diag_ab"],
-                              tau_ag_dt[2, "dc", t]*oldPop[2,"dc_diag_ab"],
-                              tau_ag_dt[2, "hcc", t]*oldPop[2,"hcc_diag_ab"],
-                              tau_ag_dt[2, "lt", t]*oldPop[2,"lt_diag_ab"],
-                              tau_ag_dt[2, "plt", t]*oldPop[2,"plt_diag_ab"])
-    
-    newTestingAg[3, t] <- sum(tau_ag_dt[3, "a", t]*oldPop[3,"a_diag_ab"],
-                              tau_ag_dt[3, "f0", t]*oldPop[3,"f0_diag_ab"],
-                              tau_ag_dt[3, "f1", t]*oldPop[3,"f1_diag_ab"],
-                              tau_ag_dt[3, "f2", t]*oldPop[3,"f2_diag_ab"],
-                              tau_ag_dt[3, "f3", t]*oldPop[3,"f3_diag_ab"],
-                              tau_ag_dt[3, "f4", t]*oldPop[3,"f4_diag_ab"],
-                              tau_ag_dt[3, "dc", t]*oldPop[3,"dc_diag_ab"],
-                              tau_ag_dt[3, "hcc", t]*oldPop[3,"hcc_diag_ab"],
-                              tau_ag_dt[3, "lt", t]*oldPop[3,"lt_diag_ab"],
-                              tau_ag_dt[3, "plt", t]*oldPop[3,"plt_diag_ab"])
-    
-    newTestingAg[4, t] <- sum(tau_ag_dt[4, "a", t]*oldPop[4,"a_diag_ab"],
-                              tau_ag_dt[4, "f0", t]*oldPop[4,"f0_diag_ab"],
-                              tau_ag_dt[4, "f1", t]*oldPop[4,"f1_diag_ab"],
-                              tau_ag_dt[4, "f2", t]*oldPop[4,"f2_diag_ab"],
-                              tau_ag_dt[4, "f3", t]*oldPop[4,"f3_diag_ab"],
-                              tau_ag_dt[4, "f4", t]*oldPop[4,"f4_diag_ab"],
-                              tau_ag_dt[4, "dc", t]*oldPop[4,"dc_diag_ab"],
-                              tau_ag_dt[4, "hcc", t]*oldPop[4,"hcc_diag_ab"],
-                              tau_ag_dt[4, "lt", t]*oldPop[4,"lt_diag_ab"],
-                              tau_ag_dt[4, "plt", t]*oldPop[4,"plt_diag_ab"])
-    
-    ##### POCT test #####
-    
-    newTestingPOCT[1, t] <- sum( tau_poct_dt[1, "a", t]*(1-spc1_dt[1, t])*oldPop[1,"a_undiag"],
-                                 tau_poct_dt[1, "f0", t]*oldPop[1,"f0_undiag"],
-                                 tau_poct_dt[1, "f1", t]*oldPop[1,"f1_undiag"],
-                                 tau_poct_dt[1, "f2", t]*oldPop[1,"f2_undiag"],
-                                 tau_poct_dt[1, "f3", t]*oldPop[1,"f3_undiag"],
-                                 tau_poct_dt[1, "f4", t]*oldPop[1,"f4_undiag"],
-                                 tau_poct_dt[1, "dc", t]*oldPop[1,"dc_undiag"],
-                                 tau_poct_dt[1, "hcc", t]*oldPop[1,"hcc_undiag"],
-                                 tau_poct_dt[1, "lt", t]*oldPop[1,"lt_undiag"],
-                                 tau_poct_dt[1, "plt", t]*oldPop[1,"plt_undiag"])
-    
-    newTestingPOCT[2,t] <- sum( tau_poct_dt[2, "a", t]*(1-spc1_dt[2, t])*oldPop[2,"a_undiag"],
-                                tau_poct_dt[2, "f0", t]*oldPop[2,"f0_undiag"],
-                                tau_poct_dt[2, "f1", t]*oldPop[2,"f1_undiag"],
-                                tau_poct_dt[2, "f2", t]*oldPop[2,"f2_undiag"],
-                                tau_poct_dt[2, "f3", t]*oldPop[2,"f3_undiag"],
-                                tau_poct_dt[2, "f4", t]*oldPop[2,"f4_undiag"],
-                                tau_poct_dt[2, "dc", t]*oldPop[2,"dc_undiag"],
-                                tau_poct_dt[2, "hcc", t]*oldPop[2,"hcc_undiag"],
-                                tau_poct_dt[2, "lt", t]*oldPop[2,"lt_undiag"],
-                                tau_poct_dt[2, "plt", t]*oldPop[2,"plt_undiag"])
-    
-    newTestingPOCT[3,t] <- sum( tau_poct_dt[3, "a", t]*(1-spc1_dt[3, t])*oldPop[3,"a_undiag"],
-                                tau_poct_dt[3, "f0", t]*oldPop[3,"f0_undiag"],
-                                tau_poct_dt[3, "f1", t]*oldPop[3,"f1_undiag"],
-                                tau_poct_dt[3, "f2", t]*oldPop[3,"f2_undiag"],
-                                tau_poct_dt[3, "f3", t]*oldPop[3,"f3_undiag"],
-                                tau_poct_dt[3, "f4", t]*oldPop[3,"f4_undiag"],
-                                tau_poct_dt[3, "dc", t]*oldPop[3,"dc_undiag"],
-                                tau_poct_dt[3, "hcc", t]*oldPop[3,"hcc_undiag"],
-                                tau_poct_dt[3, "lt", t]*oldPop[3,"lt_undiag"],
-                                tau_poct_dt[3, "plt", t]*oldPop[3,"plt_undiag"])
-    
-    newTestingPOCT[4,t] <- sum( tau_poct_dt[4, "a", t]*(1-spc1_dt[4, t])*oldPop[4,"a_undiag"],
-                                tau_poct_dt[4, "f0", t]*oldPop[4,"f0_undiag"],
-                                tau_poct_dt[4, "f1", t]*oldPop[4,"f1_undiag"],
-                                tau_poct_dt[4, "f2", t]*oldPop[4,"f2_undiag"],
-                                tau_poct_dt[4, "f3", t]*oldPop[4,"f3_undiag"],
-                                tau_poct_dt[4, "f4", t]*oldPop[4,"f4_undiag"],
-                                tau_poct_dt[4, "dc", t]*oldPop[4,"dc_undiag"],
-                                tau_poct_dt[4, "hcc", t]*oldPop[4,"hcc_undiag"],
-                                tau_poct_dt[4, "lt", t]*oldPop[4,"lt_undiag"],
-                                tau_poct_dt[4, "plt", t]*oldPop[4,"plt_undiag"])
-    ##### Cured ##### 
-    newCured[1, t] <- sum( cure_dt[1, "a", t]*oldPop[1,"a_treat"],
-                           cure_dt[1, "f0", t]*oldPop[1,"f0_treat"],
-                           cure_dt[1, "f1", t]*oldPop[1,"f1_treat"],
-                           cure_dt[1, "f2", t]*oldPop[1,"f2_treat"],
-                           cure_dt[1, "f3", t]*oldPop[1,"f3_treat"],
-                           cure_dt[1, "f4", t]*oldPop[1,"f4_treat"],
-                           cure_dt[1, "dc", t]*oldPop[1,"dc_treat"],
-                           cure_dt[1, "hcc", t]*oldPop[1,"hcc_treat"],
-                           cure_dt[1, "lt", t]*oldPop[1,"lt_treat"],
-                           cure_dt[1, "plt", t]*oldPop[1,"plt_treat"])
-    
-    newCured[2, t] <- sum( cure_dt[2, "a", t]*oldPop[2,"a_treat"],
-                           cure_dt[2, "f0", t]*oldPop[2,"f0_treat"],
-                           cure_dt[2, "f1", t]*oldPop[2,"f1_treat"],
-                           cure_dt[2, "f2", t]*oldPop[2,"f2_treat"],
-                           cure_dt[2, "f3", t]*oldPop[2,"f3_treat"],
-                           cure_dt[2, "f4", t]*oldPop[2,"f4_treat"],
-                           cure_dt[2, "dc", t]*oldPop[2,"dc_treat"],
-                           cure_dt[2, "hcc", t]*oldPop[2,"hcc_treat"],
-                           cure_dt[2, "lt", t]*oldPop[2,"lt_treat"],
-                           cure_dt[2, "plt", t]*oldPop[2,"plt_treat"])
-    
-    newCured[3, t] <- sum( cure_dt[3, "a", t]*oldPop[3,"a_treat"],
-                           cure_dt[3, "f0", t]*oldPop[3,"f0_treat"],
-                           cure_dt[3, "f1", t]*oldPop[3,"f1_treat"],
-                           cure_dt[3, "f2", t]*oldPop[3,"f2_treat"],
-                           cure_dt[3, "f3", t]*oldPop[3,"f3_treat"],
-                           cure_dt[3, "f4", t]*oldPop[3,"f4_treat"],
-                           cure_dt[3, "dc", t]*oldPop[3,"dc_treat"],
-                           cure_dt[3, "hcc", t]*oldPop[3,"hcc_treat"],
-                           cure_dt[3, "lt", t]*oldPop[3,"lt_treat"],
-                           cure_dt[3, "plt", t]*oldPop[3,"plt_treat"])
-    
-    newCured[4, t] <- sum( cure_dt[4, "a", t]*oldPop[4,"a_treat"],
-                           cure_dt[4, "f0", t]*oldPop[4,"f0_treat"],
-                           cure_dt[4, "f1", t]*oldPop[4,"f1_treat"],
-                           cure_dt[4, "f2", t]*oldPop[4,"f2_treat"],
-                           cure_dt[4, "f3", t]*oldPop[4,"f3_treat"],
-                           cure_dt[4, "f4", t]*oldPop[4,"f4_treat"],
-                           cure_dt[4, "dc", t]*oldPop[4,"dc_treat"],
-                           cure_dt[4, "hcc", t]*oldPop[4,"hcc_treat"],
-                           cure_dt[4, "lt", t]*oldPop[4,"lt_treat"],
-                           cure_dt[4, "plt", t]*oldPop[4,"plt_treat"])
-    
+    for(i in 1: npops){
+      ##### new HCV death #####
+      newHCVdeaths[i, t] <- sum(mordc_dt[i, t]*oldPop[i, "dc_undiag"],
+                                mordc_dt[i, t]*oldPop[i, "dc_diag_ab"],
+                                mordc_dt[i, t]*oldPop[i, "dc_diag_RNA"],
+                                mordc_dt[i,t]*oldPop[i, "dc_treat"],
+                                mordc_dt[i,t]*oldPop[i, "dc_treat_f"],
+                                mordcCure_dt[i,t]*oldPop[i, "dc_cured"],                      
+                                morhcc_dt[i, t]*oldPop[i, "hcc_undiag"],                        
+                                morhcc_dt[i, t]*oldPop[i, "hcc_diag_ab"],                       
+                                morhcc_dt[i,t]*oldPop[i, "hcc_diag_RNA"],
+                                morhcc_dt[i,t]*oldPop[i, "hcc_treat"],
+                                morhcc_dt[i,t]*oldPop[i, "hcc_treat_f"],
+                                morhccCure_dt[i,t]*oldPop[i, "hcc_cured"],
+                                morlt_dt[i, t]*oldPop[i, "lt_undiag"],
+                                morlt_dt[i, t]*oldPop[i, "lt_diag_ab"],
+                                morlt_dt[i,t]*oldPop[i, "lt_diag_RNA"],
+                                morlt_dt[i,t]*oldPop[i, "lt_treat"],
+                                morlt_dt[i,t]*oldPop[i, "lt_treat_f"],
+                                morlt_dt[i,t]*oldPop[i, "lt_cured"],
+                                morplt_dt[i, t]*oldPop[i, "plt_undiag"],
+                                morplt_dt[i, t]*oldPop[i, "plt_diag_ab"],
+                                morplt_dt[i,t]*oldPop[i, "plt_diag_RNA"],
+                                morplt_dt[i,t]*oldPop[i, "plt_treat"],
+                                morplt_dt[i,t]*oldPop[i, "plt_treat_f"],
+                                morplt_dt[i,t]*oldPop[i, "plt_cured"])
+      
+      ##### new treat #####
+      
+      newTreatment[i, t] <- sum(eta_dt[i, "a", t]*oldPop[i,"a_diag_RNA"],
+                                eta_dt[i, "f0", t]*oldPop[i,"f0_diag_RNA"],
+                                eta_dt[i, "f1", t]*oldPop[i,"f1_diag_RNA"],
+                                eta_dt[i, "f2", t]*oldPop[i,"f2_diag_RNA"],
+                                eta_dt[i, "f3", t]*oldPop[i,"f3_diag_RNA"],
+                                eta_dt[i, "f4", t]*oldPop[i,"f4_diag_RNA"],
+                                eta_dt[i, "dc", t]*oldPop[i,"dc_diag_RNA"],
+                                eta_dt[i, "hcc", t]*oldPop[i,"hcc_diag_RNA"],
+                                eta_dt[i, "lt", t]*oldPop[i,"lt_diag_RNA"],
+                                eta_dt[i, "plt", t]*oldPop[i,"plt_diag_RNA"]) 
+      
+      ##### new retreat #####  
+      
+      newRetreat[i ,t] <- sum(rho_dt[i, "a", t]*oldPop[i,"a_treat_f"],
+                              rho_dt[i, "f0", t]*oldPop[i,"f0_treat_f"],
+                              rho_dt[i, "f1", t]*oldPop[i,"f1_treat_f"],
+                              rho_dt[i, "f2", t]*oldPop[i,"f2_treat_f"],
+                              rho_dt[i, "f3", t]*oldPop[i,"f3_treat_f"],
+                              rho_dt[i, "f4", t]*oldPop[i,"f4_treat_f"],
+                              rho_dt[i, "dc", t]*oldPop[i,"dc_treat_f"],
+                              rho_dt[i, "hcc", t]*oldPop[i,"hcc_treat_f"],
+                              rho_dt[i, "lt", t]*oldPop[i,"lt_treat_f"],
+                              rho_dt[i, "plt", t]*oldPop[i,"plt_treat_f"])
+      
+      ##### antibody test ##### 
+      
+      newTestingAb[i, t] <- sum( tau_ab_dt[i,"a", t]*(1-spc1_dt[i, t])*oldPop[i,"a_undiag"],
+                                  tau_ab_dt[i, "f0", t]*oldPop[i,"f0_undiag"],
+                                  tau_ab_dt[i, "f1", t]*oldPop[i,"f1_undiag"],
+                                  tau_ab_dt[i, "f2", t]*oldPop[i,"f2_undiag"],
+                                  tau_ab_dt[i, "f3", t]*oldPop[i,"f3_undiag"],
+                                  tau_ab_dt[i, "f4", t]*oldPop[i,"f4_undiag"],
+                                  tau_ab_dt[i, "dc", t]*oldPop[i,"dc_undiag"],
+                                  tau_ab_dt[i, "hcc", t]*oldPop[i,"hcc_undiag"],
+                                  tau_ab_dt[i, "lt", t]*oldPop[i,"lt_undiag"],
+                                  tau_ab_dt[i, "plt", t]*oldPop[i,"plt_undiag"])
+      
+      ##### antigen test ##### 
+      
+      newTestingAg[i, t] <- sum(tau_ag_dt[i, "a", t]*oldPop[i,"a_diag_ab"],
+                                tau_ag_dt[i, "f0", t]*oldPop[i,"f0_diag_ab"],
+                                tau_ag_dt[i, "f1", t]*oldPop[i,"f1_diag_ab"],
+                                tau_ag_dt[i, "f2", t]*oldPop[i,"f2_diag_ab"],
+                                tau_ag_dt[i, "f3", t]*oldPop[i,"f3_diag_ab"],
+                                tau_ag_dt[i, "f4", t]*oldPop[i,"f4_diag_ab"],
+                                tau_ag_dt[i, "dc", t]*oldPop[i,"dc_diag_ab"],
+                                tau_ag_dt[i, "hcc", t]*oldPop[i,"hcc_diag_ab"],
+                                tau_ag_dt[i, "lt", t]*oldPop[i,"lt_diag_ab"],
+                                tau_ag_dt[i, "plt", t]*oldPop[i,"plt_diag_ab"])
+      
+      ##### POCT test #####
+      
+      newTestingPOCT[i, t] <- sum( tau_poct_dt[i, "a", t]*(1-spc1_dt[i, t])*oldPop[i,"a_undiag"],
+                                   tau_poct_dt[i, "f0", t]*oldPop[i,"f0_undiag"],
+                                   tau_poct_dt[i, "f1", t]*oldPop[i,"f1_undiag"],
+                                   tau_poct_dt[i, "f2", t]*oldPop[i,"f2_undiag"],
+                                   tau_poct_dt[i, "f3", t]*oldPop[i,"f3_undiag"],
+                                   tau_poct_dt[i, "f4", t]*oldPop[i,"f4_undiag"],
+                                   tau_poct_dt[i, "dc", t]*oldPop[i,"dc_undiag"],
+                                   tau_poct_dt[i, "hcc", t]*oldPop[i,"hcc_undiag"],
+                                   tau_poct_dt[i, "lt", t]*oldPop[i,"lt_undiag"],
+                                   tau_poct_dt[i, "plt", t]*oldPop[i,"plt_undiag"])
+      
+      ##### Cured ##### 
+      newCured[i, t] <- sum( cure_dt[i, "a", t]*oldPop[i,"a_treat"],
+                             cure_dt[i, "f0", t]*oldPop[i,"f0_treat"],
+                             cure_dt[i, "f1", t]*oldPop[i,"f1_treat"],
+                             cure_dt[i, "f2", t]*oldPop[i,"f2_treat"],
+                             cure_dt[i, "f3", t]*oldPop[i,"f3_treat"],
+                             cure_dt[i, "f4", t]*oldPop[i,"f4_treat"],
+                             cure_dt[i, "dc", t]*oldPop[i,"dc_treat"],
+                             cure_dt[i, "hcc", t]*oldPop[i,"hcc_treat"],
+                             cure_dt[i, "lt", t]*oldPop[i,"lt_treat"],
+                             cure_dt[i, "plt", t]*oldPop[i,"plt_treat"])
+      
+      
+    }
     #####reinfection##### 
     
     
@@ -1787,60 +1439,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                                                              0*oldPop[, "hcc_cured"] + 
                                                              0*oldPop[, "lt_cured"] + 
                                                              0*oldPop[, "plt_cured"])
-      
-      
-      
-      
-      #reinfP[, t]*foi_dt[,]*I[, ]*(Pca[,]  + Pcf0[,] + 
-       #                                                   Pcf1[,] + Pcf2[,] + 
-        #                                                  Pcf3[,] + Pcf4[,] + 
-         #                                                 Pcdc[,] + Pchcc[,] + 
-          #                                                Pclt[,] + Pcplt[,])
-    
-    # newreinfection[1, t] <- sum(reinfP[1 , t]*foi_dt[1, ]*oldPop[1 ,"a_cured"],
-    #                            reinfP[ 1, t]*foi_dt[1, ]*oldPop[ 1,"f0_cured"],
-    #                            reinfP[ 1, t]*foi_dt[1, ]*oldPop[ 1,"f1_cured"],
-    #                            reinfP[ 1, t]*foi_dt[1, ]*oldPop[1 ,"f2_cured"],
-    #                            reinfP[ 1, t]*foi_dt[1, ]*oldPop[ 1,"f3_cured"],
-    #                            reinfP[ 1, t]*foi_dt[1, ]*oldPop[1 ,"f4_cured"],
-    #                            reinfP[ 1, t]*foi_dt[1, ]*oldPop[1 ,"dc_cured"],
-    #                            reinfP[ 1, t]*foi_dt[1, ]*oldPop[1 ,"hcc_cured"],
-    #                            reinfP[ 1, t]*foi_dt[1, ]*oldPop[1 ,"lt_cured"],
-    #                            reinfP[ 1, t]*foi_dt[1, ]*oldPop[1 ,"plt_cured"])
-    
-    # newreinfection[2, t] <- sum(reinfP[ 2, t]*foi_dt[2, ]*oldPop[2 ,"a_cured"],
-    #                             reinfP[ 2, t]*foi_dt[2, ]*oldPop[2,"f0_cured"],
-    #                            reinfP[ 2, t]*foi_dt[2, ]*oldPop[2,"f1_cured"],
-    #                             reinfP[ 2, t]*foi_dt[2, ]*oldPop[2,"f2_cured"],
-    #                            reinfP[ 2, t]*foi_dt[2, ]*oldPop[2,"f3_cured"],
-    #                             reinfP[ 2, t]*foi_dt[2, ]*oldPop[2 ,"f4_cured"],
-    #                            reinfP[ 2, t]*foi_dt[2, ]*oldPop[2 ,"dc_cured"],
-    #                              reinfP[ 2, t]*foi_dt[2, ]*oldPop[2 ,"hcc_cured"],
-    #                             reinfP[ 2, t]*foi_dt[2, ]*oldPop[2 ,"lt_cured"],
-    #                              reinfP[ 2, t]*foi_dt[2, ]*oldPop[2 ,"plt_cured"])
-    
-    # newreinfection[3, t] <- sum(reinfP[ 3, t]*foi_dt[3, ]*oldPop[3 ,"a_cured"],
-    #                             reinfP[ 3, t]*foi_dt[3, ]*oldPop[3,"f0_cured"],
-    #                             reinfP[ 3, t]*foi_dt[3, ]*oldPop[3,"f1_cured"],
-    #                             reinfP[ 3, t]*foi_dt[3, ]*oldPop[3,"f2_cured"],
-    #                             reinfP[ 3, t]*foi_dt[3, ]*oldPop[3,"f3_cured"],
-    #                             reinfP[ 3, t]*foi_dt[3, ]*oldPop[3 ,"f4_cured"],
-    #                             reinfP[ 3, t]*foi_dt[3, ]*oldPop[3 ,"dc_cured"],
-    #                             reinfP[ 3, t]*foi_dt[3, ]*oldPop[3 ,"hcc_cured"],
-    #                             reinfP[ 3, t]*foi_dt[3, ]*oldPop[3 ,"lt_cured"],
-    #                             reinfP[ 3, t]*foi_dt[3, ]*oldPop[3 ,"plt_cured"])
-    
-    # newreinfection[4, t] <- sum(reinfP[ 4, t]*foi_dt[4, ]*oldPop[4 ,"a_cured"],
-    #                            reinfP[ 4, t]*foi_dt[4, ]*oldPop[4,"f0_cured"],
-    #                            reinfP[ 4, t]*foi_dt[4, ]*oldPop[4,"f1_cured"],
-    #                            reinfP[ 4, t]*foi_dt[4, ]*oldPop[4,"f2_cured"],
-    #                            reinfP[ 4, t]*foi_dt[4, ]*oldPop[4,"f3_cured"],
-    #                            reinfP[ 4, t]*foi_dt[4, ]*oldPop[4 ,"f4_cured"],
-    #                            reinfP[ 4, t]*foi_dt[4, ]*oldPop[4 ,"dc_cured"],
-    #                            reinfP[ 4, t]*foi_dt[4, ]*oldPop[4 ,"hcc_cured"],
-    #                            reinfP[ 4, t]*foi_dt[4, ]*oldPop[4 ,"lt_cured"],
-    #                            reinfP[ 4, t]*foi_dt[4, ]*oldPop[4 ,"plt_cured"]) 
-    
+
     # pop-array 
     newarray[ , , t]<- 
       (pop_array[, , t]*oldPop[, "s"] + 
@@ -2043,11 +1642,11 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       (newTestingAb[, t] + 
          ((oldPop[, "s"] + oldPop[, "a_cured"])*tau_ab_dt[, "f0", t]))
     
-    if(tau_poct_dt[2, "f0", t]==0){
+    if(sum(tau_poct_dt[, "f0", t])==0){ # if not through poct pathway
       costTestingAg[, t] <- costflow[,"ctau_ag", t]*
       (newTestingAg[, t] + 
-         ((S[,] - oldPop[,"s"] - oldPop[, "a_cured"])*tau_ag_dt[, "f0", t]))
-    }else if(tau_poct_dt[2, "f0", t]!=0){ 
+         ((S[,] - oldPop[,"s"] - oldPop[, "a_cured"])*tau_ag_dt[, "f0", t])) # all those cured from HCV (except for a_cured) had same probability to receive RNA testing 
+    }else if(sum(tau_poct_dt[, "f0", t])!=0){ 
       costTestingAg[, t] <- costflow[,"ctau_ag", t]*newTestingAg[, t]
       
       }
