@@ -22,13 +22,13 @@ library("ggrepel")
 # directory 
 
 #file path of "TWHCV-model" project
-codepath <- file.path(here() %>% dirname(), 'TWHCV-model/03. Code/Functions')
+codepath <- file.path(here() %>% dirname()%>%dirname(), '03. Code/Functions')
 
 DataFolder <- file.path(here(), "01. DATA/model input")
 
 # Rda file path 
 # load the .rda file of base estimate 
-rdapath <- file.path(here()%>%dirname(), "Taiwan-MSM-HCV-model")
+rdapath <- file.path(here()%>%dirname()%>%dirname(), "Taiwan-MSM-HCV-model")
 
 # output file path 
 # dir.create("02. Output") # create subdircetory 
@@ -38,7 +38,6 @@ rdapath <- file.path(here()%>%dirname(), "Taiwan-MSM-HCV-model")
 outputdt <- here("02. Output/RDA")
 
 outputfig <- here("02. Output/Figs")
-
 
 # source 
 source(file.path(codepath, "plotOptions.R"))

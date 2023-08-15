@@ -19,13 +19,13 @@ library("formattable")
 # directory 
 
 #file path of "TWHCV-model" project
-codepath <- file.path(here() %>% dirname(), 'TWHCV-model/03. Code/Functions')
+codepath <- file.path(here() %>% dirname()%>%dirname(), '03. Code/Functions')
 
 DataFolder <- file.path(here(), "01. DATA/model input")
 
 # Rda file path 
 # load the .rda file of base estimate 
-rdapath <- file.path(here()%>%dirname(), "Taiwan-MSM-HCV-model")
+rdapath <- file.path(here()%>%dirname()%>%dirname()%>%dirname(), "Taiwan-MSM-HCV-model")
 
 # output file path 
 # dir.create("02. Output") # create subdircetory 
@@ -1206,10 +1206,124 @@ GeomAbline$draw_key <- function(data, params, size)
                          lineend = "butt"))
 }
 
+
+#### save data for plotting PSA ####
+dtforPSA <- test_wide
+save(dtforPSA,
+     file = file.path(outputdt, "dtforPSA.rda"))
+
+
+
+#### plot PSA: total #### 
+plot_PSA <- list()
+dt_psa <- list()
+colpal <- scales::viridis_pal()(3)
+thres <- data.frame(thres = c("1GDP", "3GDP"), value = c(32811, 32811*3))
+popSelect <- unique(test_wide$PrEPsame$population)
+for(i in seq_along(test_all)){ 
+  
+    dt_psa[[i]] <- test_wide[[i]]%>%group_split(population)
+    names(dt_psa[[i]]) <- unique(test_wide[[i]]$population)
+}
+
+#### bugs here, couldn't loop ####
+for(i in seq_along(test_all)){ 
+  plot_PSA[[i]] <- list()
+    for(n in 1: length(popSelect)){
+    plot_PSA[[i]][[n]] <-  ggplot(dt_psa[[i]][[n]], 
+                                  aes(y = `Incremental Cost`, x = `QALY gained`)) +
+      geom_point(aes(colour = testing), size = 0.8) + 
+      scale_color_viridis(discrete = TRUE, option =  "D") +
+      geom_hline(yintercept=0, color = "black", linewidth = 1) +
+      geom_vline(xintercept=0, color = "black", linewidth = 1) +
+      stat_ellipse(aes(colour = testing), 
+                   alpha = 0.8,
+                   show.legend = FALSE, 
+                   level = 0.95) +
+      ylab("Incremental cost (Millions in US$)") + xlab("Incremental QALY gained") + 
+      labs(colour = "Testing", tag = plot_tag[i]) + 
+      ggtitle(scenario_lab[i])  +
+      theme_bw() + 
+      theme(plot.title = element_text(hjust = 0.5)) + 
+      theme(panel.background = element_rect(colour = "white"),
+            plot.background = element_rect(colour = "white"),
+            panel.border     = element_rect(fill = NA, colour = "black", 
+                                            size = NA),
+            plot.title = element_text(face = "bold",
+                                      size = 14, hjust = 0.5),
+            text = element_text(),
+            axis.title = element_text(face = "bold",size = 14),
+            axis.title.y = element_text(angle=90,vjust =1),
+            axis.title.x = element_text(vjust = -0.2),
+            axis.text.x = element_text(angle = 45, vjust = 1,hjust = 1,
+                                       face = "bold",size = 12, colour = "black"), 
+            axis.text.y = element_text(
+              face = "bold",size = 14,colour = "black"),
+            strip.text.x = element_text(size=14, color="black",
+                                        face="bold"),
+            legend.text = element_text(size = 14, face = "bold"),
+            legend.key = element_rect(colour = NA),
+            legend.position = "bottom",
+            legend.direction = "horizontal",
+            legend.title = element_text(face="bold", size= 14),
+            plot.margin = unit(c(10,5,5,5),"mm")) + 
+      theme(panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            strip.background = element_blank(),
+            panel.border = element_rect(colour = "black", fill = NA, size = 1)) + 
+      scale_y_continuous(limits = cost_limit[[i]][[n]],
+                         breaks = cost_break[[i]][[n]],
+                         labels = cost_break[[i]][[n]]/1000000) + 
+      scale_x_continuous(limits = qaly_limit[[i]][[n]],
+                         breaks = qaly_break[[i]][[n]])
+    
+    
+    
+    
+    plot_PSA[[i]][[n]] <- plot_PSA[[i]][[n]] + 
+      geom_abline(aes(slope = 32811, intercept = 0,linetype = "1GDP"), colour = "black") + 
+      geom_abline(aes(slope = 32811*3, intercept = 0,linetype = "3GDP"), colour = "black" ) + 
+      scale_linetype_manual(name = "Threshold", values = c(2, 3), 
+                            guide = guide_legend(override.aes = list(color = c("black", "black"))))
+  }
+  
+  names(plot_PSA[[i]]) <- popSelect
+}
+
+names(plot_PSA) <- names(test_all)
+plot_t <- plot_PSA%>%purrr::transpose()
+
+# entire MSM 
+gplotlist_PSA <- ggarrange(plotlist = plot_t$`Entire population of MSM`, 
+                           common.legend = TRUE, 
+                           ncol  = 2, nrow = 2) 
+
+
+ggsave(path = outputfig, file=paste0("PSA_allMSM.pdf"), 
+       gplotlist_PSA, width = 25, dpi = 800,
+       height = 32)
+
+# MSM subgroups 
+gplotlist_PSA_supple_PrEP <- ggarrange(plotlist = plot_t[[2]], 
+                           common.legend = TRUE, 
+                           ncol  = 2, nrow = 2) 
+gplotlist_PSA_supple_HIVP <- ggarrange(plotlist = plot_t[[3]], 
+                                       common.legend = TRUE, 
+                                       ncol  = 2, nrow = 2) 
+
+
+ggsave(path = outputfig, file=paste0("PSA_subMSM_PrEP.pdf"), 
+       gplotlist_PSA_supple_PrEP, width = 25, dpi = 800,
+       height = 32)
+
+ggsave(path = outputfig, file=paste0("PSA_subMSM_HIVP.pdf"), 
+       gplotlist_PSA_supple_HIVP, width = 25, dpi = 800,
+       height = 32)
+#### plot PSA: total #### 
 plot_PSA <- list()
 colpal <- scales::viridis_pal()(3)
 thres <- data.frame(thres = c("1GDP", "3GDP"), value = c(32811, 32811*3))
-
+popSelect <- unique(test_wide$PrEPsame$population)
 for(i in seq_along(test_all)){ 
   plot_PSA[[i]] <-  ggplot(test_wide[[i]], 
                            aes(y = `Incremental Cost`, x = `QALY gained`)) +
@@ -1290,12 +1404,15 @@ for(i in seq_along(test_all)){
                           guide = guide_legend(override.aes = list(color = c("black", "black"))))
   }
 
-plot_PSA[[1]]
+
   gplotlist_PSA <- ggarrange(plotlist = plot_PSA, common.legend = TRUE, ncol  = 1) 
   
   ggsave(path = outputfig, file=paste0("PSA.pdf"), 
          gplotlist_PSA, width = 25, 
          height = 32)
+
+  
+#### PSA with density plot: test ####
   
   
   
@@ -1393,3 +1510,6 @@ plot_PSA[[1]]
          plot_PSA_test[[1]], width = 16, 
          height = 9)  
 
+
+  
+  
