@@ -151,7 +151,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   }
   
   #### entry ####
-  entry1 <- matrix(0, ncol = 1, nrow = 4)
+  entry1 <- matrix(0, ncol = 1, nrow = npops)
   death <- matrix(0, ncol = ncomponent, nrow = npops, dimnames = dimNames)
   death_hcv <- matrix(0, ncol = ncomponentName_late, nrow = npops, 
                       dimnames = list(HCV$popNames, componentName_late))
@@ -191,17 +191,18 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   outflow <-ResultMatrix 
   
   if (!is.null(cost)){ 
-    
     costTestingAb <- ResultMatrix
     costTestingAg <- ResultMatrix
     costnewTestingPOCT <- ResultMatrix
     costTreatment <- ResultMatrix
     costCured <- ResultMatrix
     costRetreat <- ResultMatrix 
-
+    
     costPops <- array(0, c(npops, ncomponent, npts), dimnames = dimNames) 
     
     QALYPops <- array(0, c(npops, ncomponent, npts), dimnames = dimNames) 
+    
+    
     
     
     }
@@ -348,12 +349,15 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   pop_array <- 1-(1-pop_array)^dt 
   
   #### cost dt ####
-  cost <- lapply(cost, function(x){ 
+  if(!is.null(cost)){
+    cost <- lapply(cost, function(x){ 
+      
+      a <- x*dt
+    })
     
-    a <- x*dt
-  })
+    costflow <- costflow*dt
+  }
   
-  costflow <- costflow*dt
   
   #------------------------------------------------------------------------------#
   ####                     Equations                                        ####   
@@ -486,7 +490,8 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     #####Entry of new people####
     
     if(modelrun == "steady"){ 
-      entry1[1, ] <- sum(death)+sum(death_hcv)
+       entry1[1, ] <- sum(death)+sum(death_hcv)
+      # longer object length is not a multiple of shorter object length
       
     } else { entry1[1,] <- entry_dt[1,t]
     
@@ -1635,16 +1640,14 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     
     #### cost ####
     if (!is.null(cost)){ 
-    costPops[, , t] <- allPops[, , t]*cost$state[,,t]
-   
-    
-    costTestingAb[, t] <- costflow[,"ctau_ab", t]*
-      (newTestingAb[, t] + 
-         ((oldPop[, "s"] + oldPop[, "a_cured"])*tau_ab_dt[, "f0", t]))
+      costPops[, , t] <- allPops[, , t]*cost$state[,,t]
+      
+      costTestingAb[, t] <- costflow[,"ctau_ab", t]*
+        (newTestingAb[, t] + 
+           ((oldPop[, "s"] + oldPop[, "a_cured"])*tau_ab_dt[, "f0", t]))
     
     if(sum(tau_poct_dt[, "f0", t])==0){ # if not through poct pathway
-      costTestingAg[, t] <- costflow[,"ctau_ag", t]*
-      (newTestingAg[, t] + 
+      costTestingAg[, t] <- costflow[,"ctau_ag", t]*(newTestingAg[, t] + 
          ((S[,] - oldPop[,"s"] - oldPop[, "a_cured"])*tau_ag_dt[, "f0", t])) # all those cured from HCV (except for a_cured) had same probability to receive RNA testing 
     }else if(sum(tau_poct_dt[, "f0", t])!=0){ 
       costTestingAg[, t] <- costflow[,"ctau_ag", t]*newTestingAg[, t]

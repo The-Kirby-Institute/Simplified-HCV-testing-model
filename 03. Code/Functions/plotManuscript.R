@@ -7,12 +7,9 @@ library(grid)
 library(ggplot2)
 library(xtable)
 library(ggpubr)
+library(here())
+basePath <- here()
 
-basePath <- getwd()
-dataPath <- file.path(basePath, "01. Data/model input") 
-Rcode <- file.path(basePath, "03. Code")
-ResultsFolder <- file.path(basePath, "04. Output/Results")
-source(file.path(Rcode, "/Functions/plotFunctions.R"))
 
 #### tidy up the datasets for plot #### 
 # prevalence 
