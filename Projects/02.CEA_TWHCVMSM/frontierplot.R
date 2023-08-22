@@ -22,13 +22,13 @@ library("ggrepel")
 # directory 
 
 #file path of "TWHCV-model" project
-codepath <- file.path(here() %>% dirname(), 'TWHCV-model/03. Code/Functions')
+codepath <- file.path(here() %>% dirname()%>%dirname(), '03. Code/Functions')
 
 DataFolder <- file.path(here(), "01. DATA/model input")
 
 # Rda file path 
 # load the .rda file of base estimate 
-rdapath <- file.path(here()%>%dirname(), "Taiwan-MSM-HCV-model")
+rdapath <- file.path(here()%>%dirname()%>%dirname(), "Taiwan-MSM-HCV-model")
 
 # output file path 
 # dir.create("02. Output") # create subdircetory 
@@ -38,7 +38,6 @@ rdapath <- file.path(here()%>%dirname(), "Taiwan-MSM-HCV-model")
 outputdt <- here("02. Output/RDA")
 
 outputfig <- here("02. Output/Figs")
-
 
 # source 
 source(file.path(codepath, "plotOptions.R"))
@@ -114,38 +113,51 @@ icer_hcv$`MSM who are HIV diagnosed (and on treatment)` %>%
 icer_hcv$`HIV-negative MSM on PrEP` %>%
   kable() %>%
   kable_styling()
-dt_tab_char$population
-dt_tab_HIVD <- dt_tab_char%>%filter(population %in% c("MSM who are HIV diagnosed (and on treatment)") & 
-                                     indicator %in% c("Lifetime cost (discounted, millions US$)",
-                                                      "Lifetime QALY (discounted, thousands)",
-                                                      ""))%>%
-  select(front_lab, indicator, Med)%>%
-  spread(indicator, Med)
 
-dt_tab_HIVD <- dt_tab_HIVD%>%mutate(Cost = `Lifetime cost (discounted, millions US$)`,
-                                  effect = `Lifetime QALY (discounted, thousands)`)
+dt_tab_HIVD <- list()
+icer_hcv <- list()
+for(i in unique(dt_tab_char$population)){ 
+  dt_tab_HIVD[[i]] <- dt_tab_char%>%filter(population == i & 
+                                        indicator %in% c("Lifetime cost (discounted, millions US$)",
+                                                         "Lifetime QALY (discounted, thousands)",
+                                                         ""))%>%
+    select(front_lab, indicator, Med)%>%
+    spread(indicator, Med)%>%mutate(Cost = `Lifetime cost (discounted, millions US$)`,
+                                    effect = `Lifetime QALY (discounted, thousands)`)
+  
+  icer_hcv[[i]] <- calculate_icers(cost=dt_tab_HIVD[[i]]$Cost, 
+                              effect=dt_tab_HIVD[[i]]$effect, 
+                              strategies=dt_tab_HIVD[[i]]$front_lab)
+  
+  
+  }
 
-icer_hcv <- calculate_icers(cost=dt_tab_HIVD$Cost, 
-                            effect=dt_tab_HIVD$effect, 
-                            strategies=dt_tab_HIVD$front_lab)
-icer_hcv %>%
-  kable() %>%
-  kable_styling()
+# function for ceiling and floor 
+library(plyr)
 
-icer_hcv$`Entire population of MSM`$Status
-
-x <- ggplot(data = icer_hcv$`Entire population of MSM`, aes(x = Effect, y = Cost, shape = Status)) + 
+dtlim_cost <- list()
+dtlim_effect <- list()
+for(i in names(icer_hcv)){ 
+  dtlim_cost[[i]] <- c(round_any(max(icer_hcv[[i]]$Cost, na.rm = T), 1000000, f = ceiling), 
+                       round_any(min(icer_hcv[[i]]$Cost, na.rm = T), 1000000))
+  dtlim_effect[[i]] <- c(floor_dec(min(icer_hcv[[i]]$Effect, na.rm = T), 100000), 
+                         ceiling_dec(max(icer_hcv[[i]]$Effect, na.rm = T), 100000))
+  }
+icer_hcv$`HIV-negative MSM on PrEP`
+x <- ggplot(data = icer_hcv$`Entire population of MSM`, 
+            aes(y = Effect, x = Cost, shape = Status)) + 
   geom_point(aes(shape = Status)) + 
   geom_line(data = icer_hcv$`Entire population of MSM`%>%filter(Status == "ND"),
-            aes(x=Effect,y=Cost),color = "black") + 
+            aes(y=Effect,x=Cost),color = "black") + 
   geom_label_repel(data = icer_hcv$`Entire population of MSM`%>%filter(Status == "ND"),
     aes(label=Strategy), 
     nudge_x = 0.25, nudge_y = 1) +
   theme_Publication(base_size=20) + 
-  scale_y_continuous(limits = c(50000000, 150000000), 
-                     breaks = seq(50000000, 150000000, 10000000),
-                     labels = seq(50, 150, 10)) +
-  labs(y = "Cost, millions (US$)", x = "QALYs gained")
+    scale_x_continuous(limits = round(c(dtlim_cost[[1]]), 1), 
+                     breaks = seq(dtlim_cost[[1]][1], dtlim_cost[[1]][2], 5000000),
+                     labels = round(seq(dtlim_cost[[1]][1]/1000000, 
+                                        dtlim_cost[[1]][2]/1000000, 5000000/1000000),1)) +
+  labs(x = "Cost, millions (US$)", y = "QALYs gained") 
   
 ggsave(path = outputfig, file="frontierplot.png", x, height = 6, width = 9, dpi = 800)
 a <- plot(icer_hcv$`Entire population of MSM`, currency = "USD", 

@@ -38,20 +38,21 @@ library(grid)
 library(doParallel)
 library(sensitivity)
 library(purrr)
+library(ggpubr)
 # we specify the number of cores/workers we want to use
 registerDoParallel(cores = detectCores() - 1)
 
 #file path of "TWHCV-model" project
-codepath <- file.path(here() %>% dirname(), 'TWHCV-model/03. Code/Functions')
+common_codepath <- file.path(here() %>% dirname()%>% dirname(), '03. Code/Functions')
 
 DataFolder <- file.path(here(), "01. DATA/model input")
 
 # Rda file path 
 # load the .rda file of base estimate 
-rdapath <- file.path(here()%>%dirname(), "Taiwan-MSM-HCV-model")
+rdapath <- file.path(here()%>%dirname()%>%dirname()%>%dirname(), "Taiwan-MSM-HCV-model")
 
 outputdt <- here("02. Output/RDA")
-
+outputfig <- here("02. Output/Figs")
 projectFile <- file.path(rdapath , paste0("HCVModel",".rda"))
 
 projectVars <- load(projectFile)
@@ -74,8 +75,8 @@ load(file.path(rdapath , paste0("HCVModel", "cali",".rda")))
 
 load(file.path(rdapath , paste0("HCVModel", "param",".rda")))
 
-source(file.path(here(),"AggregateRes.R"))
-
+source(file.path(here(), "AggregateRes.R"))
+source(file.path(common_codepath, "plotOptions.R"))
 # load HCV incidence dt 
 
 files <- list.files(path = paste0(outputdt, "/", sep = ""),
@@ -348,6 +349,9 @@ load(file.path(outputdt , "PRCC_inci.rda"))
 load(file.path(outputdt , "PRCC_cost.rda"))
 
 load(file.path(outputdt , "PRCC_qaly.rda"))
+
+PRCC_inci$rank
+
 #### 
 sen_ana <- list()
 
@@ -358,7 +362,13 @@ sen_ana[["cost"]] <- PRCC_cost$PRCC%>%
   mutate(parameter = rownames(.))
 
 sen_ana[["qaly"]] <- PRCC_qaly$PRCC%>%
-  mutate(parameter = rownames(.))
+  mutate(parameter = rownames(.)) 
+
+
+# confidence interval calculation 
+
+
+
 
 # reorder by abstract value of original 
 # extract first 10 
@@ -368,25 +378,38 @@ for (i in names(sen_ana)){
   sen_ana_rank[[i]] <- sen_ana[[i]]%>%arrange(., desc(abs(original)))%>%
     head(., 10)
   }
-sen_ana_rank$qaly
+sen_ana_rank$cost
 tornado_p <- list()
 ### unsolved: rename parameters 
-
-for(i in names(sen_ana_rank)){ 
+title_name <- c("HCV incidence", "Lifetime cost", "Lifetime QALYs")
+for(i in 1:length(names(sen_ana_rank))){ 
   
   tornado_p[[i]] <- sen_ana_rank[[i]]%>%arrange(abs(original))%>%
     mutate(param = factor(parameter, levels = parameter))%>%
     ggplot(data = ., aes(x = param, 
                               y = original))+ 
-    geom_segment( aes(xend=param, yend=0)) +
-    geom_point( size=2.5, color="orange") +
+    geom_segment( aes(xend=param, y=`min. c.i.`, yend = `max. c.i.`)) +
+    geom_point(aes(y = original), size=1.2, color="orange") +
+    geom_hline( aes(yintercept = 0), linetype = "dashed") +
     coord_flip() +
     scale_y_continuous(limits = c(-1, 1)) +
     theme_bw() +
-    xlab("") +
+    xlab("Parameters") +
+    ylab("PRCC coefficient") + 
     
-    ggtitle(i)
+    ggtitle(title_name[i]) + 
+    theme_Publication() + 
+    theme(axis.text.x = element_text(angle = 0, vjust = 0.5,hjust = 0.5,
+                               face = "bold",size = rel(1)))
+    
   
   }
+tornado_p$Inci
+# need to edit the label of the parameters afterward 
 
-tornado_p$cost
+# save into png files 
+a <- ggarrange(plotlist=tornado_p, widths = c(2,2,2), heights = c(1,1,1), 
+          ncol = 3, labels = c("A", "B", "C"))
+ggsave(path = outputfig, file="PRCC_coefficient.png", a, height = 3, 
+       width = 12, dpi = 800)
+
