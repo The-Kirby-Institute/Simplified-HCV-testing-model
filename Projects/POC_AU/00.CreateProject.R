@@ -1,21 +1,27 @@
-# Creating Project
-
-# Re-start R and set to project directory - load packages
-rm(list = ls())
+#### set up projects
+rm(list = ls()) 
+# library
+library(readxl)
 library(dplyr)
+library(here)
+library(doMC)
+library(abind)
 library(tidyverse)
-library(deSolve)
-library(ggplot2)
 library(reshape)
 library(lubridate)
-library(here)
 
-# set up working directory
+# set up dircetory 
 basePath <- here()
-
-# Split equations into function and this is a script to run the functions.
-project_name <- "POC_AU"
-project_directory <- file.path(basePath)
+dir.create("01. DATA") # create subdircetory
+dir.create("01. DATA/data input")
+dir.create("02. Output") 
+dir.create("02. Output/RDA")
+project_directory <- here()
+DataFolder  <- file.path(here(), "01. DATA/model input")
+OutputFolder <- file.path(here(), "02. Output/RDA")
+project_name <- "TWPrisoners"
+# source above a layer, if above doulble layer: adding %>%dirname() 
+# file.path(here()%>%dirname(), "TWPrisoners")
 
 ###########################################################################
 # start of the first year
@@ -32,14 +38,21 @@ Time_Y <- seq(startYear, endYear, by = 1)
 # simulation timestep 
 timestep <- 0.25
 
-
 # population
 
-full_pop_names <- c("Community", 
-                    "Prison")
+full_pop_names <- c("Never Incacerated_non currently injecting drugs", 
+                    "Never Incacerated_currently injecting drugs", 
+                    "Ever Incacerated_non currently injecting drugs", 
+                    "Ever Incacerated_currently injecting drugs",
+                    "Detention Incacerated",
+                    "Prison Incacerated")
 
-pop_names <- c("C", 
-               "P")
+pop_names <- c("N_inca_NCID", 
+               "N_inca_CID", 
+               "E_inca_NCID", 
+               "E_inca_CID",
+               "D_inca",
+               "P_inca")
 
 npops <- length(pop_names)
 ###############################################################################
@@ -53,8 +66,8 @@ full_progress_name <- c("suspectible",
                         "F4", 
                         "decompensated cirrhosis", 
                         "hepatocellular carcinoma",
-                        "liver treatment", 
-                        "post-liver treatment")
+                        "liver transplant", 
+                        "post-liver transplant")
 
 short_progress_name <- c("s", 
                          "a", 
@@ -127,16 +140,12 @@ transitionName <- c("a_f0",
 
 ## constant parameters and adjust number of parameters 
 cparam_all <- c("entry", 
-                "spc",
-                "mordc",
-                "morhcc", 
-                "morlt", 
-                "morplt",
                 "Cure_mordc_Reduction", 
                 "Cure_morhcc_Reduction")
 
 ## constant parameters for each population
-cparam_pop <-  c("beta","mortality_b")
+cparam_pop <-  c("beta", "spc", "mortality_b", "mordc",
+                 "morhcc","morlt", "morplt")
 
 ## number of columns of constants parameters 
 numConstants <- npops * length(cparam_pop) + length(cparam_all)
@@ -178,11 +187,11 @@ for (param in 1:length(initialPopsNames)) {
 initial_pop$parameter <- fullInitialNames
 
 # Write constants to file
-path <- paste0(project_directory, "/01. DATA/model input")
 
-write.csv(initial_pop, file.path(path, "initial_populations.csv"))
 
-write.csv(constants, file.path(path, "parameters_constants.csv"))
+write.csv(initial_pop, file.path(DataFolder , "initial_populations.csv"))
+
+write.csv(constants, file.path(DataFolder , "parameters_constants.csv"))
 
 
 # disease progress rate file 
@@ -193,7 +202,7 @@ transition <- as.data.frame(matrix(0, nrow = npops,
   setNames(transitionName)
 
 
-write.csv(transition, file.path(path, "diseaseProgress.csv"))
+write.csv(transition, file.path(DataFolder, "diseaseProgress.csv"))
 
 ## transition parameters part II
 ## these disease progress parameter are constant overtime and populations
@@ -202,12 +211,12 @@ write.csv(transition, file.path(path, "diseaseProgress.csv"))
 fib <- as.data.frame(matrix(0, nrow = npops, ncol = length(fibName)))%>%
   setNames(fibName)
 
-write.csv(fib, file.path(path, "curedProgress.csv"))
+write.csv(fib, file.path(DataFolder, "curedProgress.csv"))
 
 
 # parameters that varies over disease stage and populations
 # tau_ab, tau_ag, tau_poct, eta, lota, rho, cured
-parameter_variedstage_set <- c("tau_ab", "tau_RNA", "tau_poct", "eta", "lota",
+parameter_variedstage_set <- c("tau_ab", "tau_ag", "tau_poct", "eta", "lota",
                                "rho", "cured") 
 
 param_frame <- as.data.frame(matrix(0, nrow = npops, 
@@ -224,7 +233,7 @@ names(outlist) <- parameter_variedstage_set
 
 # write to seperate csv file 
 for(i in names(outlist)){
-  write.csv(outlist[[i]], file.path(path, paste0(i,".csv")))
+  write.csv(outlist[[i]], file.path(DataFolder, paste0(i,".csv")))
 }
 
 
@@ -237,7 +246,7 @@ colnames(transitions) <- c(unlist(lapply(as.list(pop_names),
                                          function(x) paste0(x, pop_names))))
 
 
-write.csv(transitions, file.path(path, "population_transitions.csv"))
+write.csv(transitions, file.path(DataFolder, "population_transitions.csv"))
 
 
 # Create project specifications list
@@ -281,35 +290,30 @@ HCV$nyears <- nyears
 HCV$years <- startYear:endYear
 
 # Create project .rda files    
-save(HCV, file = file.path(project_directory,
+save(HCV, file = file.path(OutputFolder,
                            paste0(project_name, ".rda")))  
 
-
+################################################################################
+#### not sure needs cost analysis #### 
 
 #### cost dataframe #### 
 
-cparameter_cascade <- c("ctau_ab", "ctau_RNA", "ctau_poct", "ceta", "clota",
+cparameter_cascade <- c("ctau_ab", "ctau_ag", "ctau_poct", "ceta", "clota",
                         "crho", "ccured") 
 
 param_frame <- as.data.frame(matrix(0, nrow = HCV$npops, 
                                     ncol = length(cparameter_cascade)))%>%
   setNames(cparameter_cascade)
 
-write.csv(param_frame, file.path(paste(path, 
+write.csv(param_frame, file.path(paste(DataFolder, 
                                        "/cost", sep = ""), "costFlow.csv"))
 
 # write to seperate csv file 
-
-
-#### cost pops and QALY pops!!!! not yet  #### 
 # cascade cost
 for(i in names(outlist)){
   write.csv(outlist[[i]], file.path(paste(path, 
                                           "/cost", sep = ""), paste0(i,".csv")))
-} 
-
-
-
+}
 # cost of each state 
 costPops <- replace(best_initial_pop, best_initial_pop!=0,0)
 write.csv(costPops, file.path(paste(path, 
@@ -317,3 +321,5 @@ write.csv(costPops, file.path(paste(path,
 # QALY of each state 
 write.csv(costPops, file.path(paste(path, 
                                     "/cost", sep = ""), "QALYPops.csv"))
+
+################################################################################
