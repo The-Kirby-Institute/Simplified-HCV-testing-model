@@ -520,8 +520,19 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     
     Iall <- colSums(I)
     
-    II <- Iall/Sall
+    II <- matrix(0, ncol = 1, nrow = npops)
     
+    for(i in 1: npops){ 
+      if(proj == "POC_AU"){ 
+        II[i,] <- I[i,]/S[i,]
+      }else{ 
+        II[i, ] <-  Iall/Sall
+        
+        }
+      
+      }
+
+  
     II[is.nan(II)] <- 0
     
     
@@ -594,7 +605,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       (colSums(pop_array[, , t]*oldPop[, "s"]) -
          rowSums(pop_array[, , t]*oldPop[, "s"])) -
       #foi_dt[, ]*I[,]*Ps[,]
-      foi_dt[, ]*II*oldPop[, "s"]
+      foi_dt[, ]*II[,]*oldPop[, "s"]
     
     ##### a ####
     # a_infection 
@@ -610,9 +621,9 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       #foi_dt[, ]*I[,]*Ps[,] +
       #reinfP[, t]*foi_dt[, ]*I[,]*Pca[,] + 
       #reinfP[, t]*foi_dt[, ]*I[,]*Pcf0[,]
-      foi_dt[, ]*II*oldPop[, "s"]+ 
-      reinfP[, t]*foi_dt[, ]*II*oldPop[, "a_cured"] +
-      reinfP[, t]*foi_dt[, ]*II*oldPop[, "f0_cured"]
+      foi_dt[, ]*II[,]*oldPop[, "s"]+ 
+      reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "a_cured"] +
+      reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "f0_cured"]
     
     
     
@@ -663,7 +674,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       cure_dt[, "a", t]*oldPop[, "a_treat"] + 
       spc1_dt[, t]*oldPop[ ,"a_undiag"] -
       #reinfP[, t]*foi_dt[, ]*I[,]*Pca[,]
-      reinfP[, t]*foi_dt[, ]*II*oldPop[, "a_cured"]
+      reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "a_cured"]
     
     
     ##### f0 #####
@@ -730,7 +741,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       death[,"f0_cured"] - leave[,"f0_cured"] + 
       cure_dt[, "f0", t]*oldPop[, "f0_treat"] -
       #reinfP[, t]*foi_dt[, ]*I[,]*Pcf0[,]
-      reinfP[, t]*foi_dt[, ]*II*oldPop[, "f0_cured"]
+      reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "f0_cured"]
     
     ##### f1 #####
     ## f1 infection
@@ -743,7 +754,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       tau_ab_dt[, "f1", t]*oldPop[, "f1_undiag"] - 
       tau_poct_dt[, "f2", t]*oldPop[, "f1_undiag"] +
       #reinfP[, t]*foi_dt[, ]*I[,]*Pcf1[,]
-      reinfP[, t]*foi_dt[, ]*II*oldPop[, "f1_cured"]
+      reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "f1_cured"]
     
     
     ## f1 testing, ab+
@@ -798,7 +809,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       death[,"f1_cured"] - leave[,"f1_cured"] + 
       cure_dt[, "f1", t]*oldPop[, "f1_treat"] -
       #reinfP[, t]*foi_dt[, ]*I[,]*Pcf1[,] 
-      reinfP[, t]*foi_dt[, ]*II*oldPop[, "f1_cured"]
+      reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "f1_cured"]
     
     ##### f2 #####
     ## f2 infection
@@ -811,7 +822,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       tau_ab_dt[, "f2", t]*oldPop[, "f2_undiag"] -  
       tau_poct_dt[, "f2", t]*oldPop[, "f2_undiag"] +
       #reinfP[, t]*foi_dt[, ]*I[,]*Pcf2[,]
-      reinfP[, t]*foi_dt[, ]*II*oldPop[, "f2_cured"]
+      reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "f2_cured"]
     
     ## f2 testing, ab+
     newPop[, "f2_diag_ab"] <- oldPop[,"f2_diag_ab"] + 
@@ -865,7 +876,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       death[,"f2_cured"] - leave[,"f2_cured"] + 
       cure_dt[, "f2", t]*oldPop[, "f2_treat"] - 
       #reinfP[, t]*foi_dt[, ]*I[,]*Pcf2[,] 
-      reinfP[, t]*foi_dt[, ]*II*oldPop[, "f2_cured"]
+      reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "f2_cured"]
     
     ##### f3 #####
     ## f3 infection
@@ -879,7 +890,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       tau_ab_dt[, "f3", t]*oldPop[, "f3_undiag"] - 
       tau_poct_dt[, "f3", t]*oldPop[, "f3_undiag"] + 
       #reinfP[, t]*foi_dt[, ]*I[,]*Pcf3[,]
-      reinfP[, t]*foi_dt[, ]*II*oldPop[, "f3_cured"]
+      reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "f3_cured"]
     
     
     ## f3 testing, ab+
@@ -940,7 +951,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       fibprog_dt[, "f3_cured_f4_cured"]*oldPop[, "f3_cured"] - 
       fibprog_dt[, "f3_cured_hcc_cured"]*oldPop[, "f3_cured"] - 
       #reinfP[, t]*foi_dt[, ]*I[,]*Pcf3[,]
-      reinfP[, t]*foi_dt[, ]*II*oldPop[, "f3_cured"]
+      reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "f3_cured"]
     
     ##### f4 ##### 
     ## f4 infection
@@ -954,7 +965,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       tau_ab_dt[, "f4", t]*oldPop[, "f4_undiag"] - 
       tau_poct_dt[, "f4", t]*oldPop[, "f4_undiag"] +
       #reinfP[, t]*foi_dt[, ]*I[,]*Pcf4[,]
-      0*reinfP[, t]*foi_dt[, ]*II*oldPop[, "f4_cured"]
+      0*reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "f4_cured"]
     
     ## f4 testing, ab+
     newPop[, "f4_diag_ab"] <- oldPop[,"f4_diag_ab"] + 
@@ -1015,7 +1026,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       fibprog_dt[, "f4_cured_dc_cured"]*oldPop[, "f4_cured"] - 
       fibprog_dt[, "f4_cured_hcc_cured"]*oldPop[, "f4_cured"] - 
       #reinfP[, t]*foi_dt[, ]*I[,]*Pcf4[,]
-      0*reinfP[, t]*foi_dt[, ]*II*oldPop[, "f4_cured"]
+      0*reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "f4_cured"]
     
     
     
@@ -1035,7 +1046,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       tau_ab_dt[, "dc", t]*oldPop[, "dc_undiag"] - 
       tau_poct_dt[, "dc", t]*oldPop[, "dc_undiag"] +
       #reinfP[, t]*foi_dt[, ]*I[,]*Pcdc[,]
-      0*reinfP[, t]*foi_dt[, ]*II*oldPop[, "dc_cured"]
+      0*reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "dc_cured"]
     
     newPop[, "dc_diag_ab"] <- oldPop[,"dc_diag_ab"] + 
       (colSums(pop_array[, , t]*oldPop[, "dc_diag_ab"]) -
@@ -1100,7 +1111,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       fibprog_dt[, "dc_cured_hcc_cured"]*oldPop[, "dc_cured"] + 
       fibprog_dt[, "f4_cured_dc_cured"]*oldPop[, "f4_cured"] -
       #reinfP[, t]*foi_dt[, ]*I[,]*Pcdc[,]
-      0*reinfP[, t]*foi_dt[, ]*II*oldPop[, "dc_cured"]
+      0*reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "dc_cured"]
     
     
     
@@ -1121,7 +1132,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       tau_ab_dt[, "hcc", t]*oldPop[, "hcc_undiag"] -  
       tau_poct_dt[, "hcc", t]*oldPop[, "hcc_undiag"] + 
       #reinfP[, t]*foi_dt[, ]*I[,]*Pchcc[,] 
-      0*reinfP[, t]*foi_dt[, ]*II*oldPop[, "hcc_cured"]
+      0*reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "hcc_cured"]
     
     
     ## hcc testing, ab+
@@ -1193,7 +1204,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       fibprog_dt[, "f3_cured_hcc_cured"]*oldPop[, "f3_cured"] - 
       fibprog_dt[, "hcc_cured_lt_cured"]*oldPop[, "hcc_cured"] - 
       #reinfP[, t]*foi_dt[, ]*I[,]*Pchcc[,] 
-      0*reinfP[, t]*foi_dt[, ]*II*oldPop[, "hcc_cured"]
+      0*reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "hcc_cured"]
     
     
     
@@ -1210,7 +1221,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       tau_ab_dt[, "lt", t]*oldPop[, "lt_undiag"] - 
       tau_poct_dt[, "lt", t]*oldPop[, "lt_undiag"] + 
       #reinfP[, t]*foi_dt[, ]*I[,]*Pclt[,] 
-      0*reinfP[, t]*foi_dt[, ]*II*oldPop[, "lt_cured"]
+      0*reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "lt_cured"]
     
     ### LT testing, ab+
     newPop[, "lt_diag_ab"] <- oldPop[,"lt_diag_ab"] + 
@@ -1275,7 +1286,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       fibprog_dt[, "dc_cured_lt_cured"]*oldPop[, "dc_cured"] - 
       fibprog_dt[, "lt_cured_plt_cured"]*oldPop[, "lt_cured"] - 
       #reinfP[, t]*foi_dt[, ]*I[,]*Pclt[,]
-      0*reinfP[, t]*foi_dt[, ]*II*oldPop[, "lt_cured"]
+      0*reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "lt_cured"]
     
     ##### PLT #####
     ### PLT infection
@@ -1288,7 +1299,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       tau_poct_dt[, "plt", t]*oldPop[, "plt_undiag"] + 
       fibprog_dt[, "lt_plt"]*oldPop[, "lt_undiag"] +
       #reinfP[, t]*foi_dt[, ]*I[,]*Pcplt[,]
-      0*reinfP[, t]*foi_dt[, ]*II*oldPop[, "plt_cured"]
+      0*reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "plt_cured"]
     
     ### PLT testing, ab+
     newPop[, "plt_diag_ab"] <- oldPop[,"plt_diag_ab"] + 
@@ -1342,7 +1353,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       cure_dt[, "plt", t]*oldPop[, "plt_treat"] + 
       fibprog_dt[, "lt_cured_plt_cured"]*oldPop[, "lt_cured"] - 
       #reinfP[, t]*foi_dt[, ]*I[,]*Pcplt[,] 
-      0*reinfP[, t]*foi_dt[, ]*II*oldPop[, "plt_cured"]
+      0*reinfP[, t]*foi_dt[, ]*II[,]*oldPop[, "plt_cured"]
     
     
     ifelse(newPop[,] < 0, 0, newPop[, ]) 
@@ -1362,8 +1373,8 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     
     
     ##### new infection #####
-    newInfections[, t] <-  foi_dt[, ]*II*oldPop[, "s"]+ 
-      reinfP[, t]*foi_dt[, ]*II*(oldPop[, "a_cured"] + 
+    newInfections[, t] <-  foi_dt[, ]*II[,]*oldPop[, "s"]+ 
+      reinfP[, t]*foi_dt[, ]*II[,]*(oldPop[, "a_cured"] + 
                                         oldPop[, "f0_cured"] + 
                                         oldPop[, "f1_cured"] + 
                                         oldPop[, "f2_cured"] + 
@@ -1520,7 +1531,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     #####reinfection##### 
     
     
-    newreinfection[, t] <- reinfP[, t]*foi_dt[, ]*II*(oldPop[, "a_cured"] + 
+    newreinfection[, t] <- reinfP[, t]*foi_dt[, ]*II[,]*(oldPop[, "a_cured"] + 
                                                              oldPop[, "f0_cured"] + 
                                                              oldPop[, "f1_cured"] + 
                                                              oldPop[, "f2_cured"] + 
