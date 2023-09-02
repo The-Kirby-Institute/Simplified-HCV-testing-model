@@ -28,7 +28,7 @@ project_name <- "TWPrisoners"
 startYear <-1
 
 # start of the final year
-endYear <-100
+endYear <-1000
 
 nyears <- endYear - startYear + 1  
 
@@ -36,7 +36,7 @@ nyears <- endYear - startYear + 1
 Time_Y <- seq(startYear, endYear, by = 1) 
 
 # simulation timestep 
-timestep <- 0.25
+timestep <- 1/12
 
 # population
 
@@ -251,75 +251,46 @@ write.csv(transitions, file.path(DataFolder, "population_transitions.csv"))
 
 # Create project specifications list
 
-HCV <-list()
-HCV$project_name <- project_name
-HCV$project_directory <- project_directory
+POC_AU <-list()
+POC_AU$project_name <- project_name
+
 
 # population
-HCV$npops <- npops
-HCV$popNames <- pop_names
+POC_AU$npops <- npops
+POC_AU$popNames <- pop_names
 
 # component
-HCV$component_name <- compon_name
-HCV$ncomponent <- length(compon_name)
+POC_AU$component_name <- compon_name
+POC_AU$ncomponent <- length(compon_name)
 
 # component without s
-HCV$component_nameWOS <- compon_nameWOS
-HCV$ncomponentWOS <- length(compon_nameWOS)
+POC_AU$component_nameWOS <- compon_nameWOS
+POC_AU$ncomponentWOS <- length(compon_nameWOS)
 
 # disease progress
-HCV$progress_name <- short_progress_name[-1]
-HCV$nprogress <- length(short_progress_name)-1
+POC_AU$progress_name <- short_progress_name[-1]
+POC_AU$nprogress <- length(short_progress_name)-1
 
 # disease progression rate 
-HCV$diseaseprogress_Name <- transitionName
-HCV$diseaseprogress_n <- length(transitionName)
+POC_AU$diseaseprogress_Name <- transitionName
+POC_AU$diseaseprogress_n <- length(transitionName)
 
 # disease progression rate that are constant overtime and populations
-HCV$fibName <- fibName
-HCV$fib_n <-length(fibName)
+POC_AU$fibName <- fibName
+POC_AU$fib_n <-length(fibName)
 
 # cascade
-HCV$cascade_name <- short_cascade_name
-HCV$ncascade <- length(short_cascade_name)
+POC_AU$cascade_name <- short_cascade_name
+POC_AU$ncascade <- length(short_cascade_name)
 # time related
-HCV$startYear <- startYear
-HCV$endYear <- endYear
-HCV$timestep <- timestep
-HCV$nyears <- nyears
-HCV$years <- startYear:endYear
+POC_AU$startYear <- startYear
+POC_AU$endYear <- endYear
+POC_AU$timestep <- timestep
+POC_AU$nyears <- nyears
+POC_AU$years <- startYear:endYear
 
 # Create project .rda files    
-save(HCV, file = file.path(OutputFolder,
+save(POC_AU, file = file.path(OutputFolder,
                            paste0(project_name, ".rda")))  
 
-################################################################################
-#### not sure needs cost analysis #### 
 
-#### cost dataframe #### 
-
-cparameter_cascade <- c("ctau_ab", "ctau_ag", "ctau_poct", "ceta", "clota",
-                        "crho", "ccured") 
-
-param_frame <- as.data.frame(matrix(0, nrow = HCV$npops, 
-                                    ncol = length(cparameter_cascade)))%>%
-  setNames(cparameter_cascade)
-
-write.csv(param_frame, file.path(paste(DataFolder, 
-                                       "/cost", sep = ""), "costFlow.csv"))
-
-# write to seperate csv file 
-# cascade cost
-for(i in names(outlist)){
-  write.csv(outlist[[i]], file.path(paste(path, 
-                                          "/cost", sep = ""), paste0(i,".csv")))
-}
-# cost of each state 
-costPops <- replace(best_initial_pop, best_initial_pop!=0,0)
-write.csv(costPops, file.path(paste(path, 
-                                    "/cost", sep = ""), "costPops.csv"))
-# QALY of each state 
-write.csv(costPops, file.path(paste(path, 
-                                    "/cost", sep = ""), "QALYPops.csv"))
-
-################################################################################
