@@ -169,8 +169,6 @@ constants <- as.data.frame(t(constants[, -1]))
 colnames(constants) <- parameters
 rownames(constants) <- NULL
 
-# entry = male entry* MSM prop
-constants$entry <- constants$entry*constants$MSM_pro
 
 constantsDf <- constants[rep(1, POC_AU$npts), ]
 
@@ -228,3 +226,4 @@ save(POC_AU,constants ,disease_progress, fib, dfList, pop_array,
      constantsDf, initialPops, best_estimates, best_initial_pop, param_constant, 
      file = file.path(DataFolder,
                       paste0(project_name, ".rda")))
+
