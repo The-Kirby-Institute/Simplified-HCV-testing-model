@@ -11,37 +11,34 @@ library(abind)
 registerDoMC(cores = 2) 
 
 # set up dircetory 
-basePath <- here()
-
+codep <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/TWHCV-model"
+epidatapath <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Taiwan-MSM-HCV-model"
 #file path of "TWHCV-model" project
-codepath <- file.path(here() %>% dirname(), 'TWHCV-model/03. Code/Functions')
+Rcode <- file.path(codep, '03. Code')
+scenariopath <- file.path(epidatapath, '01. DATA/model input/Scenarios')
 
-scenariopath <- file.path(here() %>% dirname(), 
-                          'TWHCV-model/01. DATA/model input/Scenarios')
-
-DataFolder <- file.path(here(), "01. DATA/model input")
-
+# save and cost data folder 
+dtp <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/02.CEA_TWHCVMSM"
+DataFolder <- file.path(dtp, "01. DATA/model input")
+outputdt <- file.path(dtp, "02. Output/RDA")
 # Rda file path 
 # load the .rda file of base estimate 
-rdapath <- file.path(here()%>%dirname(), "Taiwan-MSM-HCV-model")
 
-load(file.path(rdapath , paste0("HCVModel", "param",".rda")))
 
-load(file.path(rdapath , paste0("HCVModel",".rda")))
+load(file.path(epidatapath , paste0("HCVModel", "param",".rda")))
 
-# output file path 
-# dir.create("02. Output") # create subdircetory 
-# dir.create("02. Output/RDA") 
-outputdt <- here("02. Output/RDA")
+load(file.path(epidatapath , paste0("HCVModel",".rda")))
+
+
 
 # source 
-source(file.path(codepath, "HCV_model.R"))
+source(file.path(Rcode, "Functions/HCV_model.R"))
 
-source(file.path(codepath, "plotFunctions.R"))
+source(file.path(Rcode, "Functions/plotFunctions.R"))
 
-source(file.path(codepath, "plotOptions.R"))
+source(file.path(Rcode, "Functions/plotOptions.R"))
 
-source(file.path(codepath, "Scenarios_wrangling.R"))
+source(file.path(Rcode, "Functions/Scenarios_wrangling.R"))
 
 
 # import exacel file for odds ratio and uncertainty range for scenarios 
@@ -125,6 +122,9 @@ for ( i in 1: length(SceName)){
     Scen_main[[SceName[i]]][[j]] <- Scen_cascade[[i]][[j]]
   }
 }
+
+
+
 
 #### uncertainty range ####
 set.seed(123456) 
@@ -329,17 +329,20 @@ for( m in SceName){
     }
   }
 
+
+
 ####save rda ####
 save(CEA_main, CEA_mainParam, file = file.path(outputdt, "mainansis.rda"))
 
 #### cost #### 
 files <- list.files(path = paste0(DataFolder, 
-                                  "/cost/", sep =  ""), pattern = '*.xlsx')
+                                  "/cost/", sep =  ""), pattern = '*.csv')
 
 
 costdfList <- lapply(files, function(f) {
   
-  df <- read_excel(file.path(paste0(DataFolder, "/cost/", f, sep = "")))
+  df <- read.csv(file.path(paste0(DataFolder, "/cost/", f, sep = "")), header = TRUE)
+  
   df <- df[, -1]
   
   df <- df%>%as_tibble()
@@ -347,8 +350,8 @@ costdfList <- lapply(files, function(f) {
   df <- as.matrix(df, nrow = npops, ncol = length(.) + 1)
   })
 
-names(costdfList) <- c(gsub("^|.xlsx", "", files)) # ^: from beginning, \ end before .csv
-
+names(costdfList) <- c(gsub("^|.csv", "", files)) # ^: from beginning, \ end before .csv
+costdfList$costPops
 
 cost <- list()
 
@@ -384,17 +387,16 @@ if(isTRUE(TestSce=="tarpop")){
   cost[["POCRNA"]][3, ] <- cost[["flow"]][3, ]
 }
 
+#### expand cost to array 
 
+cost <- lapply(cost, function(c){ 
+  con <- colnames(c)
+  a <- array(rep(c, 1000), dim = c(dim(c), 1000))
+  colnames(a) <- con
+  return(a)
 
+    })
 
-#### bugs #### 
-cost <- lapply(cost, function(x){ 
-  
-  a <- replicate(HCV$npts, x)%>%as.numeric()
-  })
 
 save(cost, file = file.path(outputdt, "cost.rda"))
-
-
-cost$flow
 

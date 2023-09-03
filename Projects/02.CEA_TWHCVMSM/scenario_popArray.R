@@ -17,39 +17,59 @@ library(doParallel)
 registerDoMC(cores = 2) 
 
 # set up dircetory 
-basePath <- here()
-
+codep <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/TWHCV-model"
+epidatapath <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Taiwan-MSM-HCV-model"
 #file path of "TWHCV-model" project
-codepath <- file.path(here() %>% dirname(), 'TWHCV-model/03. Code/Functions')
+## !! using the github simplfied HCV testing v1.0.1 release on 2023.04.17
+Rcode <- file.path(codep, '03. Code')
+scenariopath <- file.path(epidatapath, '01. DATA/model input/Scenarios')
 
-scenariopath <- file.path(here() %>% dirname(), 
-                          'TWHCV-model/01. DATA/model input/Scenarios')
-
-DataFolder <- file.path(here(), "01. DATA/model input")
-
+# save and cost data folder 
+dtp <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/02.CEA_TWHCVMSM"
+DataFolder <- file.path(dtp, "01. DATA/model input")
+outputdt <- file.path(dtp, "02. Output/RDA")
 # Rda file path 
 # load the .rda file of base estimate 
-rdapath <- file.path(here()%>%dirname(), "Taiwan-MSM-HCV-model")
 
-load(file.path(rdapath , paste0("HCVModel",".rda")))
 
-load(file.path(rdapath , paste0("HCVModel", "cali",".rda")))
+load(file.path(epidatapath , paste0("HCVModel", "param",".rda")))
 
-load(file.path(here("02. Output/RDA"), "cost.rda"))
+load(file.path(epidatapath , paste0("HCVModel",".rda")))
 
-load(file.path(rdapath , paste0("HCVModel", "param",".rda")))
+
+
+# source 
+source(file.path(Rcode, "Functions/HCV_model.R"))
+
+source(file.path(Rcode, "Functions/plotFunctions.R"))
+
+source(file.path(Rcode, "Functions/plotOptions.R"))
+
+source(file.path(Rcode, "Functions/Scenarios_wrangling.R"))
+
+
+
+load(file.path(epidatapath , paste0("HCVModel",".rda")))
+
+load(file.path(epidatapath, paste0("HCVModel", "cali",".rda")))
+
+load(file.path(outputdt, "cost.rda"))
+
+load(file.path(epidatapath, paste0("HCVModel", "param",".rda")))
 
 # output file path 
 # dir.create("02. Output") # create subdircetory 
 # dir.create("02. Output/RDA") 
-outputdt <- here("02. Output/RDA")
+
 
 # source 
-source(file.path(codepath, "HCV_model.R"))
+source(file.path(Rcode, "Functions/HCV_model.R"))
 
-source(file.path(codepath, "plotFunctions.R"))
+source(file.path(Rcode, "Functions/plotFunctions.R"))
 
-source(file.path(codepath, "plotOptions.R"))
+source(file.path(Rcode, "Functions/plotOptions.R"))
+
+source(file.path(Rcode, "Functions/Scenarios_wrangling.R"))
 
 # inititaing year 
 calibrateY <- 2004
@@ -121,7 +141,7 @@ Sq <- list()
 for(i in names(pop_arrayPrEPHIV)){
   Sq[[i]] <- HCVMSM(HCV,best_estimates, best_est_pop,
                         disease_progress,pop_arrayPrEPHIV[[i]], dfList, fib,
-                        end_Y =30, modelrun="UN", cost = cost, 
+                        end_Y = 30, modelrun="UN", cost = cost, 
                         costflow = cost$flow)
   }
 

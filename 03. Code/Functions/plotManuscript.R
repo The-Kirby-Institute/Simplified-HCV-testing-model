@@ -391,7 +391,7 @@ scenario_Incidence  <- function(srlst, sparamlst, pop = NULL,
     }
     return(StempInc_all_range)
   }
-  else if(indicator =="cum"){
+  else if(indicator =="cum_new"){ # total cumulative new infections (primary + reinfection)
     if(is.null(pop)){ 
       
       HCVInfect_all <- list()
@@ -448,6 +448,69 @@ scenario_Incidence  <- function(srlst, sparamlst, pop = NULL,
         
         
         })
+      
+      StempInc_all_range <- do.call("rbind", HCVInfect_all) 
+    }
+    return(StempInc_all_range)
+    
+  }
+  else if(indicator =="cum_re"){ # total cumulative new re-infections 
+    if(is.null(pop)){ 
+      
+      HCVInfect_all <- list()
+      HCVInfect_all <- lapply(seq_along(srlst), function(x){ 
+        
+        a <- indicatorResults(HCV, srlst[[x]], "newreInfections", 
+                              pop="all",
+                              paramR = sparamlst[[x]], 
+                              range = "y",
+                              endY = 30, scenario = "main")%>%
+          mutate(testing = nn[x])
+        
+        
+        a <-a%>%mutate(across(c(best, paste0("set", seq(1, HCV$numberSamples,1))),
+                              cumsum, .names = "set{col}"))%>%
+          select(year, testing, c(best, 
+                                  paste0("set", seq(1, HCV$numberSamples,1))))
+        
+        a <-popResults_range(HCV, a, Population = NULL,
+                             Disease_prog = NULL , 
+                             Cascade = NULL, end_Y = 30)%>%
+          as.data.frame()%>%
+          select(year, testing, best, Mu, Med, max, min, q5, 
+                 q25, q75, q95 )
+      })
+      
+      StempInc_all_range <- do.call("rbind", HCVInfect_all)
+      
+    }
+    else{ 
+      HCVInfect_all <- list()
+      HCVInfect_all <- lapply(seq_along(srlst), function(x){ 
+        
+        a <- indicatorResults(HCV, srlst[[x]], "newreInfections", 
+                              pop=HCV$popNames,
+                              paramR = sparamlst[[x]], 
+                              range = "y",
+                              endY = 30, scenario = "main")%>%
+          mutate(testing = nn[x])
+        a <-a%>%mutate(across(c(best, paste0("set", seq(1, HCV$numberSamples,1))),
+                              cumsum, .names = "set{col}"))%>%
+          select(year, population, testing, 
+                 c(best, paste0("set", seq(1, HCV$numberSamples,1))))
+        
+        a <-popResults_range(HCV, a, Population = HCV$popNames,
+                             Disease_prog = NULL , 
+                             Cascade = NULL, end_Y = 30)%>%
+          as.data.frame()%>%
+          select(year, population, testing, best, Mu, Med, max, min, q5, 
+                 q25, q75, q95 )
+        
+        
+        
+        
+        
+      })
       
       StempInc_all_range <- do.call("rbind", HCVInfect_all) 
     }
@@ -675,7 +738,7 @@ ScePlot <- function(dtt, ylabel = NULL,
   }
   
   if (is.null(xlimits)) {
-    xlimits = c(min(data$year), max(data$year), 20)
+    xlimits = c(min(dtt$year), max(dtt$year), 20)
   }
   
   if (is.null(facetPlot)) {
@@ -692,9 +755,16 @@ ScePlot <- function(dtt, ylabel = NULL,
                                             "Single visit point-of-care RNA testing"))
   }
   
-  dtt <- dtt%>%mutate(testing = factor(testing, 
-                                       levels = c(unique(dtt$testing))),
-                      year = year + HCV$cabY -1)
+  if(min(dtt$year)< HCV$cabY){
+    dtt <- dtt%>%mutate(testing = factor(testing, 
+                                         levels = c(unique(dtt$testing))),
+                        year = year + HCV$cabY -1)
+  }else{ 
+    dtt <- dtt%>%mutate(testing = factor(testing, 
+                                         levels = c(unique(dtt$testing))))
+    
+    }
+  
   
   if(!is.null(ribbonarea)){
     plot <- ggplot(data = dtt, aes_string(x = "year", 
