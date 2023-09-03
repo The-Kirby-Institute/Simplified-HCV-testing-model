@@ -5,7 +5,7 @@ rm(list = ls())
 library(here)
 here()
 
-# load libraries  
+# load libraries
 library(dplyr)
 library(ggplot2)
 library(ggrepel)
@@ -17,48 +17,50 @@ library(doParallel)
 # we specify the number of cores/workers we want to use
 registerDoParallel(cores = detectCores() - 1)
 
+codep <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/TWHCV-model"
+com_codeP <- "/Users/jjwu/Documents/Simplified-HCV-testing-model/03. Code"
+epidatapath <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Taiwan-MSM-HCV-model"
 #file path of "TWHCV-model" project
-codepath <- file.path(here() %>% dirname(), 'TWHCV-model/03. Code/Functions')
+Rcode <- file.path(codep, '03. Code')
+scenariopath <- file.path(epidatapath, '01. DATA/model input/Scenarios')
 
-DataFolder <- file.path(here(), "01. DATA/model input")
-
-# Rda file path 
-# load the .rda file of base estimate 
-rdapath <- file.path(here()%>%dirname(), "Taiwan-MSM-HCV-model")
-
+# save and cost data folder 
+dtp <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/02.CEA_TWHCVMSM"
+DataFolder <- file.path(dtp, "01. DATA/model input")
+outputdt <- file.path(dtp, "02. Output/RDA")
 
 
-projectFile <- file.path(rdapath , paste0("HCVModel",".rda"))
+projectFile <- file.path(epidatapath , paste0("HCVModel",".rda"))
 
 projectVars <- load(projectFile)
 
-load(file.path(rdapath , paste0("HCVModel", "cali",".rda")))
+load(file.path(epidatapath , paste0("HCVModel", "cali",".rda")))
 
-load(file.path(here("02. Output/RDA"), "cost.rda"))
+load(file.path(outputdt, "cost.rda"))
 
-load(file.path(here("02. Output/RDA"), "Param_dfExt.rda"))
+load(file.path(outputdt, "Param_dfExt.rda"))
 
-load(file.path(here("02. Output/RDA"), "mainS_PrEPHIV.rda"))
+load(file.path(outputdt, "mainS_PrEPHIV.rda"))
 
-load(file.path(here("02. Output/RDA"), "mainansis.rda"))
+load(file.path(outputdt, "mainansis.rda"))
 
-load(file.path(here("02. Output/RDA"), "toft.rda"))
+load(file.path(outputdt, "toft.rda"))
 
 # output file path 
 # dir.create("02. Output") # create subdircetory 
 # dir.create("02. Output/RDA") 
 # dir.create("02. Output/Results")
-ResultsFolder <- file.path(here(), "02. Output/Results")
-outputdt <- here("02. Output/RDA")
+ResultsFolder <- file.path(outputdt, "02. Output/Results")
+
 
 # source 
-source(file.path(codepath, "HCV_model.R"))
+source(file.path(Rcode, "Functions/HCV_model.R"))
 
-source(file.path(codepath, "plotFunctions.R"))
+source(file.path(com_codeP, "Functions/plotFunctions.R"))
 
-source(file.path(codepath, "plotOptions.R"))
+source(file.path(com_codeP, "Functions/plotOptions.R"))
 
-source(file.path(codepath, "Scenarios_wrangling.R"))
+source(file.path(com_codeP, "Functions/Scenarios_wrangling.R"))
 
 currTime <- format(Sys.time(), "%Y-%m-%d_%H-%M-%S")
 
@@ -74,7 +76,6 @@ simY <- 100
 # costTrim for scenarions 
 CostScen <- list()
 CostScen[["POC_antibody"]] <- costTrim$POCab
-CostScen[["DBS"]] <- costTrim$POCab
 CostScen[["Reflex_RNA"]] <- costTrim$Reflex
 CostScen[["POC_RNA"]] <- costTrim$POCRNA
 
@@ -88,13 +89,16 @@ for(set in 1: HCV$numberSamples){
 
 for(set in 1:HCV$numberSamples){ 
   CostScen_par[[set]][["POC_antibody"]] <- Param_costList[[set]]$POCab
-  CostScen_par[[set]][["DBS"]] <- Param_costList[[set]]$POCab
   CostScen_par[[set]][["Reflex_RNA"]] <- Param_costList[[set]]$Reflex
   CostScen_par[[set]][["POC_RNA"]] <- Param_costList[[set]]$POCRNA
   }
 
+# remove "DBS" list
 
+CEA_main <- CEA_main[names(CEA_main)!= "DBS"]
 
+CEA_mainParam <- CEA_mainParam[names(CEA_mainParam)!= "DBS"]
+# uptake HCV testing  
 ScenResults <- list()
 
 for(i in names(CEA_main)){ 
@@ -123,7 +127,7 @@ for(i in names(pop_arrayPrEPHIV)){
 # Run sampled parameter sets
 HCV$numberSamples <- 1000
 
-load(file.path(rdapath , paste0("HCVModel", "param",".rda")))
+load(file.path(epidatapath , paste0("HCVModel", "param",".rda")))
 
 
 # trim the time points 
@@ -142,7 +146,7 @@ if (runSamples) {
   
   ScenparamResults <- list()
 
-    for(m in names(CEA_main)){
+    for(m in names(CEA_mainParam)){
       for (set in 1:HCV$numberSamples){
         
         ScenparamResults[[m]][[set]] <- HCVMSM(HCV,
@@ -171,7 +175,8 @@ save(ScenResults_PrEPHIV,
      file = file.path(outputdt, "simScen_PrEPHIV.rda"))
 
 rm(ScenResults, ScenparamResults, ScenResults_PrEPHIV)
-
+rm(Param_dfList, Param_dfListExtend, steady, CEA_main)
+gc()
 
 # parameter sets for scenarios with uptake PrEP and HIVD 
 ScenparamResults_PrEP <- list()
@@ -182,7 +187,7 @@ ScenparamResults_PrEPnHIVD <- list()
 
 tic <- proc.time()
 
-for(m in names(CEA_main)){
+for(m in names(CEA_mainParam)){
   for (set in 1:HCV$numberSamples){
       
       ScenparamResults_PrEP[[m]][[set]] <- HCVMSM(HCV,
@@ -206,10 +211,11 @@ save(ScenparamResults_PrEP,
      file = file.path(outputdt, "simScen_param_PrEP.rda"))
 
 rm(ScenparamResults_PrEP)
+gc()
 
 tic <- proc.time()
 
-for(m in names(CEA_main)){
+for(m in names(CEA_mainParam)){
   for (set in 1:HCV$numberSamples){
     
     ScenparamResults_HIVD[[m]][[set]] <- HCVMSM(HCV,
@@ -234,9 +240,11 @@ save(ScenparamResults_HIVD,
 
 rm(ScenparamResults_HIVD)
 
+gc()
+
 tic <- proc.time()
 
-for(m in names(CEA_main)){
+for(m in names(CEA_mainParam)){
   for (set in 1:HCV$numberSamples){
     
     ScenparamResults_PrEPnHIVD[[m]][[set]] <- HCVMSM(HCV,
