@@ -86,24 +86,24 @@ FactorDiseaseProg <- function(df, factorLabels) {
   return(df)
 }
 
-MidYearDf <- function(df, timestep, npops) {
+MidYearDf <- function(pg, df, timestep, npops) {
   yearFrame <-  df[seq(1, nrow(df), (1 / timestep)), ]
   yearFrame <- df[MidyearIndex(nrow(df), timestep), ]
-  yearFrame$year <- rep(head(HCV$years,-1), npops)
+  yearFrame$year <- rep(head(pg$years,-1), npops)
   return(yearFrame)
 }  
 
-EndYearDf <- function(df, timestep, npops) {
+EndYearDf <- function(pg, df, timestep, npops) {
   yearFrame <-  df[seq(1, nrow(df), (1 / timestep)), ]
   yearFrame <- df[EndyearIndex(nrow(df), timestep), ]
-  yearFrame$year <- rep(head(HCV$years, -1), npops)
+  yearFrame$year <- rep(head(pg$years, -1), npops)
   return(yearFrame)
 } 
 
-StrYearDf <-  function(df, timestep, npops) {
+StrYearDf <-  function(pg, df, timestep, npops) {
   yearFrame <-  df[seq(1, nrow(df), (1 / timestep)), ]
   yearFrame <- df[StryearIndex(nrow(df), timestep), ]
-  yearFrame$year <- rep(head(HCV$years, -1), npops)
+  yearFrame$year <- rep(head(pg$years, -1), npops)
   return(yearFrame)
 } 
 
@@ -147,20 +147,20 @@ popResults_MidYear <- function(pg, Best, Population = NULL,
   ## MidyearIndex
   timelong <- seq(pg$startYear, endYear, pg$timestep) 
   if (is.null(YearCut)) {
-    MidY <-c(timelong[MidyearIndex(length(timelong),0.1)]) 
+    MidY <-c(timelong[MidyearIndex(length(timelong),pg$timestep)]) 
     allpop <- allpop%>%filter(timestep%in% MidY)%>%
       mutate(year = rep(seq(pg$startYear, (endYear-1),1), 
                     each = pg$npops*pg$ncomponent))
   
   } else if (YearCut =="Start") { 
     
-    MidY <-c(timelong[StryearIndex(length(timelong),0.1)]) 
+    MidY <-c(timelong[StryearIndex(length(timelong),pg$timestep)]) 
     allpop <- allpop%>%filter(timestep%in% MidY)%>%
       mutate(year = rep(seq(pg$startYear, (endYear-1),1), 
                         each = pg$npops*pg$ncomponent))
     
   } else {  
-    MidY <-c(timelong[EndyearIndex(length(timelong),0.1)]) 
+    MidY <-c(timelong[EndyearIndex(length(timelong),pg$timestep)]) 
     allpop <- allpop%>%filter(timestep%in% c(MidY, (endYear - pg$timestep)))%>%
       mutate(year = rep(seq(pg$startYear, (endYear -1),1), 
                         each = pg$npops*pg$ncomponent))
@@ -176,9 +176,9 @@ popResults_MidYear <- function(pg, Best, Population = NULL,
   dfparam_list <- list()
   param_pop <- list()
   if(is.null(scenario)){ 
-    samp <- HCV$numberSamples
+    samp <- pg$numberSamples
   }else{ 
-    samp <- HCV$sParam
+    samp <- pg$sParam
     }
   
   if (!is.null(param)){
@@ -198,20 +198,20 @@ popResults_MidYear <- function(pg, Best, Population = NULL,
       timelong <- seq(pg$startYear, endYear, pg$timestep) 
       
       if (is.null(YearCut)) {
-        MidY <-c(timelong[MidyearIndex(length(timelong),0.1)]) 
+        MidY <-c(timelong[MidyearIndex(length(timelong),pg$timestep)]) 
         param_pop[[set]] <- param_pop[[set]]%>%filter(timestep%in% MidY)%>%
           mutate(year = rep(seq(pg$startYear, (endYear-1),1), 
                             each = pg$npops*pg$ncomponent))
         
       } else if (YearCut =="Start") { 
         
-        MidY <-c(timelong[StryearIndex(length(timelong),0.1)]) 
+        MidY <-c(timelong[StryearIndex(length(timelong),pg$timestep)]) 
         param_pop[[set]] <-param_pop[[set]]%>%filter(timestep%in% MidY)%>%
           mutate(year = rep(seq(pg$startYear, (endYear-1),1), 
                             each = pg$npops*pg$ncomponent))
         
       } else {  
-        MidY <-c(timelong[EndyearIndex(length(timelong),0.1)]) 
+        MidY <-c(timelong[EndyearIndex(length(timelong),pg$timestep)]) 
         param_pop[[set]] <- param_pop[[set]]%>%
           filter(timestep%in%c(MidY, (endYear - pg$timestep)))%>%
           mutate(year = rep(seq(pg$startYear, (endYear -1),1), 
@@ -514,9 +514,9 @@ popResults_range <- function(pg, data, Population = NULL,
     
     result_list<- df_list%>%lapply(., function(x) {
       mutate(x, 
-             timestep = c(rep(seq(HCV$startYear,
-                                  endYear - HCV$timestep,HCV$timestep), 
-                              each = HCV$npops)))%>%dplyr::select(-Var2)}) 
+             timestep = c(rep(seq(pg$startYear,
+                                  endYear - pg$timestep,pg$timestep), 
+                              each = pg$npops)))%>%dplyr::select(-Var2)}) 
     
     names(result_list[[indicator]]) <- c("population", "total_pop", "timestep") 
     
@@ -527,9 +527,9 @@ popResults_range <- function(pg, data, Population = NULL,
       group_by(population)%>%
       mutate(total_pop = sum(total_pop)/length(total_pop))%>%
       select(total_pop)%>%ungroup()
-    impute <- impute[c(1:HCV$npops),]
+    impute <- impute[c(1:pg$npops),]
     
-    result_list[[indicator]][c(1:HCV$npops), "total_pop"] <- impute$total_pop 
+    result_list[[indicator]][c(1:pg$npops), "total_pop"] <- impute$total_pop 
     
     
     # ready for appending parameter set 
@@ -540,22 +540,22 @@ popResults_range <- function(pg, data, Population = NULL,
     if (length(populations) == 1 && populations == "all") {
       indicatorEstimate <- indicatorEstimate%>%
         arrange(population, timestep)%>%
-        dplyr::mutate(year = rep(rep(seq(1, endYear-HCV$timestep), 
-                                     each=1/HCV$timestep),HCV$npops))%>%
+        dplyr::mutate(year = rep(rep(seq(1, endYear-pg$timestep), 
+                                     each=1/pg$timestep),pg$npops))%>%
         group_by(year)%>%summarise(best = sum(total_pop))%>%ungroup()
     } else if (is.null(populations)){
       indicatorEstimate<- indicatorEstimate%>%
         arrange(population, timestep)%>%
-        dplyr::mutate(year = rep(rep(seq(1, endYear-HCV$timestep), 
-                                     each=1/HCV$timestep),HCV$npops))%>%
+        dplyr::mutate(year = rep(rep(seq(1, endYear-pg$timestep), 
+                                     each=1/pg$timestep),pg$npops))%>%
         group_by(year, population)%>%
         summarise(best = sum(total_pop))%>%ungroup()
     } else if (length(populations) > 1) {
       indicatorEstimate <- indicatorEstimate%>%
         dplyr::filter(population %in% populations)%>%
         arrange(population, timestep)%>%
-        dplyr::mutate(year = rep(rep(seq(1, endYear-HCV$timestep), 
-                                     each=1/HCV$timestep),length(populations)))%>%
+        dplyr::mutate(year = rep(rep(seq(1, endYear-pg$timestep), 
+                                     each=1/pg$timestep),length(populations)))%>%
         group_by(year, population)%>%
         summarise(best = sum(total_pop))%>%ungroup()
       
@@ -564,8 +564,8 @@ popResults_range <- function(pg, data, Population = NULL,
       indicatorEstimate <- indicatorEstimate%>%
         dplyr::filter(population %in% populations)%>%
         arrange(population, timestep)%>%
-        dplyr::mutate(year = rep(rep(seq(1, endYear-HCV$timestep), 
-                                     each=1/HCV$timestep),1))%>%
+        dplyr::mutate(year = rep(rep(seq(1, endYear-pg$timestep), 
+                                     each=1/pg$timestep),1))%>%
         group_by(year)%>%
         summarise(best = sum(total_pop))%>%ungroup()
       
@@ -609,9 +609,9 @@ indicatorResults <- function(pg, Best, indicator, paramR = NULL,
     indicatorEstimate <- cbind(indicatorEstimate, paramDf) 
     if(is.null(scenario)){ 
       
-      samp <- HCV$numberSamples
+      samp <- pg$numberSamples
     }
-    else{ samp <- HCV$sParam}
+    else{ samp <- pg$sParam}
     
     # rename columns 
     if (length(pop) == 1){  
@@ -998,7 +998,7 @@ theme_Publication_facet <- function(base_size=14) {
 #### plot generation #### 
 # becareful about name of x-axis and y-axis 
 
-indicatorPlot <- function(data,  ylabel = NULL, 
+indicatorPlot <- function(pg, data,  ylabel = NULL, 
                            rangeun = FALSE,
                            xlimits = NULL, facetPlot = NULL, 
                            calibration_Y,
@@ -1038,7 +1038,7 @@ indicatorPlot <- function(data,  ylabel = NULL,
     data[is.na(data)] <- 0 
   } else {
     data_long <- data%>%pivot_longer(
-      cols = c(paste0("set", seq(1,HCV$numberSamples,1), sep ="")), 
+      cols = c(paste0("set", seq(1,pg$numberSamples,1), sep ="")), 
                                      names_to = "sim", values_to = "val")
     
     }
@@ -1253,8 +1253,8 @@ Scenario_R <- function( SRdlst, indicator){
   Scenarios_R <- list()
   for (i in 1:length(SceName)){
     Scenarios_R[[i]] <- lapply(SRdlst[[i]], function(x) 
-      indicatorResults(HCV, x, indicator, 
-                     pop=HCV$popNames, paramR = NULL ,range = "y",
+      indicatorResults(pg, x, indicator, 
+                     pop=pg$popNames, paramR = NULL ,range = "y",
                      endY = 50))
   }
   
@@ -1326,7 +1326,7 @@ popResultsSce_MidYear <- function(pg, Best, Population = NULL,
   
  
 
-indicatorPlotSce <- function(data,  ylabel = NULL, 
+indicatorPlotSce <- function(pg, data,  ylabel = NULL, 
                           rangeun = FALSE,
                           xlimits = NULL, facetPlot = NULL, 
                           calibration_Y,
@@ -1367,7 +1367,7 @@ indicatorPlotSce <- function(data,  ylabel = NULL,
     data[is.na(data)] <- 0 
   } else {
     data_long <- data%>%pivot_longer(
-      cols = c(paste0("set", seq(1,HCV$numberSamples,1), sep ="")), 
+      cols = c(paste0("set", seq(1,pg$numberSamples,1), sep ="")), 
       names_to = "sim", values_to = "val")
     
     

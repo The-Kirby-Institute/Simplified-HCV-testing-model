@@ -23,7 +23,7 @@ Rcode <- file.path(codefun_path, "03. Code")
 DataFolder <- file.path(data_path, "01. DATA/model input" )
 OutputFolder <- file.path(data_path, "02. Output")
 
-load(file.path(data_path, paste0(project_name, ".rda")))
+load(file.path(OutputFolder, paste0(project_name, ".rda")))
 
 POC_AU$endYear
 
@@ -224,6 +224,6 @@ best_initial_pop <- apply(initialPopMat[, 1:length(POC_AU$component_name)], 2,
 ######
 save(POC_AU,constants ,disease_progress, fib, dfList, pop_array, 
      constantsDf, initialPops, best_estimates, best_initial_pop, param_constant, 
-     file = file.path(DataFolder,
+     file = file.path(OutputFolder,
                       paste0(project_name, ".rda")))
 

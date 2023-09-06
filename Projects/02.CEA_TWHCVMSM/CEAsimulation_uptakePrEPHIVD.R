@@ -1,6 +1,6 @@
 # simulating scenarios under uptaking PrEP and HIVD 
 rm(list = ls())
-
+gc()
 # check work directory
 library(here)
 here()

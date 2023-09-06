@@ -19,30 +19,39 @@ library("gridExtra")
 library(doParallel)
 library("ggthemes")
 registerDoParallel(cores = detectCores() - 1)
-# Setup directories after setting working directory to source file 
-# directory 
+
+codep <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/TWHCV-model"
+
+com_codeP <- "/Users/jjwu/Documents/Simplified-HCV-testing-model/03. Code"
+
+epidatapath <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Taiwan-MSM-HCV-model"
+
+project_codep <- "/Users/jjwu/Documents/Simplified-HCV-testing-model/Projects/02.CEA_TWHCVMSM"
 
 #file path of "TWHCV-model" project
-codepath <- file.path(here() %>% dirname(), 'TWHCV-model/03. Code/Functions')
+Rcode <- file.path(codep, '03. Code')
 
-DataFolder <- file.path(here(), "01. DATA/model input")
+scenariopath <- file.path(epidatapath, '01. DATA/model input/Scenarios')
 
-ResultsFolder <- file.path(here(), "02. Output/Results")
+# save and cost data folder 
+dtp <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/02.CEA_TWHCVMSM"
+DataFolder <- file.path(dtp, "01. DATA/model input")
 
-outputdt <- here("02. Output/RDA")
+outputdt <- file.path(dtp, "02. Output/RDA")
 
-outputfig <- here("02. Output/Figs")
+outputfig <- file.path(dtp, "02. Output/Figs")
 
 # source 
-source(file.path(codepath, "HCV_model.R"))
 
-source(file.path(codepath, "plotFunctions.R"))
+source(file.path(com_codeP, "Functions/plotFunctions.R"))
 
-source(file.path(codepath, "plotOptions.R"))
+source(file.path(com_codeP, "Functions/plotOptions.R"))
 
-source(file.path(codepath, "plotManuscript.R")) 
+source(file.path(com_codeP, "Functions/Scenarios_wrangling.R"))
 
-source(file.path(here(),"AggregateRes.R"))
+source(file.path(com_codeP, "Functions/plotManuscript.R"))
+
+source(file.path(project_codep, "AggregateRes.R"))
 
 files <- list.files(path = paste0(outputdt, "/", sep = ""),
                     pattern = '^simBase.*\\.rda')
@@ -50,15 +59,13 @@ files <- list.files(path = paste0(outputdt, "/", sep = ""),
 files <- lapply(files, function(f) paste0(file.path(paste0(outputdt, "/" ,f, sep =""))))
 
 # load to gloval environment 
-sapply(files, function(f) {load(f)})
+sapply(files, function(f) {load(f, envir=globalenv())})
 
 # Rda file path 
 # load the .rda file of base estimate 
-rdapath <- file.path(here()%>%dirname(), "Taiwan-MSM-HCV-model")
+projectFile <- file.path(epidatapath , paste0("HCVModel",".rda"))
 
-projectFile <- file.path(rdapath , paste0("HCVModel",".rda"))
-
-projectVars <- load(projectFile) 
+projectVars <- load(projectFile)
 
 # combine simulations in a list 
 
@@ -77,6 +84,7 @@ SQ_param <- list(Base = paramResults,
 
 rm(paramResults, paramResults_HIVD, paramResults_PrEP, paramResults_PrEPnHIVD)
 
+gc()
 
 # generate the results dataframes 
 tic <- proc.time()
@@ -94,8 +102,10 @@ names(Outcome_Base_epi) <- names(SQ)
 toc <- proc.time() - tic 
 
 toc 
+str(SQ)
+# test
 
-
+################################################################################
  tic <- proc.time()
 
 Outcome_Base_cost <- list() 
@@ -108,6 +118,13 @@ Outcome_Base_cost <- lapply(names(SQ), function(i)
   )
 names(Outcome_Base_cost) <- names(SQ)
 
+
+# reorganizing list 
+
+Outcome_Base_PrEPsame <- list() 
+
+
+
 save(Outcome_Base_epi,
      file = file.path(outputdt, "Outcome_Base_epi.rda"))
 
@@ -118,296 +135,35 @@ rm(Outcome_Base_epi, Outcome_Base_cost, SQ, SQ_param)
 
 
 
-######### 
-# S1: HIV services coverage remain unchanged 
+load(file.path(paste0(outputdt, "/Outcome_Base_PrEPsame.rda")))
 
-load(file.path(paste0(outputdt, "/simScen.rda")))
+Outcome_Base_PrEPsame$costqaly <- Outcome_Base_cost$Base
+save(Outcome_Base_PrEPsame,
+     file = file.path(outputdt, "Outcome_Base_PrEPsame.rda"))
+rm(Outcome_Base_PrEPsame)
 
-tic <- proc.time()
 
-Outcome_Scen_epi_Base <- list()
+load(file.path(paste0(outputdt, "/Outcome_Base_PrEP.rda")))
 
-  
-Outcome_Scen_epi_Base <- Res_summary_epi(HCV, 
-                                       ScenResults, 
-                                       ScenparamResults, 
-                                       endY = 100, base_case = NULL)
-  
-Outcome_Scen_cost_Base <- list()
+Outcome_Base_PrEP$costqaly <- Outcome_Base_cost$PrEP
+  save(Outcome_Base_PrEP,
+       file = file.path(outputdt, "Outcome_Base_PrEP.rda"))
+rm(Outcome_Base_PrEP)
 
-Outcome_Scen_cost_Base <- lapply(names(ScenResults), 
-                                 function(i) Res_summary_costqaly(HCV, 
-                                                                  ScenResults[[i]], 
-                                                                  ScenparamResults[[i]], 
-                                                                  endY = 100)
-                                 )
+load(file.path(paste0(outputdt, "/Outcome_Base_HIVD.rda")))
 
-names(Outcome_Scen_cost_Base) <- names(ScenResults)
+Outcome_Base_HIVD$costqaly <- Outcome_Base_cost$HIVD
+save(Outcome_Base_HIVD,
+     file = file.path(outputdt, "Outcome_Base_HIVD.rda"))
+rm(Outcome_Base_HIVD)
 
-toc <- proc.time() - tic
+load(file.path(paste0(outputdt, "/Outcome_Base_PrEPnHIVD.rda")))
 
-toc
-
-save(Outcome_Scen_epi_Base,
-     file = file.path(outputdt, "Outcome_Scen_epi_Base.rda"))
-
-save(Outcome_Scen_cost_Base,
-     file = file.path(outputdt, "Outcome_Scen_cost_Base.rda"))
-
-rm(Outcome_Scen_epi_Base, Outcome_Scen_cost_Base)
-
-#===============================================================================
-# S2-S4 
-# the rda files are highly memory demand 
-# requires to restart for each scenarios 
-
-rm(list = ls()) 
-
-library(here)
-here()
-
-# Load useful libraries
-library("readr")
-library("dplyr")
-library("tidyr")
-library("purrr")
-library("gridExtra")
-library(doParallel)
-library("ggthemes")
-registerDoParallel(cores = detectCores() - 1)
-# Setup directories after setting working directory to source file 
-# directory 
-
-#file path of "TWHCV-model" project
-codepath <- file.path(here() %>% dirname(), 'TWHCV-model/03. Code/Functions')
-
-DataFolder <- file.path(here(), "01. DATA/model input")
-
-ResultsFolder <- file.path(here(), "02. Output/Results")
-
-outputdt <- here("02. Output/RDA")
-
-outputfig <- here("02. Output/Figs")
-
-# source 
-source(file.path(codepath, "HCV_model.R"))
-
-source(file.path(codepath, "plotFunctions.R"))
-
-source(file.path(codepath, "plotOptions.R"))
-
-source(file.path(codepath, "plotManuscript.R")) 
-
-source(file.path(here(),"AggregateRes.R"))
-
-load(file.path(paste0(outputdt, "/simScen_PrEPHIV.rda")))
-
-load(file.path(paste0(outputdt, "/simScen_param_PrEP.rda")))
-
-rdapath <- file.path(here()%>%dirname(), "Taiwan-MSM-HCV-model")
-
-projectFile <- file.path(rdapath , paste0("HCVModel",".rda"))
-
-projectVars <- load(projectFile) 
-
-# PrEP
-tic <- proc.time()
-
-Outcome_Scen_epi_PrEP <- list()
-
-Outcome_Scen_epi_PrEP <- Res_summary_epi(HCV, 
-                                         ScenResults_PrEPHIV$PrEP, 
-                                         ScenparamResults_PrEP, 
-                                         endY = 100, base_case = NULL)
-
-Outcome_Scen_cost_PrEP <- list()
-
-Outcome_Scen_cost_PrEP <- lapply(names(ScenResults_PrEPHIV$PrEP), 
-                                 function(i) Res_summary_costqaly(HCV, 
-                                                                  ScenResults_PrEPHIV$PrEP[[i]], 
-                                                                  ScenparamResults_PrEP[[i]], 
-                                                                  endY = 100)
-)
-
-names(Outcome_Scen_cost_PrEP) <- names(ScenResults_PrEPHIV$PrEP)
-
-toc <- proc.time() - tic
-
-toc
-
-save(Outcome_Scen_epi_PrEP,
-     file = file.path(outputdt, "Outcome_Scen_epi_PrEP.rda"))
-
-save(Outcome_Scen_cost_PrEP,
-     file = file.path(outputdt, "Outcome_Scen_cost_PrEP.rda"))
-
-#===============================================================================
-# S3: HIVD
-#===============================================================================
-
-rm(list = ls()) 
-gc()
-library(here)
-here()
-
-# Load useful libraries
-library("readr")
-library("dplyr")
-library("tidyr")
-library("purrr")
-library("gridExtra")
-library(doParallel)
-library("ggthemes")
-registerDoParallel(cores = detectCores() - 1)
-# Setup directories after setting working directory to source file 
-# directory 
-
-#file path of "TWHCV-model" project
-codepath <- file.path(here() %>% dirname(), 'TWHCV-model/03. Code/Functions')
-
-DataFolder <- file.path(here(), "01. DATA/model input")
-
-ResultsFolder <- file.path(here(), "02. Output/Results")
-
-outputdt <- here("02. Output/RDA")
-
-outputfig <- here("02. Output/Figs")
-
-# source 
-source(file.path(codepath, "HCV_model.R"))
-
-source(file.path(codepath, "plotFunctions.R"))
-
-source(file.path(codepath, "plotOptions.R"))
-
-source(file.path(codepath, "plotManuscript.R")) 
-
-source(file.path(here(),"AggregateRes.R"))
-
-load(file.path(paste0(outputdt, "/simScen_PrEPHIV.rda")))
-
-load(file.path(paste0(outputdt, "/simScen_param_HIVD.rda")))
-
-rdapath <- file.path(here()%>%dirname(), "Taiwan-MSM-HCV-model")
-
-projectFile <- file.path(rdapath , paste0("HCVModel",".rda"))
-
-projectVars <- load(projectFile) 
-
-tic <- proc.time()
-
-Outcome_Scen_epi_HIVD <- list()
-
-Outcome_Scen_epi_HIVD <- Res_summary_epi(HCV, 
-                                         ScenResults_PrEPHIV$HIVD, 
-                                         ScenparamResults_HIVD, 
-                                         endY = 100, base_case = NULL)
-
-Outcome_Scen_cost_HIVD <- list()
-
-Outcome_Scen_cost_HIVD <- lapply(names(ScenResults_PrEPHIV$HIVD), 
-                                 function(i) Res_summary_costqaly(HCV, 
-                                                                  ScenResults_PrEPHIV$HIVD[[i]], 
-                                                                  ScenparamResults_HIVD[[i]], 
-                                                                  endY = 100)
-)
-
-names(Outcome_Scen_cost_HIVD) <- names(ScenResults_PrEPHIV$HIVD)
-
-toc <- proc.time() - tic
-
-toc
-
-save(Outcome_Scen_epi_HIVD,
-     file = file.path(outputdt, "Outcome_Scen_epi_HIVD.rda"))
-
-save(Outcome_Scen_cost_HIVD,
-     file = file.path(outputdt, "Outcome_Scen_cost_HIVD.rda"))
-
-
-#===============================================================================
-# S4: PrEPnHIVD
-#===============================================================================
-
-rm(list = ls()) 
-gc()
-library(here)
-here()
-
-# Load useful libraries
-library("readr")
-library("dplyr")
-library("tidyr")
-library("purrr")
-library("gridExtra")
-library(doParallel)
-library("ggthemes")
-registerDoParallel(cores = detectCores() - 1)
-# Setup directories after setting working directory to source file 
-# directory 
-
-#file path of "TWHCV-model" project
-codepath <- file.path(here() %>% dirname(), 'TWHCV-model/03. Code/Functions')
-
-DataFolder <- file.path(here(), "01. DATA/model input")
-
-ResultsFolder <- file.path(here(), "02. Output/Results")
-
-outputdt <- here("02. Output/RDA")
-
-outputfig <- here("02. Output/Figs")
-
-# source 
-source(file.path(codepath, "HCV_model.R"))
-
-source(file.path(codepath, "plotFunctions.R"))
-
-source(file.path(codepath, "plotOptions.R"))
-
-source(file.path(codepath, "plotManuscript.R")) 
-
-source(file.path(here(),"AggregateRes.R"))
-
-load(file.path(paste0(outputdt, "/simScen_PrEPHIV.rda")))
-
-load(file.path(paste0(outputdt, "/simScen_param_PrEPnHIVD.rda")))
-
-rdapath <- file.path(here()%>%dirname(), "Taiwan-MSM-HCV-model")
-
-projectFile <- file.path(rdapath , paste0("HCVModel",".rda"))
-
-projectVars <- load(projectFile) 
-
-tic <- proc.time()
-
-Outcome_Scen_epi_PrEPnHIVD <- list()
-
-Outcome_Scen_epi_PrEPnHIVD <- Res_summary_epi(HCV, 
-                                         ScenResults_PrEPHIV$PrEPnHIVD, 
-                                         ScenparamResults_PrEPnHIVD, 
-                                         endY = 100, base_case = NULL)
-
-Outcome_Scen_cost_PrEPnHIVD <- list()
-
-Outcome_Scen_cost_PrEPnHIVD <- lapply(names(ScenResults_PrEPHIV$PrEPnHIVD), 
-                                 function(i) Res_summary_costqaly(HCV, 
-                                                                  ScenResults_PrEPHIV$PrEPnHIVD[[i]], 
-                                                                  ScenparamResults_PrEPnHIVD[[i]], 
-                                                                  endY = 100)
-)
-
-names(Outcome_Scen_cost_PrEPnHIVD) <- names(ScenResults_PrEPHIV$PrEPnHIVD)
-
-toc <- proc.time() - tic
-
-toc
-
-save(Outcome_Scen_epi_PrEPnHIVD,
-     file = file.path(outputdt, "Outcome_Scen_epi_PrEPnHIVD.rda"))
-
-save(Outcome_Scen_cost_PrEPnHIVD,
-     file = file.path(outputdt, "Outcome_Scen_cost_PrEPnHIVD.rda"))
-
+Outcome_Base_PrEPnHIVD$costqaly <- Outcome_Base_cost$PrEPnHIVD
+save(Outcome_Base_PrEPnHIVD,
+     file = file.path(outputdt, "Outcome_Base_PrEPnHIVD.rda"))
+rm(Outcome_Base_PrEPnHIVD)
+#### load outcome file and append the new costqaly list 
 
 
 

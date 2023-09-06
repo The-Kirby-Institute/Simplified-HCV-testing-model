@@ -99,7 +99,7 @@ x <- lapply(names(ScenResults_PrEPHIV$PrEP),
 
 names(x) <- names(ScenResults_PrEPHIV$PrEP)
 
-rm(ScenResults_PrEPHIV$PrEP, ScenparamResults_PrEP)
+rm(ScenResults_PrEPHIV, ScenparamResults_PrEP)
 
 gc()
 
@@ -110,6 +110,6 @@ Outcome_Scen_PrEP$costqaly <- x
 save(Outcome_Scen_PrEP,
      file = file.path(outputdt, "Outcome_Scen_PrEP.rda"))
 
-rm(Outcome_Scen_PrEP, ScenparamResults_PrEP)
+rm(Outcome_Scen_PrEP, ScenResults_PrEPnHIV, ScenparamResults_PrEP)
 
 gc()

@@ -1386,11 +1386,12 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                                         0*oldPop[, "plt_cured"])
     
     
-    newEntry[1,t] <- sum(entry1)
+    
     
     ##### background death ##### 
     
     for(i in 1: npops){ 
+      newEntry[i,t] <- sum(entry1[i, ])
       newDeath[i, t] <- sum(death[i,])
       newDeathState[i, ,t] <- morb_dt[i,t]*oldPop[i,] 
       newLeave[i ,t] <- sum(leave[i, ])
@@ -1747,6 +1748,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                     newS = newS,
                     newEntry = newEntry,
                     newDeath = newDeath,
+                    newLeave = newLeave,
                     newInfections = newInfections, 
                     newHCVdeaths = newHCVdeaths, 
                     newTreatment = newTreatment, 

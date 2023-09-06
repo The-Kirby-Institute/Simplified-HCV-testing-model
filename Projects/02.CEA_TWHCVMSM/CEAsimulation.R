@@ -18,6 +18,9 @@ library(doParallel)
 registerDoParallel(cores = detectCores() - 1)
 
 codep <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/TWHCV-model"
+
+com_codeP <- "/Users/jjwu/Documents/Simplified-HCV-testing-model/03. Code"
+
 epidatapath <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Taiwan-MSM-HCV-model"
 #file path of "TWHCV-model" project
 Rcode <- file.path(codep, '03. Code')
@@ -39,11 +42,13 @@ load(file.path(epidatapath , paste0("HCVModel", "param",".rda")))
 # source 
 source(file.path(Rcode, "Functions/HCV_model.R"))
 
-source(file.path(Rcode, "Functions/plotFunctions.R"))
+source(file.path(com_codeP, "Functions/plotFunctions.R"))
 
-source(file.path(Rcode, "Functions/plotOptions.R"))
+source(file.path(com_codeP, "Functions/plotOptions.R"))
 
-source(file.path(Rcode, "Functions/Scenarios_wrangling.R"))
+source(file.path(com_codeP, "Functions/Scenarios_wrangling.R"))
+
+
 
 
 

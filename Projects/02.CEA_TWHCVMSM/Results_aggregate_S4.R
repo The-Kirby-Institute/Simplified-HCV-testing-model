@@ -96,7 +96,7 @@ x <- lapply(names(ScenResults_PrEPHIV$PrEPnHIVD),
 )
 names(x) <- names(ScenResults_PrEPHIV$PrEPnHIVD)
 
-rm(ScenResults_PrEPHIV$PrEPnHIVD, ScenparamResults_PrEPnHIVD)
+rm(ScenResults_PrEPHIV, ScenparamResults_PrEPnHIVD)
 
 gc()
 
@@ -107,7 +107,7 @@ Outcome_Scen_PrEPnHIVD$costqaly <- x
 save(Outcome_Scen_PrEPnHIVD,
      file = file.path(outputdt, "Outcome_Scen_PrEPnHIVD.rda"))
 
-rm(Outcome_Scen_PrEPnHIVD, ScenparamResults_PrEPnHIVD)
+rm(Outcome_Scen_PrEPnHIVD, ScenResults_PrEPHIV, ScenparamResults_PrEPnHIVD)
 
 gc()
 

@@ -5,41 +5,49 @@ library(here)
 here()
 
 # Load useful libraries
+library("readr")
 library("dplyr")
 library("tidyr")
+library("purrr")
+library("gridExtra")
+library("doParallel")
 library("ggthemes")
-library("stringr")
-# Setup directories after setting working directory to source file 
-# directory 
+library("stringr") 
+registerDoParallel(cores = detectCores() - 1)
+
+codep <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/TWHCV-model"
+
+com_codeP <- "/Users/jjwu/Documents/Simplified-HCV-testing-model/03. Code"
+
+epidatapath <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Taiwan-MSM-HCV-model"
+
+project_codep <- "/Users/jjwu/Documents/Simplified-HCV-testing-model/Projects/02.CEA_TWHCVMSM"
 
 #file path of "TWHCV-model" project
-codepath <- file.path(here() %>% dirname(), 'TWHCV-model/03. Code/Functions')
+Rcode <- file.path(codep, '03. Code')
 
-DataFolder <- file.path(here(), "01. DATA/model input")
+scenariopath <- file.path(epidatapath, '01. DATA/model input/Scenarios')
 
-# Rda file path 
-# load the .rda file of base estimate 
-rdapath <- file.path(here()%>%dirname(), "Taiwan-MSM-HCV-model")
+# save and cost data folder 
+dtp <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/02.CEA_TWHCVMSM"
 
-# output file path 
-# dir.create("02. Output") # create subdircetory 
-# dir.create("02. Output/RDA") 
-# dir.create("02. Output/Results")
-# dir.create("02. Output/Figs")
-outputdt <- here("02. Output/RDA")
+DataFolder <- file.path(dtp, "01. DATA/model input")
 
-outputfig <- here("02. Output/Figs")
+outputdt <- file.path(dtp, "02. Output/RDA")
+
+outputfig <- file.path(dtp, "02. Output/Figs")
 
 # source 
 
+source(file.path(com_codeP, "Functions/plotFunctions.R"))
 
-source(file.path(codepath, "plotOptions.R"))
+source(file.path(com_codeP, "Functions/plotOptions.R"))
 
-source(file.path(codepath, "plotFunctions.R"))
+source(file.path(com_codeP, "Functions/Scenarios_wrangling.R"))
 
-source(file.path(codepath, "plotManuscript.R"))
+source(file.path(com_codeP, "Functions/plotManuscript.R"))
 
-source(file.path(here(),"AggregateRes.R"))
+source(file.path(project_codep, "AggregateRes.R"))
 
 # load rda files 
 files <- list.files(path = paste0(outputdt, "/", sep = ""),
@@ -50,7 +58,7 @@ for( f in files){
   
   }
 
-projectFile <- file.path(rdapath , paste0("HCVModel",".rda"))
+projectFile <- file.path(epidatapath, paste0("HCVModel",".rda"))
 
 projectVars <- load(projectFile)
 
@@ -478,7 +486,7 @@ for(i in dt_name){
   
 }
 
-
+Fig_NumInf <- list()
 for(i in names(Fig_NumInf_pop)){ 
   
   Fig_NumInf[[i]] <- list(Fig_NumInf_pop[[i]]$All, 

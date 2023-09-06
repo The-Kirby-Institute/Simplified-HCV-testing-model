@@ -16,38 +16,48 @@ library("gridExtra")
 library(doParallel)
 library("ggthemes")
 registerDoParallel(cores = detectCores() - 1)
-# Setup directories after setting working directory to source file 
-# directory 
+
+codep <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/TWHCV-model"
+
+com_codeP <- "/Users/jjwu/Documents/Simplified-HCV-testing-model/03. Code"
+
+epidatapath <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Taiwan-MSM-HCV-model"
+
+project_codep <- "/Users/jjwu/Documents/Simplified-HCV-testing-model/Projects/02.CEA_TWHCVMSM"
 
 #file path of "TWHCV-model" project
-codepath <- file.path(here() %>% dirname(), 'TWHCV-model/03. Code/Functions')
+Rcode <- file.path(codep, '03. Code')
 
-DataFolder <- file.path(here(), "01. DATA/model input")
+scenariopath <- file.path(epidatapath, '01. DATA/model input/Scenarios')
 
-ResultsFolder <- file.path(here(), "02. Output/Results")
+# save and cost data folder 
+dtp <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/02.CEA_TWHCVMSM"
 
-outputdt <- here("02. Output/RDA")
+DataFolder <- file.path(dtp, "01. DATA/model input")
 
-outputfig <- here("02. Output/Figs")
+outputdt <- file.path(dtp, "02. Output/RDA")
+
+outputfig <- file.path(dtp, "02. Output/Figs")
 
 # source 
-source(file.path(codepath, "HCV_model.R"))
 
-source(file.path(codepath, "plotFunctions.R"))
+source(file.path(com_codeP, "Functions/plotFunctions.R"))
 
-source(file.path(codepath, "plotOptions.R"))
+source(file.path(com_codeP, "Functions/plotOptions.R"))
 
-source(file.path(codepath, "plotManuscript.R")) 
+source(file.path(com_codeP, "Functions/Scenarios_wrangling.R"))
 
-source(file.path(here(),"AggregateRes.R"))
+source(file.path(com_codeP, "Functions/plotManuscript.R"))
+
+source(file.path(project_codep, "AggregateRes.R"))
 
 load(file.path(paste0(outputdt, "/simScen.rda")))
 
-rdapath <- file.path(here()%>%dirname(), "Taiwan-MSM-HCV-model")
+projectFile <- file.path(epidatapath , paste0("HCVModel",".rda"))
 
-projectFile <- file.path(rdapath , paste0("HCVModel",".rda"))
+projectVars <- load(projectFile)
 
-projectVars <- load(projectFile) 
+
 
 tic <- proc.time()
 
@@ -72,11 +82,28 @@ names(Outcome_Scen_PrEPsame[["costqaly"]]) <- names(ScenResults)
 
 toc <- proc.time() - tic
 
-toc
+toc 
+
+#### modify #### 
+
+x <- lapply(names(ScenResults), 
+            function(i) Res_summary_costqaly(HCV, ScenResults[[i]], 
+                                             ScenparamResults[[i]], 
+                                             endY = 100))
+
+names(x) <- names(ScenResults)
+
+rm(ScenResults, ScenparamResults)
+
+gc()
+
+load(file.path(paste0(outputdt, "/Outcome_Scen_PrEPsame.rda")))
+
+Outcome_Scen_PrEPsame$costqaly <- x
 
 save(Outcome_Scen_PrEPsame,
      file = file.path(outputdt, "Outcome_Scen_PrEPsame.rda"))
 
 
-rm(Outcome_Scen_Base, ScenResults, ScenparamResults)
+rm(Outcome_Scen_PrEPsame, ScenResults, ScenparamResults)
 gc()

@@ -18,37 +18,43 @@ library("formattable")
 # Setup directories after setting working directory to source file 
 # directory 
 
+codep <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/TWHCV-model"
+
+com_codeP <- "/Users/jjwu/Documents/Simplified-HCV-testing-model/03. Code"
+
+epidatapath <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Taiwan-MSM-HCV-model"
+
+project_codep <- "/Users/jjwu/Documents/Simplified-HCV-testing-model/Projects/02.CEA_TWHCVMSM"
+
 #file path of "TWHCV-model" project
-codepath <- file.path(here() %>% dirname()%>%dirname(), '03. Code/Functions')
+Rcode <- file.path(codep, '03. Code')
 
-DataFolder <- file.path(here(), "01. DATA/model input")
+scenariopath <- file.path(epidatapath, '01. DATA/model input/Scenarios')
 
-# Rda file path 
-# load the .rda file of base estimate 
-rdapath <- file.path(here()%>%dirname()%>%dirname()%>%dirname(), "Taiwan-MSM-HCV-model")
+# save and cost data folder 
+dtp <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/02.CEA_TWHCVMSM"
 
-# output file path 
-# dir.create("02. Output") # create subdircetory 
-# dir.create("02. Output/RDA") 
-# dir.create("02. Output/Results")
-# dir.create("02. Output/Figs")
-outputdt <- here("02. Output/RDA")
+DataFolder <- file.path(dtp, "01. DATA/model input")
 
-outputfig <- here("02. Output/Figs")
+outputdt <- file.path(dtp, "02. Output/RDA")
 
+outputfig <- file.path(dtp, "02. Output/Figs")
 
 # source 
-source(file.path(codepath, "plotOptions.R"))
 
-source(file.path(codepath, "plotFunctions.R"))
+source(file.path(com_codeP, "Functions/plotFunctions.R"))
 
-source(file.path(codepath, "plotManuscript.R"))
+source(file.path(com_codeP, "Functions/plotOptions.R"))
 
-source(file.path(here(),"AggregateRes.R"))
+source(file.path(com_codeP, "Functions/Scenarios_wrangling.R"))
+
+source(file.path(com_codeP, "Functions/plotManuscript.R"))
+
+source(file.path(project_codep, "AggregateRes.R"))
 
 load(file.path(paste0(outputdt, "/" ,"measureOutcome.rda", sep ="")))
 
-projectFile <- file.path(rdapath , paste0("HCVModel",".rda"))
+projectFile <- file.path(epidatapath , paste0("HCVModel",".rda"))
 
 projectVars <- load(projectFile)
 
@@ -369,7 +375,7 @@ x <- dt_tab_char %>%
   gt(groupname_col = "scenario",
      rowname_col = "testing")%>%
   tab_spanner_delim(delim = "X")%>%
-  gtsave(., file = file.path(outputfig, paste0("mainRes_0607.docx")))
+  gtsave(., file = file.path(outputfig, paste0("mainRes_0904.docx")))
 
 
 #### Incremental table  #### 
@@ -875,7 +881,7 @@ dt_incre%>%tidyr::pivot_wider(names_from = c("indicator","population"),
    cols_hide(columns = c(`MedXMSM who are HIV diagnosed (and on treatment)`, 
                          `MedXEntire population of MSM`, 
                          `MedXHIV-negative MSM on PrEP`))%>%
-  gtsave(., file = file.path(outputfig, paste0("mainRes_incre_0607.docx"))) 
+  gtsave(., file = file.path(outputfig, paste0("mainRes_incre_0904.docx"))) 
 
 
 
@@ -928,7 +934,7 @@ for(i in seq_along(tt$cumu_lifecost_stage)){
   plot_costcasca[[i]] <- lifecost_stage[[i]]%>%
     filter(year == 2090)%>%
     ggplot(., aes(x= testing , y = best/(Currency_converter*1000000), 
-                  fill = testing, pattern = Casca)) + 
+                  fill = Casca)) + 
     geom_bar(stat = "identity", width = 0.6) + 
     scale_fill_viridis(discrete = TRUE, option = "mako") +
     xlab("Testing") + ylab("Cost (Millions in USD$)") + 
@@ -984,16 +990,16 @@ for(i in seq_along(tt$cumu_lifecost_stage)){
 }
 
 
-plot_costcasca
+plot_costcasca[[1]]
 
 gplotlist_costcasca <- ggarrange(plotlist = plot_costcasca, common.legend = TRUE, ncol  = 1) 
 
-ggsave(path = outputfig, file="cost_cas_0607.pdf", 
+ggsave(path = outputfig, file="cost_cas_0904.pdf", 
        gplotlist_costcasca, width = 25, 
        height = 32)
 
 #### plot_costcasa for entire MSM only #### 
-
+test3[1, 7]
 test3 <- do.call("rbind",lifecost_stage)%>%
   mutate(scenario = factor(scenario, 
                            levels = c("PrEPsame", "PrEP", "HIVD", "PrEPnHIVD"),
@@ -1041,7 +1047,7 @@ plot_ihea1 <- test3%>%
         panel.border = element_rect(colour = "black", fill = NA, size = 1)) + 
   facet_grid(scenario ~ testing, scale = "free",
              labeller = label_wrap_gen(width=15)) + 
-  scale_y_continuous(limits = c(0,10))
+  scale_y_continuous(limits = c(0,20))
   
 
 plot_ihea1
