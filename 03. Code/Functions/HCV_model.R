@@ -621,6 +621,8 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     #####Entry of new people####
     
     if(proj == "POC_AU"){ # assuming no HCV death in nonPWID in prison 
+      
+      
       entry1[1,"s" ] <- sum(death[1, ])  + sum(death[2, ]) + 
         sum(death[3, ])  + sum(death[4, ]) + 
         sum(death_hcv[1, ]) + sum(death_hcv[2, ]) + 
@@ -628,11 +630,11 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
         sum(leave[1, ]) + sum(leave[2, ]) + sum(leave[3, ]) + sum(leave[4, ])
       
       #### death + leave for all components  
-      leave[5,] <- leave_dt[5,t]*(oldPop[5,]/sum(oldPop[5, ])) # leaving by % of each stage 
-      death[5, ] <- morb_dt[5,t]*(oldPop[5,]/sum(oldPop[5, ]))
+      leave[5,] <- sum(leave[5,])*(oldPop[5,]/sum(oldPop[5, ])) # leaving by % of each stage 
+      death[5, ] <- sum(death[5,])*(oldPop[5,]/sum(oldPop[5, ])) # leaving by % of each stage 
       
-      entry1[5, ] <- (sum(death[5, ]) + sum(death_hcv[5, ]) + sum(leave[5, ]))*
-        oldPop[5, ]/sum(oldPop[5,]) # entry also by distributed by % of stage 
+      
+      entry1[5, ] <- (sum(leave[5, ]) + sum(death[5, ]))*(oldPop[5,]/sum(oldPop[5, ])) # entry also by distributed by % of stage 
 
       
 
