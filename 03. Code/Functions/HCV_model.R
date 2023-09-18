@@ -620,7 +620,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     
     #####Entry of new people####
     
-    if(proj == "POC_AU"){ # assuming no HCV death in nonPWID in prison 
+    if(isTRUE(proj == "POC_AU")){ # assuming no HCV death in nonPWID in prison 
       
       
       entry1[1,"s" ] <- sum(death[1, ])  + sum(death[2, ]) + 
@@ -640,7 +640,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
 
       
       }
-    else if(proj != "POC_AU" & modelrun == "steady"){
+    else if(!isTRUE(proj != "POC_AU") & isTRUE(modelrun == "steady")){
       entry1[1, ] <- sum(death)+sum(death_hcv)
         # longer object length is not a multiple of shorter object length
       }
