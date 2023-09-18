@@ -32,7 +32,7 @@ DataFolder <- file.path(data_path, "01. DATA/model input" )
 OutputFolder <- file.path(data_path, "02. Output")
 
 load(file.path(OutputFolder, paste0(project_name, ".rda")))
-load(file.path(OutputFolder, paste0("pop_test", ".rda")))
+
 
 urrTime <- format(Sys.time(), "%Y-%m-%d_%H-%M-%S")
 runSamples <- FALSE
@@ -74,21 +74,21 @@ df_list <- lapply(steady, as.data.frame.table)
 
 allpop <- df_list$allPops%>%mutate(time = rep(seq(1,(POC_AU$endYear - POC_AU$timestep),POC_AU$timestep), 
                                               each=POC_AU$ncomponent*POC_AU$npops),
-                                   Frequency=round(Freq, digits = 3))
+                                   Frequency=round(Freq, digits = 10))
 
 popPro_extract <- df_list$allPops%>%
   mutate(time = rep(seq(POC_AU$startYear, (POC_AU$endYear - POC_AU$timestep), POC_AU$timestep), 
                     each=POC_AU$ncomponent * POC_AU$npops),
-         Frequency=round(Freq, digits = 3))%>%
+         Frequency=round(Freq, digits = 10))%>%
   filter(time == 1000)%>%
   mutate(cascade_status = sub("^[^_]*_", "", Var2), 
          dis_prog = sub("\\_.*", "", Var2),
          SI = ifelse(cascade_status%in%c("s", "cured"), "S","I"),
          parameter =Var2)%>%group_by(Var1 ,SI)%>%
   mutate(total = sum(Frequency),
-         value = ifelse(Frequency==0, 0, round(Frequency/total, digits = 4)))%>%
+         value = ifelse(Frequency==0, 0, round(Frequency/total, digits = 10)))%>%
   ungroup()%>%group_by(Var1)%>%mutate(pop_prop = ifelse(
-    Frequency==0, 0, round(Frequency/sum(Frequency), digits = 4)))%>%
+    Frequency==0, 0, round(Frequency/sum(Frequency), digits = 6)))%>%
   ungroup()%>%select(Var1,parameter, value, SI)
 
 
@@ -96,9 +96,9 @@ write.csv(popPro_extract,
           file.path(DataFolder,"/Estimate_initial_pop.csv")) 
 
 #### number of PWID/former PWID in each population ####
-estPops <- popPro_extract
-#estPops <- read.csv(file.path(DataFolder, "Estimate_initial_pop.csv"), 
-#                   header = TRUE)%>%select(-"X")
+
+estPops <- read.csv(file.path(DataFolder, "Estimate_initial_pop.csv"), 
+                   header = TRUE)%>%select(-"X")
 
 
 init_pop <- filter(initialPops, parameter == "init_pop")$value
@@ -154,9 +154,12 @@ calibrateInit <- HCVMSM(POC_AU, best_estimates, best_est_pop,
 toc <- proc.time() - tic 
 toc
 
+
+
+
 save(calibrateInit, 
      file = file.path(OutputFolder ,
                       paste0(project_name,"cali_init" ,".rda")))
                                 
-63113 63753                                       
+                                     
                                         

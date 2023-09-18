@@ -83,7 +83,7 @@ subpop_N <- lapply(POC_AU$popNames, function(x){
 names(subpop_N) <- POC_AU$popNames
 
 ggplot(data = as.data.frame(subpop_N[[5]]), aes(x = year, y = best)) + 
-  geom_line() + scale_y_continuous(limits = c(20800, 21000))
+  geom_line() + scale_y_continuous(limits = c(20000, 21000))
 
 # all subpop in one list 
 pop_N <- dplyr::bind_rows(subpop_N, .id = 'population')

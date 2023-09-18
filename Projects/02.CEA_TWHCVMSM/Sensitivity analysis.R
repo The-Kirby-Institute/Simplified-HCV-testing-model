@@ -42,22 +42,41 @@ library(ggpubr)
 # we specify the number of cores/workers we want to use
 registerDoParallel(cores = detectCores() - 1)
 
+codep <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/TWHCV-model"
+
+com_codeP <- "/Users/jjwu/Documents/Simplified-HCV-testing-model/03. Code"
+
+epidatapath <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Taiwan-MSM-HCV-model"
+
+project_codep <- "/Users/jjwu/Documents/Simplified-HCV-testing-model/Projects/02.CEA_TWHCVMSM"
+
 #file path of "TWHCV-model" project
-common_codepath <- file.path(here() %>% dirname()%>% dirname(), '03. Code/Functions')
+Rcode <- file.path(codep, '03. Code')
 
-DataFolder <- file.path(here(), "01. DATA/model input")
+scenariopath <- file.path(epidatapath, '01. DATA/model input/Scenarios')
 
-# Rda file path 
-# load the .rda file of base estimate 
-rdapath <- file.path(here()%>%dirname()%>%dirname()%>%dirname(), "Taiwan-MSM-HCV-model")
+# save and cost data folder 
+dtp <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/02.CEA_TWHCVMSM"
 
-outputdt <- here("02. Output/RDA")
-outputfig <- here("02. Output/Figs")
-projectFile <- file.path(rdapath , paste0("HCVModel",".rda"))
+DataFolder <- file.path(dtp, "01. DATA/model input")
 
-projectVars <- load(projectFile)
+outputdt <- file.path(dtp, "02. Output/RDA")
 
-load(file.path(rdapath , paste0("HCVModel", "cali",".rda")))
+outputfig <- file.path(dtp, "02. Output/Figs")
+
+# source 
+
+source(file.path(com_codeP, "Functions/plotFunctions.R"))
+
+source(file.path(com_codeP, "Functions/plotOptions.R"))
+
+source(file.path(com_codeP, "Functions/Scenarios_wrangling.R"))
+
+source(file.path(com_codeP, "Functions/plotManuscript.R"))
+
+source(file.path(project_codep, "AggregateRes.R"))
+
+projectFile <- file.path(epidatapath , paste0("HCVModel",".rda"))
 
 load(file.path(outputdt , "cost.rda"))
 
@@ -350,7 +369,7 @@ load(file.path(outputdt , "PRCC_cost.rda"))
 
 load(file.path(outputdt , "PRCC_qaly.rda"))
 
-PRCC_inci$rank
+PRCC_inci$PRCC
 
 #### 
 sen_ana <- list()
@@ -376,40 +395,94 @@ sen_ana_rank <- list()
 for (i in names(sen_ana)){ 
   
   sen_ana_rank[[i]] <- sen_ana[[i]]%>%arrange(., desc(abs(original)))%>%
-    head(., 10)
+    head(., 11)
   }
-sen_ana_rank$cost
+sen_ana_rank$Inci <- sen_ana_rank$Inci%>%filter(parameter!= "a_f04")%>%
+  mutate(parameter = factor(parameter,
+                            levels = c("a_f01", "f4_hcc1", "spc1", "HIVD", 
+                                       "f3_hcc1", "f4_dc1", "HIVPrEP",
+                                       "Cure_morhcc_Reduction", "spc3", "f3_hcc4"),
+                            labels = c("disease progression: Acute → F0",
+                                       "disease progression: F4→ HCC (HIV-)",
+                                       "Spontaneous clearance (HIV-)",
+                                       "proportion of MSM diagnosed with HIV and on treatment",
+                                       "disease progression: F3→ HCC (HIV-)",
+                                       "disease progression: F4→ DC (HIV-)",
+                                       "proportion of MSM on PrEP",
+                                       "HCC-related death (post-cured)",
+                                       "Spontaneous clearance (HIV+)",
+                                       "disease progression: F3→ HCC (diagnosed with HIV and on treatment)"
+                                       )))
+
+sen_ana_rank$cost <- sen_ana_rank$cost[c(1:10), ]%>%
+  mutate(parameter = 
+           factor(parameter, 
+                  levels = c("cured.2", "HIVD", "a_f01", "spc4", "mordc", 
+                             "morhcc", "morlt", "HIVd_mor", "dc_hcc4", "spc2"),
+                  labels = c("SVR rate", 
+                             "proportion of MSM diagnosed with HIV and on treatment",
+                             "disease progression: Acute → F0",
+                             "Spontaneous clearance (HIV+)",
+                             "DC related death",
+                             "HCC related death",
+                             "liver transplant related death",
+                             "Mortality of MSM diagnosed with HIV and on treatment",
+                             "disease progression: DC → HCC (HIV diagnosed with HIV and on treatment)",
+                             "Spontaneous clearance (HIV-)")))
+
+
+sen_ana_rank$qaly <- sen_ana_rank$qaly[c(1:10), ]%>%
+  mutate(parameter = 
+           factor(parameter, 
+                  levels = c("HIVD", "cured.2", "hcc_lt1", "spc2", "f4_hcc4", 
+                             "f3_f42", "f4_hcc3", "hcc_lt2", "HIVN", "dc_lt3"),
+                  labels = c("proportion of MSM diagnosed with HIV and on treatment",
+                             "SVR rate", 
+                             "disease progression: HCC → liver transplant (HIV- not on PrEP)",
+                             "Spontaneous clearance (HIV-)",
+                             "disease progression: F4 → HCC (HIV diagnosed on treatment)",
+                             "disease progression: F3 → F4 (HIV-)",
+                             "disease progression: F4 → HCC (HIV undiagnosed)",
+                             "disease progression: HCC → liver transplant (HIV- on PrEP)",
+                             "proportion of MSM living with HIV and not on PrEP",
+                             "disease progression: DC → liver transplant (HIV undiagnosed)")))
+
+tornado_p[[1]] <- sen_ana_rank[[1]]%>%arrange(original)
+
 tornado_p <- list()
 ### unsolved: rename parameters 
 title_name <- c("HCV incidence", "Lifetime cost", "Lifetime QALYs")
 for(i in 1:length(names(sen_ana_rank))){ 
   
   tornado_p[[i]] <- sen_ana_rank[[i]]%>%arrange(abs(original))%>%
-    mutate(param = factor(parameter, levels = parameter))%>%
-    ggplot(data = ., aes(x = param, 
+     ggplot(data = ., aes(x = parameter, 
                               y = original))+ 
-    geom_segment( aes(xend=param, y=`min. c.i.`, yend = `max. c.i.`)) +
-    geom_point(aes(y = original), size=1.2, color="orange") +
+    geom_segment( aes(xend=parameter, y=`min. c.i.`, yend = `max. c.i.`)) +
+    geom_point(aes(y = original), size=1, color="orange") +
     geom_hline( aes(yintercept = 0), linetype = "dashed") +
     coord_flip() +
     scale_y_continuous(limits = c(-1, 1)) +
     theme_bw() +
     xlab("Parameters") +
-    ylab("PRCC coefficient") + 
+    ylab("Partial rank correlation coefficients") + 
     
     ggtitle(title_name[i]) + 
-    theme_Publication() + 
+    theme_Publication(base_size = 10) + 
     theme(axis.text.x = element_text(angle = 0, vjust = 0.5,hjust = 0.5,
                                face = "bold",size = rel(1)))
     
   
   }
-tornado_p$Inci
+tornado_p[[1]]
+tornado_p[[2]]
+tornado_p[[3]]
+
 # need to edit the label of the parameters afterward 
 
-# save into png files 
-a <- ggarrange(plotlist=tornado_p, widths = c(2,2,2), heights = c(1,1,1), 
-          ncol = 3, labels = c("A", "B", "C"))
-ggsave(path = outputfig, file="PRCC_coefficient.png", a, height = 3, 
-       width = 12, dpi = 800)
+ggsave(path = outputfig, file="PRCC_coefficient_inci.png", tornado_p[[1]], height = 4, 
+       width = 8, dpi = 800)
+ggsave(path = outputfig, file="PRCC_coefficient_cost.png", tornado_p[[2]], height = 4, 
+       width = 8, dpi = 800)
 
+ggsave(path = outputfig, file="PRCC_coefficient_qaly.png", tornado_p[[2]], height = 4, 
+       width = 8, dpi = 800)

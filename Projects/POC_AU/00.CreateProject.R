@@ -19,7 +19,7 @@ dir.create("02. Output/RDA")
 project_directory <- here()
 DataFolder  <- file.path(here(), "01. DATA/model input")
 OutputFolder <- file.path(here(), "02. Output/RDA")
-project_name <- "TWPrisoners"
+project_name <- "POC_AU"
 # source above a layer, if above doulble layer: adding %>%dirname() 
 # file.path(here()%>%dirname(), "TWPrisoners")
 
@@ -40,19 +40,15 @@ timestep <- 1/12
 
 # population
 
-full_pop_names <- c("Never Incacerated_non currently injecting drugs", 
-                    "Never Incacerated_currently injecting drugs", 
-                    "Ever Incacerated_non currently injecting drugs", 
-                    "Ever Incacerated_currently injecting drugs",
-                    "Detention Incacerated",
-                    "Prison Incacerated")
+full_pop_names <- c("PWID in community",  "Former PWID in community", 
+                    "PWID in prisons",  "Former PWID in prisons", 
+                    "nonPWID in prisons")
 
-pop_names <- c("N_inca_NCID", 
-               "N_inca_CID", 
-               "E_inca_NCID", 
-               "E_inca_CID",
-               "D_inca",
-               "P_inca")
+pop_names <- c("C_PWID", 
+               "C_fPWID", 
+               "P_PWID", 
+               "P_fPWID",
+               "P_nPWID")
 
 npops <- length(pop_names)
 ###############################################################################
