@@ -11,15 +11,19 @@ library(reshape)
 library(lubridate)
 
 # set up dircetory 
-basePath <- here()
-dir.create("01. DATA") # create subdircetory
-dir.create("01. DATA/data input")
-dir.create("02. Output") 
-dir.create("02. Output/RDA")
-project_directory <- here()
-DataFolder  <- file.path(here(), "01. DATA/model input")
-OutputFolder <- file.path(here(), "02. Output/RDA")
+codefun_path <- paste("/Users/jjwu/Documents/Simplified-HCV-testing-model")
+
+data_path <- paste("/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/", 
+                   project_name, sep = "")
 project_name <- "TWPrisoners"
+dir.create(paste0(codefun_path, "/01. DATA")) # create subdircetory
+dir.create(paste0(codefun_path, "/01. DATA/data input"))
+dir.create(paste0(codefun_path, "/02. Output"))
+dir.create(paste0(codefun_path, "/02. Output/RDA"))
+project_directory <- file.path(data_path)
+DataFolder  <- file.path(data_path, "01. DATA/model input")
+OutputFolder <- file.path(data_path, "02. Output/RDA")
+
 # source above a layer, if above doulble layer: adding %>%dirname() 
 # file.path(here()%>%dirname(), "TWPrisoners")
 
@@ -28,7 +32,7 @@ project_name <- "TWPrisoners"
 startYear <-1
 
 # start of the final year
-endYear <-100
+endYear <-1000
 
 nyears <- endYear - startYear + 1  
 
@@ -36,7 +40,7 @@ nyears <- endYear - startYear + 1
 Time_Y <- seq(startYear, endYear, by = 1) 
 
 # simulation timestep 
-timestep <- 0.25
+timestep <- 1/12
 
 # population
 
@@ -216,7 +220,7 @@ write.csv(fib, file.path(DataFolder, "curedProgress.csv"))
 
 # parameters that varies over disease stage and populations
 # tau_ab, tau_ag, tau_poct, eta, lota, rho, cured
-parameter_variedstage_set <- c("tau_ab", "tau_ag", "tau_poct", "eta", "lota",
+parameter_variedstage_set <- c("tau_ab", "tau_RNA", "tau_poct", "eta", "lota",
                                "rho", "cured") 
 
 param_frame <- as.data.frame(matrix(0, nrow = npops, 
@@ -247,50 +251,55 @@ colnames(transitions) <- c(unlist(lapply(as.list(pop_names),
 
 
 write.csv(transitions, file.path(DataFolder, "population_transitions.csv"))
-
+################################################################################
 
 # Create project specifications list
 
-HCV <-list()
-HCV$project_name <- project_name
-HCV$project_directory <- project_directory
+TWPrisoners <-list()
+TWPrisoners$project_name <- project_name
+
 
 # population
-HCV$npops <- npops
-HCV$popNames <- pop_names
+TWPrisoners$npops <- npops
+TWPrisoners$popNames <- pop_names
 
 # component
-HCV$component_name <- compon_name
-HCV$ncomponent <- length(compon_name)
+TWPrisoners$component_name <- compon_name
+TWPrisoners$ncomponent <- length(compon_name)
 
 # component without s
-HCV$component_nameWOS <- compon_nameWOS
-HCV$ncomponentWOS <- length(compon_nameWOS)
+TWPrisoners$component_nameWOS <- compon_nameWOS
+TWPrisoners$ncomponentWOS <- length(compon_nameWOS)
 
 # disease progress
-HCV$progress_name <- short_progress_name[-1]
-HCV$nprogress <- length(short_progress_name)-1
+TWPrisoners$progress_name <- short_progress_name[-1]
+TWPrisoners$nprogress <- length(short_progress_name)-1
 
 # disease progression rate 
-HCV$diseaseprogress_Name <- transitionName
-HCV$diseaseprogress_n <- length(transitionName)
+TWPrisoners$diseaseprogress_Name <- transitionName
+TWPrisoners$diseaseprogress_n <- length(transitionName)
+
+
+
 
 # disease progression rate that are constant overtime and populations
-HCV$fibName <- fibName
-HCV$fib_n <-length(fibName)
+TWPrisoners$fibName <- fibName
+TWPrisoners$fib_n <-length(fibName)
 
 # cascade
-HCV$cascade_name <- short_cascade_name
-HCV$ncascade <- length(short_cascade_name)
+TWPrisoners$cascade_name <- short_cascade_name
+TWPrisoners$ncascade <- length(short_cascade_name)
+
+
 # time related
-HCV$startYear <- startYear
-HCV$endYear <- endYear
-HCV$timestep <- timestep
-HCV$nyears <- nyears
-HCV$years <- startYear:endYear
+TWPrisoners$startYear <- startYear
+TWPrisoners$endYear <- endYear
+TWPrisoners$timestep <- timestep
+TWPrisoners$nyears <- nyears
+TWPrisoners$years <- startYear:endYear
 
 # Create project .rda files    
-save(HCV, file = file.path(OutputFolder,
+save(TWPrisoners, file = file.path(OutputFolder,
                            paste0(project_name, ".rda")))  
 
 ################################################################################
@@ -298,7 +307,7 @@ save(HCV, file = file.path(OutputFolder,
 
 #### cost dataframe #### 
 
-cparameter_cascade <- c("ctau_ab", "ctau_ag", "ctau_poct", "ceta", "clota",
+cparameter_cascade <- c("ctau_ab", "ctau_RNA", "ctau_poct", "ceta", "clota",
                         "crho", "ccured") 
 
 param_frame <- as.data.frame(matrix(0, nrow = HCV$npops, 

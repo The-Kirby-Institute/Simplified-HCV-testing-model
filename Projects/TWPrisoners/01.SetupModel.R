@@ -1,6 +1,15 @@
 # Set up TWPrisoners model
 
 rm(list = ls())
+
+# Setup directories after setting working directory to source file 
+# directory (so it is easy to move code around)
+project_name <- "TWPrisoners"
+
+codefun_path <- paste("/Users/jjwu/Documents/Simplified-HCV-testing-model")
+
+data_path <- paste("/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/", 
+                   project_name, sep = "")
 # Load useful libraries
 
 library("readr")
@@ -10,22 +19,15 @@ library("purrr")
 library("parallel")
 library("pacman")
 library("doMC")
-library("here")
-
-# Setup directories after setting working directory to source file 
-# directory (so it is easy to move code around)
-basePath <- here()
 
 
-# Setup directories after setting working directory to source file 
-# directory 
+Rcode <- file.path(codefun_path, "03. Code")
 
-Rcode <- file.path(here()%>%dirname()%>%dirname(),  "03. Code/Functions")
-DataFolder <- file.path(basePath, "01. DATA/model input" )
-OutputFolder <- file.path(basePath, "02. Output/RDA" )
-projectFolder <- file.path(basePath)
+DataFolder <- file.path(data_path, "01. DATA/model input" )
+OutputFolder <- file.path(data_path, "02. Output/RDA")
 
-project_name <- "TWPrisoners"
+
+
 
 # project set-up
 
@@ -35,26 +37,28 @@ startYear <-1
 endYear <- 2000
 timestep <- 1/12 
 simulateY <- 2022 
+
 calibrateY <- 2015
+
 nyears <- length(seq(startYear,endYear,1))
 numberSamples <- 1000
 
 # timeframe 
-HCV$startYear <- startYear
-HCV$endYear <- endYear
-HCV$timestep <- timestep
-HCV$nyears <- nyears
-HCV$years <- startYear:endYear
+TWPrisoners$startYear <- startYear
+TWPrisoners$endYear <- endYear
+TWPrisoners$timestep <- timestep
+TWPrisoners$nyears <- nyears
+TWPrisoners$years <- startYear:endYear
 
-HCV$pts <- seq(HCV$startYear, HCV$endYear, by = timestep)
+TWPrisoners$pts <- seq(TWPrisoners$startYear, TWPrisoners$endYear, by = timestep)
 
-HCV$pts <- head(HCV$pts, -1)
-HCV$npts <- length(HCV$pts)
-dimNames <- list(HCV$popNames, HCV$componentName)
-npops <- HCV$npops
-HCV$simY <- simulateY 
-HCV$cabY <- calibrateY 
-HCV$numberSamples <- numberSamples
+TWPrisoners$pts <- head(TWPrisoners$pts, -1)
+TWPrisoners$npts <- length(TWPrisoners$pts)
+dimNames <- list(TWPrisoners$popNames, TWPrisoners$componentName)
+npops <- TWPrisoners$npops
+TWPrisoners$simY <- simulateY 
+TWPrisoners$cabY <- calibrateY 
+TWPrisoners$numberSamples <- numberSamples
 
 
 # disease progression 
@@ -71,14 +75,14 @@ fib <- cure_prog[, -1]
 
 # generate () array for parameter_varied over stages
 parameter_variedstage_set <- c("tau_ab", 
-                               "tau_ag", 
+                               "tau_RNA", 
                                "tau_poct", 
                                "eta", 
                                "lota",
                                "rho", 
                                "cured" )
 
-testing_matrix <- array(0, c(npops, HCV$nprogress, HCV$npts + 1), 
+testing_matrix <- array(0, c(npops, TWPrisoners$nprogress, TWPrisoners$npts + 1), 
                         dimnames = dimNames)
 
 testinglist <- list(testing_matrix)
@@ -100,8 +104,8 @@ dfList <- lapply(files, function(f) {
                                   "/parameter_varied_stages/", f, sep = "")))
   df <- df[, -1]
   df <- df%>%as_tibble()#%>%mutate_all(funs(1-exp(-.))) # probability to rate 
-  df <- as.matrix(df, nrow = npops, ncol = HCV$nprogress)
-  df <- replicate(HCV$npts, df)
+  df <- as.matrix(df, nrow = npops, ncol = TWPrisoners$nprogress)
+  df <- replicate(TWPrisoners$npts, df)
 })
 
 names(dfList) <- c(gsub("^|.csv", "", files)) # ^: from beginning, \ end before .csv
@@ -126,7 +130,7 @@ pop_transitions <- mutate_all(pop_transitions,
                               function(x) as.numeric(as.character(x)))
 
 # expanding pop_transitions to fit the simulation years 
-pop_tran <- as.data.frame(matrix(0, nrow = HCV$nyears, 
+pop_tran <- as.data.frame(matrix(0, nrow = TWPrisoners$nyears, 
                                  ncol = ncol(pop_transitions)))
 
 colnames(pop_tran) <- colnames(pop_transitions)
@@ -139,7 +143,7 @@ pop_tran[seq(nrow(pop_transitions) + 1, nrow(pop_tran), 1), ] <-
 
 
 # expand to all points by liner extrapolation between years
-pop_extrapolation <- as.data.frame(matrix(0, nrow = HCV$npts,
+pop_extrapolation <- as.data.frame(matrix(0, nrow = TWPrisoners$npts,
                                           ncol = ncol(pop_tran)))
 
 colnames(pop_extrapolation) <- colnames(pop_tran)
@@ -150,12 +154,12 @@ for (var in colnames(pop_extrapolation)) {
   
   tempValues <- pop_tran[, var] 
   
-  for (year in 1:(HCV$nyears - 1)) {
+  for (year in 1:(TWPrisoners$nyears - 1)) {
     
-    indices <- ((year - 1) * 1/HCV$timestep + 1): (year * 1/HCV$timestep + 1 )
+    indices <- ((year - 1) * 1/TWPrisoners$timestep + 1): (year * 1/TWPrisoners$timestep + 1 )
     
     yearValues <- seq(tempValues[year], tempValues[year + 1], 
-                      length = (1/HCV$timestep + 1))
+                      length = (1/TWPrisoners$timestep + 1))
     
     pop_extrapolation[indices, var] <- yearValues
   }
@@ -166,7 +170,7 @@ for (var in colnames(pop_extrapolation)) {
 x.y <- lapply(as.list(1:dim(pop_extrapolation)[1]), 
               function(x) pop_extrapolation[x[1],])
 
-xx <- array(unlist(x.y), c(npops, npops, HCV$npts))
+xx <- array(unlist(x.y), c(npops, npops, TWPrisoners$npts))
 pop_array <- aperm(xx, c(2, 1, 3)) # array transpose # c(2,1,3) 
 # means the subscript permutation vector, 
 # which must be a permutation of the integers 1:n, 
@@ -188,10 +192,10 @@ constants <- as.data.frame(t(constants[, -1]))
 colnames(constants) <- parameters
 rownames(constants) <- NULL
 
-constantsDf <- constants[rep(1, HCV$npts), ]
+constantsDf <- constants[rep(1, TWPrisoners$npts), ]
 
 best_estimates <- as.data.frame(matrix(0, ncol = ncol(constantsDf),
-                                       nrow = HCV$npts))
+                                       nrow = TWPrisoners$npts))
 
 colnames(best_estimates) <- colnames(constantsDf)
 
@@ -199,12 +203,12 @@ for (var in colnames(constantsDf)) {
   
   tempValues <- constantsDf[, var]
   
-  for (year in 1:(HCV$nyears - 1)) {
+  for (year in 1:(TWPrisoners$nyears - 1)) {
     
-    indices <- ((year - 1) * 1/HCV$timestep + 1): (year * 1/HCV$timestep + 1)
+    indices <- ((year - 1) * 1/TWPrisoners$timestep + 1): (year * 1/TWPrisoners$timestep + 1)
     
     yearValues <- seq(tempValues[year], tempValues[year + 1], 
-                      length = (1 + 1/HCV$timestep))
+                      length = (1 + 1/TWPrisoners$timestep))
     
     best_estimates[indices, var] <- yearValues
   }  
@@ -220,44 +224,44 @@ initial_pop <- initialPops %>%
   filter(parameter != "init_pop")
 
 initialPopMat <- as.data.frame(matrix(initial_pop$value, 
-                                      ncol = HCV$ncomponent + 1,  
-                                      nrow = HCV$npops))
+                                      ncol = TWPrisoners$ncomponent + 1,  
+                                      nrow = TWPrisoners$npops))
 
-colnames(initialPopMat) <- c(HCV$component_name, "pop_prop")
+colnames(initialPopMat) <- c(TWPrisoners$component_name, "pop_prop")
 
-rownames(initialPopMat) <- HCV$population_names
+rownames(initialPopMat) <- TWPrisoners$population_names
 
 popProp <- as.numeric(init_pop) * initialPopMat$pop_prop
 
-best_initial_pop <- apply(initialPopMat[, 1:length(HCV$component_name)], 2, 
+best_initial_pop <- apply(initialPopMat[, 1:length(TWPrisoners$component_name)], 2, 
                           function(x) x * popProp)
 
 
 
 ######
-save(HCV,constants ,disease_progress, fib, dfList, pop_array, 
+save(TWPrisoners,constants ,disease_progress, fib, dfList, pop_array, 
      constantsDf, initialPops, best_estimates, best_initial_pop, param_constant, 
      file = file.path(OutputFolder,
                       paste0(project_name, ".rda")))
 
 
 load(file.path(OutputFolder, paste0(project_name, ".rda")))
-source(file.path(Rcode, "/HCV_model.R"))
+source(file.path(codefun_path, "03. Code/Functions/HCV_model.R"))
 
 tic <- proc.time()
 
-steady <- HCVMSM(HCV, best_estimates, best_initial_pop,
+steady <- HCVMSM(TWPrisoners, best_estimates, best_initial_pop,
                  disease_progress, pop_array, dfList, fib, end_Y = NULL, 
-                 modelrun = "steady")
+                 modelrun = "steady", proj = "TWPrisoners")
 
 toc <- proc.time() - tic 
-
+toc
 
 df_list <- lapply(steady, as.data.frame.table)
 
 popPro_extract <- df_list$allPops%>%
-  mutate(time = rep(seq(HCV$startYear, (HCV$endYear - HCV$timestep), HCV$timestep), 
-                    each=HCV$ncomponent * HCV$npops),
+  mutate(time = rep(seq(TWPrisoners$startYear, (TWPrisoners$endYear - TWPrisoners$timestep), TWPrisoners$timestep), 
+                    each=TWPrisoners$ncomponent * TWPrisoners$npops),
          Frequency=round(Freq, digits = 3))%>%
   filter(time==800)%>%
   mutate(cascade_status = sub("^[^_]*_", "", Var2), 
@@ -273,17 +277,18 @@ popPro_extract <- df_list$allPops%>%
 
 
 write.csv(popPro_extract, 
-          file.path(here(),"01. Data/model input/Estimate_initial_pop.csv")) 
+          file.path(DataFolder,"/Estimate_initial_pop.csv")) 
 
 #### number of people in each population ####
 
 estPops<- read.csv(file.path(DataFolder, "Estimate_initial_pop.csv"), 
                    header = TRUE)%>%select(-"X")
 
-init_pop <- filter(initialPops, parameter == "init_pop")$value*constants$MSM_pro
+init_pop <- filter(initialPops, parameter == "init_pop")$value
 
 pop_prop <- initialPops%>%filter(parameter%in% c("pop_prop1", "pop_prop2", 
-                                                 "pop_prop3", "pop_prop4"))%>%
+                                                 "pop_prop3", "pop_prop4", 
+                                                 "pop_prop5", "pop_prop6"))%>%
   select(value)%>%unlist()%>%as.vector()
 
 popProp <- as.numeric(init_pop)*pop_prop 
@@ -291,28 +296,34 @@ popProp <- as.numeric(init_pop)*pop_prop
 
 # prevalence at initial
 init_prop_I <- c(constantsDf$HCVP1[1], constantsDf$HCVP2[1], 
-                 constantsDf$HCVP3[1], constantsDf$HCVP4[1])
+                 constantsDf$HCVP3[1], constantsDf$HCVP4[1],
+                 constantsDf$HCVP5[1], constantsDf$HCVP6[1])
 
 init_prop_S <-c(1 - init_prop_I)
 
 estPops <- estPops%>%mutate(
-  pop_group = rep(c(popProp),dim(estPops)[1]/HCV$npops),
-  SIprop = case_when(Var1 == "HIV-" & SI == "S" ~ init_prop_S[1],
-                     Var1 == "HIV-" & SI == "I" ~ init_prop_I[1],
-                     Var1 == "HIV-PrEP" & SI == "S" ~ init_prop_S[2],
-                     Var1 == "HIV-PrEP" & SI == "I" ~ init_prop_I[2],
-                     Var1 == "HIV+" & SI == "S" ~ init_prop_S[3],
-                     Var1 == "HIV+" & SI == "I" ~ init_prop_I[3],
-                     Var1 == "HIV+d" & SI == "S" ~ init_prop_S[4],
-                     Var1 == "HIV+d" & SI == "I" ~ init_prop_I[4]),
+  pop_group = rep(c(popProp),dim(estPops)[1]/TWPrisoners$npops),
+  SIprop = case_when(Var1 == "N_inca_NCID" & SI == "S" ~ init_prop_S[1],
+                     Var1 == "N_inca_NCID" & SI == "I" ~ init_prop_I[1],
+                     Var1 == "N_inca_CID" & SI == "S" ~ init_prop_S[2],
+                     Var1 == "N_inca_CID" & SI == "I" ~ init_prop_I[2],
+                     Var1 == "E_inca_NCID" & SI == "S" ~ init_prop_S[3],
+                     Var1 == "E_inca_NCID" & SI == "I" ~ init_prop_I[3],
+                     Var1 == "E_inca_CID" & SI == "S" ~ init_prop_S[4],
+                     Var1 == "E_inca_CID" & SI == "I" ~ init_prop_I[4],
+                     Var1 == "E_inca_CID" & SI == "S" ~ init_prop_S[5],
+                     Var1 == "E_inca_CID" & SI == "I" ~ init_prop_I[5],
+                     Var1 == "E_inca_CID" & SI == "S" ~ init_prop_S[6],
+                     Var1 == "E_inca_CID" & SI == "I" ~ init_prop_I[6]),
+  
   est_pop = value*pop_group*SIprop)
 
 best_est_pop <- as.matrix(as.data.frame(matrix(estPops$est_pop, 
-                                               ncol = HCV$ncomponent,  
-                                               nrow = HCV$npops)))
+                                               ncol = TWPrisoners$ncomponent,  
+                                               nrow = TWPrisoners$npops)))
 
-colnames(best_est_pop) <- c(HCV$component_name)
+colnames(best_est_pop) <- c(TWPrisoners$component_name)
 
-save(HCV,steady, best_est_pop, 
-     file = file.path(projectFolder,
+save(TWPrisoners,steady, best_est_pop, 
+     file = file.path(OutputFolder,
                       paste0(project_name,"cali" ,".rda")))
