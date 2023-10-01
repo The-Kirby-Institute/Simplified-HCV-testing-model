@@ -85,15 +85,15 @@ rownames(pop_array) <- TWPrisoners$popNames
 colnames(pop_array) <- TWPrisoners$popNames
 pop_array[1,2 ,] <- 0.00002
 pop_array[1,5 ,] <- 3.043484e-04
-pop_array[1,6,] <- 3.2e-04
+pop_array[1,6,] <- 2.5e-04
 
 pop_array[2,1 ,] <- 0.058
 pop_array[2,5 ,] <- 0.04
 pop_array[2,6 ,] <- 0.3
 
-pop_array[3,4 ,] <- 0.07
+pop_array[3,4 ,] <- 0.09
 pop_array[3,5 ,] <- 7.543484e-05
-pop_array[3,6, ] <- 0.022
+pop_array[3,6,  ] <- 0.015
 
 pop_array[4,3 ,] <- 0.01
 pop_array[4,5 ,] <- 0.1
