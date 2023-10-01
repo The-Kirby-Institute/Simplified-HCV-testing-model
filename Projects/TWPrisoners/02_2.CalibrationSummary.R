@@ -8,6 +8,7 @@ library(ggrepel)
 library(directlabels)
 library(gridExtra)
 library(grid)
+library("readxl")
 
 project_name <- "TWPrisoners"
 
@@ -41,33 +42,33 @@ source(file.path(Rcode, "/Functions/plotFunctions.R"))
 
 endY <- 100
 ####import calibration data points #### 
+CaliFolder <- DataFolder%>%dirname()
+files <- list.files(path = paste0(CaliFolder , 
+                                  "/Calibration_dt/", sep = ""),
+                    pattern = '*.xlsx')
 
-datapoint <- list()
-datapoint[["N"]] <- 
-  cbind.data.frame(year = rep(TWPrisoners$simY, length(TWPrisoners$popNames) +3), 
-                   indicator = c(TWPrisoners$popNames, "Community", "Prison", "Total"), 
-                   realpop = c(80000, 400000, NA, NA, NA, 480000, 40000, 520000),
-                   low= c(60000, 30000, NA, NA, NA, 360000, NA, NA),
-                   up = c(100000, 600000, NA, NA, NA, 700000, NA, NA))
+calib_dt <- lapply(files, function(f) {
+  df <- read_xlsx(file.path(paste0(CaliFolder , 
+                                  "/Calibration_dt/", f, sep = "")))
+  
+  df <- df%>%as_tibble()
+  
+})
+names(calib_dt) <- c("N", "frac")
 
-datapoint[["frac"]] <- 
-  cbind.data.frame(year = rep(TWPrisoners$simY, 3), 
-                   indicator = c("commu_proP_fit", "prison_proP_fit", 
-                                 "prison_profP_fit"), 
-                   realpop = c(16.67, 16.12, 35.88),
-                   low= c(NA, NA, NA),
-                   up = c(NA, NA, NA))
+calib_dt[["N"]] <- calib_dt[["N"]]%>%
+  mutate(indicators = factor(indicators, levels = c(unique(.$indicators)),
+                              label = c("prison", 
+                                        "rehab", 
+                                        "incar_P", 
+                                        "incar_DI", 
+                                        "incar_D", 
+                                        "rel_P", 
+                                        "rel_D")))
 
-datapoint[["flow"]] <- 
-  cbind.data.frame(year = rep(TWPrisoners$simY, 3), 
-                   indicator = c("incar", "release", 
-                                 "commu_stopinj"), 
-                   realpop = c(63753, 63113, 5.4),
-                   low= c(NA, NA, 4.3),
-                   up = c(NA, NA, 6.7))
-
-
-
+calib_dt[[2]] <- calib_dt[[2]]%>%mutate(time = time - TWPrisoners$cabY +1 )
+calib_dt[[1]] <- calib_dt[[1]]%>%mutate(time = time - TWPrisoners$cabY +1 )
+endY <- 15
 #### Result:population ####
 ##### N: each subpop/ total  #####
 # subpop as list
@@ -77,16 +78,15 @@ subpop_N <- lapply(TWPrisoners$popNames, function(x){
                           Population = x,
                           Disease_prog = NULL, 
                           Cascade = NULL, param = NULL, 
-                          endYear = endY)%>%ungroup()
+                          endYear = endY, YearCut = "END")%>%ungroup()
 })
 
 names(subpop_N) <- TWPrisoners$popNames
-
-ggplot(data = as.data.frame(subpop_N[[1]]), aes(x = year, y = best)) + 
+subpop_N$N_inca_NCID
+ggplot(data = as.data.frame(subpop_N[[6]]), aes(x = year, y = best)) + 
   geom_line() 
 
 
-scale_y_continuous(limits = c(20000, 21000))
 
 # all subpop in one list 
 pop_N <- dplyr::bind_rows(subpop_N, .id = 'population')
@@ -97,37 +97,57 @@ total_N <- pop_N%>%group_by(year)%>%summarise(best = sum(best))
 
 ##### N: community #####
 commu_N <- popResults_MidYear(TWPrisoners, calibrateInit,
-                              Population = c("C_PWID", "C_fPWID"),
+                              Population = c("N_inca_NCID", 
+                                             "N_inca_CID",
+                                             "E_inca_NCID",
+                                             "E_inca_CID"),
                               Disease_prog = NULL, 
                               Cascade = NULL, param = NULL, 
-                              endYear = endY)%>%ungroup()%>%
+                              endYear = endY, YearCut = "END")%>%ungroup()%>%
   dplyr::group_by(year)%>%summarise_at("best",sum)
 
 ##### N: prison #####
 prison_N <- popResults_MidYear(TWPrisoners, calibrateInit,
-                               Population = c("P_PWID", "P_fPWID", "P_nPWID"),
+                               Population = c("D_inca", "P_inca"),
                                Disease_prog = NULL, 
                                Cascade = NULL, param = NULL, 
-                               endYear = endY)%>%ungroup()%>%
+                               endYear = endY, YearCut = "END")%>%ungroup()%>%
   dplyr::group_by(year)%>%summarise_at("best",sum)
 
 ##### %: PWID in community/prison #####
 commu_proP <- cbind(year = seq(TWPrisoners$startYear , endY-1 ,1),
-                    as.data.frame(pop_N[pop_N$population =="C_PWID",3] / commu_N[ ,-1])*100)%>%
+                    as.data.frame((pop_N[pop_N$population =="N_inca_CID",3] + 
+                                    pop_N[pop_N$population =="E_inca_CID",3])/ commu_N[ ,-1])*100)%>%
   tibble::as_tibble()
 
-prison_proP <- cbind(year = seq(TWPrisoners$startYear , endY-1 ,1),
-                     as.data.frame(pop_N[pop_N$population =="P_PWID",3] / prison_N[ ,-1])*100)%>%
+prison_proD <- cbind(year = seq(TWPrisoners$startYear , endY-1 ,1),
+                     as.data.frame(pop_N[pop_N$population =="D_inca",3] / prison_N[ ,-1])*100)%>%
+  tibble::as_tibble() 
+
+commu_proPNinca <- cbind(year = seq(TWPrisoners$startYear , endY-1 ,1),
+                    as.data.frame((pop_N[pop_N$population =="N_inca_CID",3])/ (pop_N[pop_N$population =="N_inca_CID",3] + 
+                                                                                   pop_N[pop_N$population =="E_inca_CID",3]))*100)%>%
   tibble::as_tibble()
 
-##### % fPWID in prison ##### 
-prison_profP <- cbind(year = seq(TWPrisoners$startYear , endY-1 ,1),
-                      as.data.frame(pop_N[pop_N$population =="P_fPWID",3] / prison_N[ ,-1])*100)%>%
+##### % prison in total pops ##### 
+prison_pro <- cbind(year = seq(TWPrisoners$startYear , endY-1 ,1),
+                      as.data.frame(prison_N[ ,-1] / total_N[ ,-1])*100)%>%
   tibble::as_tibble()
+
+
+####========================================================================####
 
 ##### number of annual leaving in each subpop #####
 # this is for getting annual number of released in non-PWID in prison 
 rel <- indicatorResult_uno(TWPrisoners, calibrateInit, "newLeave",
+                           populations = TWPrisoners$popNames, endYear= endY)%>%
+  mutate(year = year + TWPrisoners$cabY - 1) 
+
+reD <- indicatorResult_uno(TWPrisoners, calibrateInit, "newDeath",
+                           populations = TWPrisoners$popNames, endYear= endY)%>%
+  mutate(year = year + TWPrisoners$cabY - 1) 
+
+reHCVD <- indicatorResult_uno(TWPrisoners, calibrateInit, "newHCVdeaths",
                            populations = TWPrisoners$popNames, endYear= endY)%>%
   mutate(year = year + TWPrisoners$cabY - 1) 
 
@@ -142,12 +162,12 @@ PopTransition <- as.data.frame.table(calibrateInit$newpop_tran)%>%
   mutate(timestep = c(rep(seq(TWPrisoners$startYear, endY-TWPrisoners$timestep,
                               TWPrisoners$timestep),each = TWPrisoners$npops*TWPrisoners$npops)),
          from = Var1,
-         To = Var2)%>%select(-c(Var1, Var2, Var3))
+         To = Var2)%>%dplyr::select(-c(Var1, Var2, Var3))
 # giving the average number to first time step 
 impute <- PopTransition%>%filter(timestep >1 &timestep <2)%>%
   group_by(from, To)%>%
   mutate(total_pop = sum(Freq)/length(Freq))%>%
-  select(total_pop)%>%ungroup()
+  dplyr::select(total_pop)%>%ungroup()
 
 impute <- impute[c(1:as.numeric(TWPrisoners$npops*TWPrisoners$npops)),]
 
@@ -158,50 +178,85 @@ PopTransition_all <- cbind.data.frame(timestep = PopTransition$timestep,
                                       to = PopTransition$To, 
                                       best = PopTransition$Freq)%>%
   as_tibble()%>%
-  mutate(year = rep(rep(seq(1, 100-1,1),each = 1/TWPrisoners$timestep),
+  mutate(year = rep(rep(seq(1, endY-1,1),each = 1/TWPrisoners$timestep),
                     each = TWPrisoners$npops*TWPrisoners$npops))
 
 PPTranTo <- PopTransition_all%>%
   group_by(year, from, to)%>%summarise_at(.vars = "best", sum)
 
 # incarceration 
-incarce <- list()
+incarce_D <- list()
 
-incarce[["PWID"]] <- PPTranTo%>%filter(from == "C_PWID" & to == "P_PWID")
+incarce_D[["nonPWID"]] <- PPTranTo%>%
+  filter(from %in% c("N_inca_NCID", "E_inca_NCID") & to == "D_inca")
 
-incarce[["fPWID"]] <- PPTranTo%>%filter(from == "C_fPWID" & to == "P_fPWID")
+incarce_D[["PWID"]] <- PPTranTo%>%
+  filter(from %in% c("N_inca_CID", "E_inca_CID") & to == "D_inca")%>%
+  group_by(year)%>%summarise(best = sum(best))
 
-incarce_bind <- dplyr::bind_rows(incarce, .id = 'population')%>%
+incarce_D_bind <- dplyr::bind_rows(incarce_D, .id = 'population')%>%
   mutate(year = TWPrisoners$cabY + year - 1)%>%ungroup()%>%
-  select(year, population, best)
+  dplyr::select(year, population, best)%>%group_by(year)%>%
+  summarise(best = sum(best))
 
-entry_nonPWID <- entry%>%filter(population =="P_nPWID") 
+incarce_P <- list()
 
-# total incarceration = incarceration in C_PWID + incarceration in C_fPWID + incarceration in non-PWID (entry:non-PWID)
-incar_total <- rbind(incarce_bind, entry_nonPWID)%>%group_by(year)%>%
-  summarize(best = sum(best))
+incarce_P[["nonPWID"]] <- PPTranTo%>%
+  filter(from %in% c("N_inca_NCID", "E_inca_NCID") & to == "P_inca")
+
+incarce_P[["PWID"]] <- PPTranTo%>%
+  filter(from %in% c("N_inca_CID", "E_inca_CID") & to == "P_inca")
+
+
+
+incarce_P_bind <- dplyr::bind_rows(incarce_P, .id = 'population')%>%
+  mutate(year = TWPrisoners$cabY + year - 1)%>%ungroup()%>%
+  dplyr::select(year, population, best)%>%group_by(year)%>%
+  summarise(best = sum(best))
+
+
+incarce_exp <- list()
+
+
+
+incarce_exp[["N"]] <- PPTranTo%>%
+  filter(from %in% c("N_inca_NCID", "N_inca_CID") & to %in% c("D_inca", "P_inca"))
+
+incarce_exp[["E"]] <- PPTranTo%>%
+  filter(from %in% c("E_inca_NCID", "E_inca_CID") & to %in% c("D_inca", "P_inca"))
+
+incarce_exp_bind <- dplyr::bind_rows(incarce_exp, .id = 'population')%>%
+  mutate(year = TWPrisoners$cabY + year - 1)%>%ungroup()%>%
+  dplyr::select(year, population, best)
+
+incarce <- PPTranTo%>%
+  filter(to %in% c("D_inca", "P_inca"))%>%
+  filter(!from %in% c("D_inca", "P_inca"))
 
 # release 
 release <- list()
 
-release[["PWID"]] <- PPTranTo%>%filter(from == "P_PWID" & to == "C_PWID")
+release[["D"]] <- PPTranTo%>%
+  filter(from == "D_inca" & to %in% c("E_inca_NCID"))
 
-release[["fPWID"]] <- PPTranTo%>%filter(from == "P_fPWID" & to == "C_fPWID")
+release[["P"]] <- PPTranTo%>%
+  filter(from == "P_inca" & to %in% c("E_inca_NCID"))
 
 release_bind <- dplyr::bind_rows(release, .id = 'population')%>%
-  mutate(year = TWPrisoners$cabY + year - 1)%>%ungroup()%>%select(year, population, best)
+  mutate(year = TWPrisoners$cabY + year - 1)%>%ungroup()%>%
+  dplyr::select(year, population, best)
 
-release_nonPWID <- rel%>%filter(population =="P_nPWID") 
+release_bind <- release_bind%>%group_by(year, population)%>%summarize(best = sum(best))
 
-release_total <- rbind(release_bind, release_nonPWID)%>%group_by(year)%>%
+release_total <- rbind(release_bind)%>%group_by(year)%>%
   summarize(best = sum(best))
 
-# injection relapse 
+# injection 
 inj_relap <- list()
 
-inj_relap[["community"]] <- PPTranTo%>%filter(from == "C_fPWID" & to == "C_PWID")
+inj_relap[["N"]] <- PPTranTo%>%filter(from == "N_inca_NCID" & to == "N_inca_CID")
 
-inj_relap[["prison"]] <- PPTranTo%>%filter(from == "P_fPWID" & to == "P_PWID")
+inj_relap[["E"]] <- PPTranTo%>%filter(from == "E_inca_NCID" & to == "E_inca_CID")
 
 inj_relap_bind <- dplyr::bind_rows(inj_relap, .id = 'population')%>%
   mutate(year = TWPrisoners$cabY + year - 1)%>%ungroup()
@@ -210,9 +265,9 @@ inj_relap_bind <- dplyr::bind_rows(inj_relap, .id = 'population')%>%
 # stopping injection 
 inj_stop <- list()
 
-inj_stop[["community"]] <- PPTranTo%>%filter(from == "C_PWID" & to == "C_fPWID")
+inj_stop[["N"]] <- PPTranTo%>%filter(from == "N_inca_CID" & to == "N_inca_NCID")
 
-inj_stop[["prison"]] <- PPTranTo%>%filter(from == "P_PWID" & to == "P_fPWID")
+inj_stop[["E"]] <- PPTranTo%>%filter(from == "E_inca_CID" & to == "E_inca_NCID")
 
 inj_stop_bind <- dplyr::bind_rows(inj_stop, .id = 'population')%>%
   mutate(year = TWPrisoners$cabY + year - 1)%>%ungroup()
@@ -222,16 +277,16 @@ inj_stop_bind <- dplyr::bind_rows(inj_stop, .id = 'population')%>%
 #####  incidence of stopping injecting ##### 
 inj_stop_inc <- list()
 
-inj_stop_inc[["community"]] <- 
+inj_stop_inc[["N"]] <- 
   cbind(year = seq(TWPrisoners$startYear , endY-1 ,1),
-        as.data.frame(inj_stop[["community"]][ , "best"] / 
-                        subpop_N[["C_PWID"]][ ,"best"])*100)%>%
+        as.data.frame(inj_stop[["N"]][ , "best"] / 
+                        subpop_N[["N_inca_CID"]][ ,"best"])*100)%>%
   tibble::as_tibble()
 
-inj_stop_inc[["prison"]] <- 
+inj_stop_inc[["E"]] <- 
   cbind(year = seq(TWPrisoners$startYear , endY-1 ,1),
-        as.data.frame(inj_stop[["prison"]][ , "best"] / 
-                        subpop_N[["P_PWID"]][ ,"best"])*100)%>%
+        as.data.frame(inj_stop[["E"]][ , "best"] / 
+                        subpop_N[["E_inca_CID"]][ ,"best"])*100)%>%
   tibble::as_tibble()
 
 inj_stop_inc_bind <- dplyr::bind_rows(inj_stop_inc, .id = 'population')%>%
@@ -239,54 +294,56 @@ inj_stop_inc_bind <- dplyr::bind_rows(inj_stop_inc, .id = 'population')%>%
 #####  incidence of injection relapse ##### 
 inj_relap_inc <- list()
 
-inj_relap_inc[["community"]] <- 
+inj_relap_inc[["N"]] <- 
   cbind(year = seq(TWPrisoners$startYear , endY-1 ,1),
-        as.data.frame(inj_relap[["community"]][ , "best"] / 
-                        subpop_N[["C_fPWID"]][ ,"best"])*100)%>%
+        as.data.frame(inj_relap[["N"]][ , "best"] / 
+                        subpop_N[["N_inca_NCID"]][ ,"best"])*100)%>%
   tibble::as_tibble()
 
-inj_relap_inc[["prison"]] <- 
+inj_relap_inc[["E"]] <- 
   cbind(year = seq(TWPrisoners$startYear , endY-1 ,1),
-        as.data.frame(inj_relap[["prison"]][ , "best"] / 
-                        subpop_N[["P_fPWID"]][ ,"best"])*100)%>%
+        as.data.frame(inj_relap[["E"]][ , "best"] / 
+                        subpop_N[["E_inca_NCID"]][ ,"best"])*100)%>%
   tibble::as_tibble()
 
 inj_relap_inc_bind <- dplyr::bind_rows(inj_relap_inc, .id = 'population')%>%
   mutate(year = TWPrisoners$cabY + year - 1)%>%ungroup()
 
 ##### incidence of incarceration  #####
-incar_inc <- list()
+# combine subpop number into one tibble
+incar_dominator <- subpop_N[c(unique(incarce$from))]
 
-incar_inc[["PWID"]] <- cbind(year = seq(TWPrisoners$startYear , endY-1 ,1),
-                             as.data.frame(incarce[["PWID"]][ , "best"] / 
-                                             subpop_N[["C_PWID"]][ ,"best"])*100)%>%
-  tibble::as_tibble()
+incar_dom <- rbind(incar_dominator$N_inca_NCID, incar_dominator$N_inca_NCID, 
+              incar_dominator$N_inca_CID, incar_dominator$N_inca_CID, 
+              incar_dominator$E_inca_NCID, incar_dominator$E_inca_NCID, 
+              incar_dominator$E_inca_CID, incar_dominator$E_inca_CID)%>%
+  arrange(year,population)%>%mutate(dominator = best)
 
-incar_inc[["fPWID"]] <- cbind(year = seq(TWPrisoners$startYear , endY-1 ,1),
-                              as.data.frame(incarce[["fPWID"]][ , "best"] / 
-                                              subpop_N[["C_fPWID"]][ ,"best"])*100)%>%
-  tibble::as_tibble()
 
-incar_inc_bind <- dplyr::bind_rows(incar_inc, .id = 'population')%>%
-  mutate(year = TWPrisoners$cabY + year - 1)%>%ungroup()
 
+incarce <- incarce%>%arrange(year, from)%>%ungroup()%>%
+  mutate(dominator = incar_dom$dominator,
+         incar_inc = best/dominator*100)
+
+rel
 ##### incidence of release  #####
 release_inc <- list()
 
-release_inc[["PWID"]] <- 
+release_inc[["D"]] <- 
   cbind(year = seq(TWPrisoners$startYear , endY-1 ,1),
-        as.data.frame(release[["PWID"]][ , "best"] / 
-                        subpop_N[["P_PWID"]][ ,"best"])*100)%>%
+        as.data.frame(release[["D"]][ , "best"] / 
+                        subpop_N[["D_inca"]][ ,"best"])*100)%>%
   tibble::as_tibble()
 
-release_inc[["fPWID"]] <- 
+release_inc[["P"]] <- 
   cbind(year = seq(TWPrisoners$startYear , endY-1 ,1),
-        as.data.frame(release[["fPWID"]][ , "best"] /
-                        subpop_N[["P_fPWID"]][ ,"best"])*100)%>%
+        as.data.frame(release[["P"]][ , "best"] /
+                        subpop_N[["P_inca"]][ ,"best"])*100)%>%
   tibble::as_tibble()
 
 release_inc_bind <- dplyr::bind_rows(release_inc, .id = 'population')%>%
-  mutate(year = TWPrisoners$cabY + year - 1)%>%ungroup()
+  mutate(year = TWPrisoners$cabY + year - 1)%>%ungroup()%>%
+  dplyr::select(year, population, best)
 
 #==============================================================================#
 
@@ -304,14 +361,14 @@ totalPop_plot <- indicatorPlot(TWPrisoners, total_N,
                                rangeun = NULL, 
                                groupPlot = NULL, 
                                facetPlot = NULL,
-                               observationData = NULL, 
+                               observationData = calib_dt[[2]]%>%filter(indicator == "Total_pop"), 
                                simulateYear = (TWPrisoners$simY - TWPrisoners$cabY + 1 )) + theme_bw() +
-  scale_y_continuous(limits = c(515000,525000)) + 
-  ggtitle("Number of total population") + 
-  geom_point(aes(
-    y=datapoint[["N"]][datapoint[["N"]][, "indicator"] == "Total", "realpop"], 
-    x = TWPrisoners$simY - TWPrisoners$cabY + 1 ), 
-    colour = "black") 
+  scale_y_continuous(limits = c(19500000,21000000)) + 
+  ggtitle("Number of total population") 
+
+totalPop_plot
+
+
 #####plot: number of pop in community/prison   #####
 commuPop_plot <- indicatorPlot(TWPrisoners, commu_N, 
                                ylabel = "Number",
@@ -323,18 +380,10 @@ commuPop_plot <- indicatorPlot(TWPrisoners, commu_N,
                                facetPlot = NULL,
                                observationData = NULL, 
                                simulateYear = NULL) + theme_bw() +
-  ggtitle("Number of total population") + 
-  geom_point(aes(
-    y=datapoint[["N"]][datapoint[["N"]][, "indicator"] == "Community", "realpop"], 
-    x = TWPrisoners$simY - TWPrisoners$cabY + 1 ), 
-    colour = "black") + 
-  geom_segment(
-    aes(y = datapoint[["N"]][datapoint[["N"]][, "indicator"] == "Community", "low"], 
-        yend = datapoint[["N"]][datapoint[["N"]][, "indicator"] == "Community", "up"], 
-        x = (TWPrisoners$simY - TWPrisoners$cabY + 1) , xend = (TWPrisoners$simY - TWPrisoners$cabY + 1))) + 
-  scale_y_continuous(limits = c(0,750000), breaks = seq(0, 750000, 50000)) 
+  ggtitle("Number in community") + 
+  scale_y_continuous(limits = c(19000000, 21000000))
 
-prisonPop_plot <- indicatorPlot(TWPrisoners, prison_N, 
+prisonPop_plot <- indicatorPlot(TWPrisoners, prison_pro, 
                                 ylabel = "Number",
                                 xlimits = c(TWPrisoners$startYear, 
                                             TWPrisoners$startYear+30, 5),
@@ -342,23 +391,21 @@ prisonPop_plot <- indicatorPlot(TWPrisoners, prison_N,
                                 rangeun = NULL, 
                                 groupPlot = NULL, 
                                 facetPlot = NULL,
-                                observationData = NULL, 
+                                observationData = calib_dt[[2]]%>%
+                                  filter(indicator == "prison_pro_fit"), 
                                 simulateYear = NULL) + theme_bw() +
-  ggtitle("Number of total population") + 
-  geom_point(aes(
-    y=datapoint[["N"]][datapoint[["N"]][, "indicator"] == "Prison", "realpop"], 
-    x = TWPrisoners$simY - TWPrisoners$cabY + 1 ), 
-    colour = "black") + 
-  geom_segment(
-    aes(y = datapoint[["N"]][datapoint[["N"]][, "indicator"] == "Prison", "low"], 
-        yend = datapoint[["N"]][datapoint[["N"]][, "indicator"] == "Prison", "up"], 
-        x = (TWPrisoners$simY - TWPrisoners$cabY + 1) , xend = (TWPrisoners$simY - TWPrisoners$cabY + 1))) + 
-  scale_y_continuous(limits = c(0,50000), breaks = seq(0, 50000, 5000))
+  ggtitle("Number of people in correctional settings") 
+  
+
 
 #####plot: number of subpop   ####
 # sub pop full names 
-Namelab <- c("PWID in community", "former PWID in community",
-             "PWID in prison", "former PWID in prison", "non-PWID in prison")
+Namelab <- c("Never experienced incarceration non current PWID in community",
+             "Never experienced incarceration PWID in community", 
+             "Ever incarcerated non current PWID in community",
+             "Ever incarcerated PWID in community", 
+             "People in detention", 
+             "People in prisons")
 
 subpop_N_plot <- list() 
 
@@ -379,62 +426,32 @@ for(x in seq_along(names(subpop_N))){
 }
 
 subpop_N_plot[[1]] <- subpop_N_plot[[1]] + 
-  scale_y_continuous(limits = c(0, 110000), breaks = seq(0, 110000, 5000)) + 
-  geom_point(aes(
-    y=datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[1], "realpop"], 
-    x = TWPrisoners$simY - TWPrisoners$cabY + 1 ), colour = "black") + 
-  geom_segment(
-    aes(y = datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[1], "low"], 
-        yend = datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[1], "up"], 
-        x = (TWPrisoners$simY - TWPrisoners$cabY + 1) , xend = (TWPrisoners$simY - TWPrisoners$cabY + 1)))
-
-subpop_N_plot[[2]] <- subpop_N_plot[[2]] + 
-  scale_y_continuous(limits = c(0, 700000), breaks = seq(0, 700000, 50000)) + 
+  scale_y_continuous(limits = c(0, 21000000))
   
-  geom_point(aes(
-    y=datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[2], "realpop"], 
-    x = TWPrisoners$simY - TWPrisoners$cabY + 1 ), colour = "black") + 
-  geom_segment(
-    aes(y = datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[2], "low"], 
-        yend = datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[2], "up"], 
-        x = (TWPrisoners$simY - TWPrisoners$cabY + 1) , xend = (TWPrisoners$simY - TWPrisoners$cabY + 1)))
+subpop_N_plot[[2]] <- subpop_N_plot[[2]] + 
+  scale_y_continuous(limits = c(0, 3000)) 
 
 subpop_N_plot[[3]] <- subpop_N_plot[[3]] + 
-  scale_y_continuous(limits = c(0, 8000), breaks = seq(0, 8000, 500)) + 
-  geom_point(aes(
-    y=datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[3], "realpop"], 
-    x = TWPrisoners$simY - TWPrisoners$cabY + 1 ), colour = "black") + 
-  geom_segment(
-    aes(y = datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[3], "low"], 
-        yend = datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[3], "up"], 
-        x = (TWPrisoners$simY - TWPrisoners$cabY + 1) , xend = (TWPrisoners$simY - TWPrisoners$cabY + 1)))
-
+  scale_y_continuous(limits = c(0, 300000)) 
 
 subpop_N_plot[[4]] <- subpop_N_plot[[4]] + 
-  scale_y_continuous(limits = c(0, 20000), breaks = seq(0, 20000, 1000)) + 
-  geom_point(aes(
-    y=datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[4], "realpop"], 
-    x = TWPrisoners$simY - TWPrisoners$cabY + 1 ), colour = "black") + 
-  geom_segment(
-    aes(y = datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[4], "low"], 
-        yend = datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[4], "up"], 
-        x = (TWPrisoners$simY - TWPrisoners$cabY + 1) , xend = (TWPrisoners$simY - TWPrisoners$cabY + 1)))
+  scale_y_continuous(limits = c(0, 50000)) 
 
 subpop_N_plot[[5]] <- subpop_N_plot[[5]] + 
-  scale_y_continuous(limits = c(0, 25000), breaks = seq(0, 25000, 1000)) + 
-  geom_point(aes(
-    y=datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[5], "realpop"], 
-    x = TWPrisoners$simY - TWPrisoners$cabY + 1 ), colour = "black") + 
-  geom_segment(
-    aes(y = datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[5], "low"], 
-        yend = datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[5], "up"], 
-        x = (TWPrisoners$simY - TWPrisoners$cabY + 1) , xend = (TWPrisoners$simY - TWPrisoners$cabY + 1)))
+  scale_y_continuous(limits = c(0, 100000)) + 
+  geom_point(data = calib_dt[[1]]%>%filter(indicators == "rehab"),aes(
+    y = realPop,
+    x = time), colour = "black")
+  
+subpop_N_plot[[6]] <- subpop_N_plot[[6]] + 
+  scale_y_continuous(limits = c(0,70000)) + 
+  geom_point(data = calib_dt[[1]]%>%filter(indicators == "prison"),aes(
+    y = realPop,
+    x = time), colour = "black")
 
-
-
-#####plot: % of PWID/fPWID in community/prison  ####
-# P_PWID 
-frac_PPWID_plot <- indicatorPlot(TWPrisoners, prison_proP , 
+#####plot: % ####
+# 
+frac_prison_plot <- indicatorPlot(TWPrisoners, prison_pro , 
                                  ylabel = "Percentage (%)",
                                  xlimits = c(TWPrisoners$startYear, 
                                              TWPrisoners$startYear+30, 5),
@@ -442,16 +459,13 @@ frac_PPWID_plot <- indicatorPlot(TWPrisoners, prison_proP ,
                                  rangeun = NULL, 
                                  groupPlot = NULL, 
                                  facetPlot = NULL,
-                                 observationData = NULL, 
+                                 observationData = calib_dt[[2]]%>%filter(indicator == "prison_pro_fit"), 
                                  simulateYear = NULL) + 
   theme_bw() + 
-  scale_y_continuous(limits = c(0,20), breaks = seq(0, 20,1)) + ggtitle("PWID in prison") + 
-  geom_point(aes(
-    y=datapoint[["frac"]][datapoint[["frac"]][, "indicator"] == "prison_proP_fit", "realpop"], 
-    x = TWPrisoners$simY - TWPrisoners$cabY + 1 ), colour = "black") 
+  scale_y_continuous(limits = c(0,1), breaks = seq(0, 1,0.1)) + ggtitle("% of people in correctional settings") 
 
-# P_fPWID
-frac_PfPWID_plot <- indicatorPlot(TWPrisoners, prison_profP , 
+# % of people in detention among people in correctional settings 
+frac_D_plot <- indicatorPlot(TWPrisoners, prison_proD , 
                                   ylabel = "Percentage (%)",
                                   xlimits = c(TWPrisoners$startYear, 
                                               TWPrisoners$startYear+30, 5),
@@ -459,16 +473,16 @@ frac_PfPWID_plot <- indicatorPlot(TWPrisoners, prison_profP ,
                                   rangeun = NULL, 
                                   groupPlot = NULL, 
                                   facetPlot = NULL,
-                                  observationData = NULL, 
+                                  observationData = calib_dt[[2]]%>%filter(indicator == "prison_proD_fit"), 
                                   simulateYear = NULL) + 
   theme_bw() + 
-  scale_y_continuous(limits = c(0,40), breaks = seq(0, 40,5)) + ggtitle("Former PWID in prison") + 
-  geom_point(aes(
-    y=datapoint[["frac"]][datapoint[["frac"]][, "indicator"] == "prison_profP_fit", "realpop"], 
-    x = TWPrisoners$simY - TWPrisoners$cabY + 1 ), colour = "black") 
+  scale_y_continuous(limits = c(0,100), breaks = seq(0, 100,10)) + 
+  ggtitle("% of people in detention among people in correctional settings")
 
-# C_PWID 
-frac_CPWID_plot <- indicatorPlot(TWPrisoners, commu_proP , 
+
+# % of PWID in the community 
+
+frac_commuP_plot <- indicatorPlot(TWPrisoners, commu_proP , 
                                  ylabel = "Percentage (%)",
                                  xlimits = c(TWPrisoners$startYear, 
                                              TWPrisoners$startYear+30, 5),
@@ -476,16 +490,35 @@ frac_CPWID_plot <- indicatorPlot(TWPrisoners, commu_proP ,
                                  rangeun = NULL, 
                                  groupPlot = NULL, 
                                  facetPlot = NULL,
-                                 observationData = NULL, 
+                                 observationData = calib_dt[[2]]%>%filter(indicator == "commu_proP_fit"), 
                                  simulateYear = NULL) + 
   theme_bw() + 
-  scale_y_continuous(limits = c(0,20), breaks = seq(0, 20,1)) + ggtitle("PWID in community") + 
-  geom_point(aes(
-    y=datapoint[["frac"]][datapoint[["frac"]][, "indicator"] == "commu_proP_fit", "realpop"], 
-    x = TWPrisoners$simY - TWPrisoners$cabY + 1 ), colour = "black") 
+  scale_y_continuous(limits = c(0,0.5), breaks = seq(0, 0.5,0.05)) + 
+  ggtitle("PWID in community") 
 
-#####plot: annual number entry to/release from prisons #### 
-New_incar_plot <-  indicatorPlot(TWPrisoners, incar_total,
+
+#####plot: annual number entry to/release from detention #### 
+incarce_D[["PWID"]] <- incarce_D[["PWID"]]%>%
+  mutate(year = year + TWPrisoners$cabY - 1)
+
+New_incarDI_plot <- indicatorPlot(TWPrisoners, incarce_D[["PWID"]],
+                                  ylabel = "Number",
+                                  xlimits = c(TWPrisoners$cabY,
+                                              TWPrisoners$cabY+30, 5),
+                                  calibration_Y = TWPrisoners$cabY,
+                                  rangeu = NULL,
+                                  groupPlot = NULL,
+                                  facetPlot = NULL,
+                                  observationData = NULL, 
+                                  simulateYear = NULL) +
+  ggtitle("Annual number entry detention") + theme_bw() + 
+  geom_point(data = calib_dt[[1]]%>%filter(indicators == "incar_DI"),aes(
+    y = realPop,
+    x = time + TWPrisoners$cabY - 1), colour = "black") + 
+  scale_y_continuous(limits = c(0, 8000))
+
+
+New_incarD_plot <-  indicatorPlot(TWPrisoners, incarce_D_bind,
                                  ylabel = "Number",
                                  xlimits = c(TWPrisoners$cabY,
                                              TWPrisoners$cabY+30, 5),
@@ -495,13 +528,28 @@ New_incar_plot <-  indicatorPlot(TWPrisoners, incar_total,
                                  facetPlot = NULL,
                                  observationData = NULL, 
                                  simulateYear = NULL) +
-  ggtitle("Annual number entry prisons") + theme_bw() + 
-  scale_y_continuous(limits = c(0, 65000), breaks = seq(0, 65000, 5000)) + 
-  geom_point(aes(
-    y=datapoint[["flow"]][datapoint[["flow"]][, "indicator"] == "incar", "realpop"], 
-    x = TWPrisoners$simY ), colour = "black")
+  ggtitle("Annual number entry detention") + theme_bw() + 
+  geom_point(data = calib_dt[[1]]%>%filter(indicators == "incar_D"),aes(
+    y = realPop,
+    x = time + TWPrisoners$cabY - 1), colour = "black")
 
-New_release_plot <-  indicatorPlot(TWPrisoners, release_total,
+New_incarP_plot <-  indicatorPlot(TWPrisoners, incarce_P_bind,
+                                  ylabel = "Number",
+                                  xlimits = c(TWPrisoners$cabY,
+                                              TWPrisoners$cabY+30, 5),
+                                  calibration_Y = TWPrisoners$cabY,
+                                  rangeu = NULL,
+                                  groupPlot = NULL,
+                                  facetPlot = NULL,
+                                  observationData = NULL, 
+                                  simulateYear = NULL) +
+  ggtitle("Annual number entry prisons") + theme_bw() + 
+  geom_point(data = calib_dt[[1]]%>%filter(indicators == "incar_P"),aes(
+    y = realPop,
+    x = time + TWPrisoners$cabY - 1), colour = "black")
+
+New_releaseD_plot <-  indicatorPlot(TWPrisoners, release_bind%>%
+                                      filter(population == "D"),
                                    ylabel = "Number",
                                    xlimits = c(TWPrisoners$cabY,
                                                TWPrisoners$cabY+30, 5),
@@ -511,11 +559,26 @@ New_release_plot <-  indicatorPlot(TWPrisoners, release_total,
                                    facetPlot = NULL,
                                    observationData = NULL, 
                                    simulateYear = NULL) +
-  ggtitle("Annual number release from prisons") + theme_bw() + 
-  scale_y_continuous(limits = c(0, 65000), breaks = seq(0, 65000, 5000)) + 
-  geom_point(aes(
-    y=datapoint[["flow"]][datapoint[["flow"]][, "indicator"] == "release", "realpop"], 
-    x = TWPrisoners$simY ), colour = "black")
+  ggtitle("Annual number release from detention") + theme_bw() + 
+  geom_point(data = calib_dt[[1]]%>%filter(indicators == "rel_D"),aes(
+    y = realPop,
+    x = time + TWPrisoners$cabY - 1), colour = "black")
+
+New_releaseP_plot <-  indicatorPlot(TWPrisoners, release_bind%>%
+                                      filter(population == "P"),
+                                    ylabel = "Number",
+                                    xlimits = c(TWPrisoners$cabY,
+                                                TWPrisoners$cabY+30, 5),
+                                    calibration_Y = TWPrisoners$cabY,
+                                    rangeu = NULL,
+                                    groupPlot = NULL,
+                                    facetPlot = NULL,
+                                    observationData = NULL, 
+                                    simulateYear = NULL) +
+  ggtitle("Annual number release from detention") + theme_bw() + 
+  geom_point(data = calib_dt[[1]]%>%filter(indicators == "rel_P"),aes(
+    y = realPop,
+    x = time + TWPrisoners$cabY - 1), colour = "black")
 
 #####plot: annual number stopping/relapse injection ####
 # stopping injection
@@ -530,7 +593,7 @@ New_stopinj_plot <-  indicatorPlot(TWPrisoners, inj_stop_bind,
                                    observationData = NULL, 
                                    simulateYear = NULL) +
   ggtitle("Annual number stop injection") + theme_bw() + 
-  scale_y_continuous(limits = c(0, 20000), breaks = seq(0, 20000, 5000)) 
+  scale_y_continuous(limits = c(0, 5000), breaks = seq(0, 5000, 500)) 
 # relapse injection
 New_relapinj_plot <-  indicatorPlot(TWPrisoners, inj_relap_bind,
                                     ylabel = "Number",
@@ -543,18 +606,13 @@ New_relapinj_plot <-  indicatorPlot(TWPrisoners, inj_relap_bind,
                                     observationData = NULL, 
                                     simulateYear = NULL) +
   ggtitle("Annual number relapse injection") + theme_bw() + 
-  scale_y_continuous(limits = c(0, 50000), breaks = seq(0, 50000, 1000)) 
+  scale_y_continuous(limits = c(0, 30000), breaks = seq(0, 30000, 5000)) 
 
 ##============================================================================##
 
 
-
-
-
-
-
 #####plot: incidence of entry to/release from prisons #### 
-Inc_incar_plot <- indicatorPlot(TWPrisoners,incar_inc_bind ,
+Inc_incar_plot <- indicatorPlot(TWPrisoners,incar_inc_bind,
                                 ylabel = "Incidence",
                                 xlimits = c(TWPrisoners$cabY,
                                             TWPrisoners$cabY+30, 5),

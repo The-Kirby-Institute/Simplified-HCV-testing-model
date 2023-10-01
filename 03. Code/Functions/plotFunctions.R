@@ -172,7 +172,7 @@ popResults_MidYear <- function(pg, Best, Population = NULL,
   
 #  # now prepare to append parameter sets 
   popSizes <- allpop%>%mutate(best = Frequency)%>%
-    select(-c(Frequency))
+    dplyr::select(-c(Frequency))
   dfparam_list <- list()
   param_pop <- list()
   if(is.null(scenario)){ 
@@ -357,10 +357,10 @@ popResults_range <- function(pg, data, Population = NULL,
                 q75 = quantile(estimate, prob = 0.75, na.rm = TRUE),
                 q95 = quantile(estimate, prob = 0.975, na.rm = TRUE))%>%
       ungroup()%>%arrange(year)%>% 
-      select(everything())
+      dplyr::select(everything())
     popSizeCompo[, c("min", "max", "Med", "Mu", 
                      "q5", "q25", "q75", "q95")] <- 
-      popQ%>%select(., c(min, max, Med, Mu, q5, q25, q75, q95)) 
+      popQ%>%dplyr::select(., c(min, max, Med, Mu, q5, q25, q75, q95)) 
   } 
   else if (is.null(Disease_prog) && is.null(Cascade) && !is.null(Population)){ 
     popQ <- popSizeQuan%>%group_by(year, population)%>%
@@ -373,11 +373,11 @@ popResults_range <- function(pg, data, Population = NULL,
                 q75 = quantile(estimate, prob = 0.75, na.rm = TRUE),
                 q95 = quantile(estimate, prob = 0.975, na.rm = TRUE))%>%
       ungroup()%>%arrange(year, population)%>% 
-      select(everything()) 
+      dplyr::select(everything()) 
     
     popSizeCompo[, c("min", "max", "Med", "Mu", 
                      "q5", "q25", "q75", "q95")] <- 
-      popQ%>%select(., c(min, max, Med, Mu, q5, q25, q75, q95))  
+      popQ%>%dplyr::select(., c(min, max, Med, Mu, q5, q25, q75, q95))  
   } 
   else if (is.null(Disease_prog) && !is.null(Cascade) && is.null(Population)) {
     popQ <- popSizeQuan%>%
@@ -391,11 +391,11 @@ popResults_range <- function(pg, data, Population = NULL,
                 q75 = quantile(estimate, prob = 0.75, na.rm = TRUE),
                 q95 = quantile(estimate, prob = 0.975, na.rm = TRUE))%>%
       ungroup()%>%arrange(year, cascade)%>%
-      select(everything()) 
+      dplyr::select(everything()) 
     
     popSizeCompo[, c("min", "max", "Med", "Mu", 
                      "q5", "q25", "q75", "q95")] <- 
-      popQ%>%select(., c(min, max, Med, Mu, q5, q25, q75, q95))  
+      popQ%>%dplyr::select(., c(min, max, Med, Mu, q5, q25, q75, q95))  
     
   } 
   else if (!is.null(Disease_prog) && is.null(Cascade) && is.null(Population)) {
@@ -410,11 +410,11 @@ popResults_range <- function(pg, data, Population = NULL,
                 q75 = quantile(estimate, prob = 0.75, na.rm = TRUE),
                 q95 = quantile(estimate, prob = 0.975, na.rm = TRUE))%>%
       ungroup()%>%arrange(year, disease_prog)%>%
-      select(everything()) 
+      dplyr::select(everything()) 
     
     popSizeCompo[, c("min", "max", "Med", "Mu", 
                      "q5", "q25", "q75", "q95")] <- 
-      popQ%>%select(., c(min, max, Med, Mu, q5, q25, q75, q95)) 
+      popQ%>%dplyr::select(., c(min, max, Med, Mu, q5, q25, q75, q95)) 
   } 
   else if (!is.null(Disease_prog) && !is.null(Cascade) && is.null(Population)) {
     popQ <- popSizeQuan%>%
@@ -428,11 +428,11 @@ popResults_range <- function(pg, data, Population = NULL,
                 q75 = quantile(estimate, prob = 0.75, na.rm = TRUE),
                 q95 = quantile(estimate, prob = 0.975, na.rm = TRUE))%>%
       ungroup()%>%arrange(year, state)%>%
-      select(everything()) 
+      dplyr::select(everything()) 
     
     popSizeCompo[, c("min", "max", "Med", "Mu", 
                      "q5", "q25", "q75", "q95")] <- 
-      popQ%>%select(., c(min, max, Med, Mu, q5, q25, q75, q95))
+      popQ%>%dplyr::select(., c(min, max, Med, Mu, q5, q25, q75, q95))
   } 
   else if (!is.null(Disease_prog) && is.null(Cascade) && !is.null(Population)) {
     popQ <- popSizeQuan%>%
@@ -446,11 +446,11 @@ popResults_range <- function(pg, data, Population = NULL,
                 q75 = quantile(estimate, prob = 0.75, na.rm = TRUE),
                 q95 = quantile(estimate, prob = 0.975, na.rm = TRUE))%>%
       ungroup()%>%arrange(year, population, disease_prog)%>%
-      select(everything()) 
+      dplyr::select(everything()) 
     
     popSizeCompo[, c("min", "max", "Med", "Mu", 
                      "q5", "q25", "q75", "q95")] <- 
-      popQ%>%select(., c(min, max, Med, Mu, q5, q25, q75, q95)) 
+      popQ%>%dplyr::select(., c(min, max, Med, Mu, q5, q25, q75, q95)) 
   }
   else if (is.null(Disease_prog) && !is.null(Cascade) && !is.null(Population)) {
     popQ <- popSizeQuan%>%
@@ -464,11 +464,11 @@ popResults_range <- function(pg, data, Population = NULL,
                 q75 = quantile(estimate, prob = 0.75, na.rm = TRUE),
                 q95 = quantile(estimate, prob = 0.975, na.rm = TRUE))%>%
       ungroup()%>%arrange(year, population, cascade)%>%
-      select(everything()) 
+      dplyr::select(everything()) 
     
     popSizeCompo[, c("min", "max", "Med", "Mu", 
                      "q5", "q25", "q75", "q95")] <- 
-      popQ%>%select(., c(min, max, Med, Mu, q5, q25, q75, q95)) 
+      popQ%>%dplyr::select(., c(min, max, Med, Mu, q5, q25, q75, q95)) 
   }
   else if (!is.null(Disease_prog) && !is.null(Cascade) && !is.null(Population)) {
     popQ <- popSizeQuan%>%
@@ -482,11 +482,11 @@ popResults_range <- function(pg, data, Population = NULL,
                 q75 = quantile(estimate, prob = 0.75, na.rm = TRUE),
                 q95 = quantile(estimate, prob = 0.975, na.rm = TRUE))%>%
       ungroup()%>%arrange(year, population, state)%>%
-      select(everything()) 
+      dplyr::select(everything()) 
     
     popSizeCompo[, c("min", "max", "Med", "Mu", 
                      "q5", "q25", "q75", "q95")] <- 
-      popQ%>%select(., c(min, max, Med, Mu, q5, q25, q75, q95)) 
+      popQ%>%dplyr::select(., c(min, max, Med, Mu, q5, q25, q75, q95)) 
     
   }
   
@@ -526,7 +526,7 @@ popResults_range <- function(pg, data, Population = NULL,
     impute<- result_list[[indicator]]%>%filter(timestep >1 &timestep <2)%>%
       group_by(population)%>%
       mutate(total_pop = sum(total_pop)/length(total_pop))%>%
-      select(total_pop)%>%ungroup()
+      dplyr::select(total_pop)%>%ungroup()
     impute <- impute[c(1:pg$npops),]
     
     result_list[[indicator]][c(1:pg$npops), "total_pop"] <- impute$total_pop 
@@ -631,10 +631,10 @@ indicatorResults <- function(pg, Best, indicator, paramR = NULL,
   
   if (is.null(pop)) {
     bestValues <- indicatorEstimate%>%
-      group_by(year, population)%>%select(best)
+      group_by(year, population)%>%dplyr::select(best)
   } else { 
     
-    bestValues <- indicatorEstimate%>%group_by(year)%>%select(best)
+    bestValues <- indicatorEstimate%>%group_by(year)%>%dplyr::select(best)
     
   }
   
@@ -660,14 +660,14 @@ indicatorResults <- function(pg, Best, indicator, paramR = NULL,
           ungroup() %>%
           arrange(year, population) %>%
           mutate(best = bestValues) %>%
-          select(year, population, 
+          dplyr::select(year, population, 
                  best, everything())
         
         indicatorEstimate <- indicatorEstimate%>%arrange(year, population)
         
         indicatorEstimate[, c("min", "max", "Med", "Mu", 
                               "q5", "q25", "q75", "q95")] <- 
-          indicatorQuan%>%select(., -c("year", "population", "best"))
+          indicatorQuan%>%dplyr::select(., -c("year", "population", "best"))
         
       } else {
         indicatorQuan <- indicatorQ %>%
@@ -682,12 +682,12 @@ indicatorResults <- function(pg, Best, indicator, paramR = NULL,
                     q95 = quantile(estimate, prob = 0.975, na.rm = TRUE)) %>%
           ungroup() %>%arrange(year)%>%
           mutate(best = bestValues) %>%
-          select(year, best, everything())
+          dplyr::select(year, best, everything())
         
         indicatorEstimate <- indicatorEstimate%>%arrange(year)
         indicatorEstimate[, c("min", "max", "Med", "Mu", 
                               "q5", "q25", "q75", "q95")] <- 
-          indicatorQuan%>%select(., -c("year", "best"))
+          indicatorQuan%>%dplyr::select(., -c("year", "best"))
       }
     }
     
@@ -1319,7 +1319,7 @@ popResultsSce_MidYear <- function(pg, Best, Population = NULL,
   
   #  # now prepare to append parameter sets 
   popSizes <- allpop%>%mutate(best = Frequency)%>%
-    select(-c(Frequency))
+    dplyr::select(-c(Frequency))
   
   return(popSizes)
 }

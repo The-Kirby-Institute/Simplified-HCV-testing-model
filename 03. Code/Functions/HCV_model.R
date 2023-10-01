@@ -568,7 +568,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     II <- matrix(0, ncol = 1, nrow = npops)
     
     for(i in 1: npops){ 
-      if(proj == "POC_AU"){ 
+      if(proj %in% c("POC_AU", "TWPrisoners")){ 
         II[i,] <- I[i,]/N[i,]
       }else{ 
         II[i, ] <-  Iall/(Sall + Iall)
@@ -640,10 +640,18 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
 
       
       }
-    else if(!isTRUE(proj != "POC_AU") & isTRUE(modelrun == "steady")){
-      entry1[1, ] <- sum(death)+sum(death_hcv)
-        # longer object length is not a multiple of shorter object length
-      }
+    else if(isTRUE(proj == "TWPrisoners")){
+      entry1[1, "s"] <- sum(death[1, ])  + sum(death[2, ]) + 
+        sum(death[3, ])  + sum(death[4, ]) + 
+        sum(death[5, ])  + sum(death[6, ]) +
+        sum(death_hcv[1, ]) + sum(death_hcv[2, ]) + 
+        sum(death_hcv[3, ]) + sum(death_hcv[4, ]) +
+        sum(death_hcv[5, ]) + sum(death_hcv[6, ]) + 
+        sum(leave[1, ]) + sum(leave[2, ]) + 
+        sum(leave[3, ]) + sum(leave[4, ]) +
+        sum(leave[5, ]) + sum(leave[6, ]) 
+      
+    }
     else { entry1[1,] <- entry_dt[1,t]
       
       

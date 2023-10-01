@@ -59,22 +59,29 @@ steady <- HCVMSM(TWPrisoners, best_estimates, best_initial_pop,
 toc <- proc.time() - tic 
 toc
 
+
+
+check_steady(model_result = steady, endY = TWPrisoners$endYear,
+             timestep = TWPrisoners$timestep, 
+             Ncomp = TWPrisoners$ncomponent*TWPrisoners$npops, 
+             Tequilibrium = 1500)
+
+
 df_list <- lapply(steady, as.data.frame.table)
 
 popPro_extract <- df_list$allPops%>%
   mutate(time = rep(seq(TWPrisoners$startYear, (TWPrisoners$endYear - TWPrisoners$timestep), TWPrisoners$timestep), 
-                    each=TWPrisoners$ncomponent * TWPrisoners$npops),
-         Frequency=round(Freq, digits = 3))%>%
-  filter(time==800)%>%
+                    each=TWPrisoners$ncomponent * TWPrisoners$npops))%>%
+  filter(time==1500)%>%
   mutate(cascade_status = sub("^[^_]*_", "", Var2), 
          dis_prog = sub("\\_.*", "", Var2),
          SI = ifelse(cascade_status%in%c("s", "cured"), "S","I"),
          parameter =Var2)%>%group_by(Var1 ,SI)%>%
-  mutate(total = sum(Frequency),
-         value = ifelse(Frequency==0, 0, round(Frequency/total, digits = 4)))%>%
+  mutate(total = sum(Freq),
+         value = ifelse(Freq==0, 0, Freq/total))%>%
   ungroup()%>%group_by(Var1)%>%mutate(pop_prop = ifelse(
-    Frequency==0, 0, round(Frequency/sum(Frequency), digits = 4)))%>%
-  ungroup()%>%select(Var1,parameter, value, SI)
+    Freq==0, 0, Freq/sum(Freq)))%>%
+  ungroup()%>%dplyr::select(Var1,parameter, value, SI)
 
 
 
@@ -84,18 +91,19 @@ write.csv(popPro_extract,
 #### number of people in each population ####
 
 estPops<- read.csv(file.path(DataFolder, "Estimate_initial_pop.csv"), 
-                   header = TRUE)%>%select(-"X")
+                   header = TRUE)%>%dplyr::select(-"X")
 
 init_pop <- filter(initialPops, parameter == "init_pop")$value
 
 pop_prop <- initialPops%>%filter(parameter%in% c("pop_prop1", "pop_prop2", 
                                                  "pop_prop3", "pop_prop4", 
                                                  "pop_prop5", "pop_prop6"))%>%
-  select(value)%>%unlist()%>%as.vector()
+  dplyr::select(value)%>%unlist()%>%as.vector()
 
+sum(pop_prop)
 popProp <- as.numeric(init_pop)*pop_prop 
 
-
+sum(popProp)
 # prevalence at initial
 init_prop_I <- c(constantsDf$HCVP1[1], constantsDf$HCVP2[1], 
                  constantsDf$HCVP3[1], constantsDf$HCVP4[1],
@@ -113,10 +121,10 @@ estPops <- estPops%>%mutate(
                      Var1 == "E_inca_NCID" & SI == "I" ~ init_prop_I[3],
                      Var1 == "E_inca_CID" & SI == "S" ~ init_prop_S[4],
                      Var1 == "E_inca_CID" & SI == "I" ~ init_prop_I[4],
-                     Var1 == "E_inca_CID" & SI == "S" ~ init_prop_S[5],
-                     Var1 == "E_inca_CID" & SI == "I" ~ init_prop_I[5],
-                     Var1 == "E_inca_CID" & SI == "S" ~ init_prop_S[6],
-                     Var1 == "E_inca_CID" & SI == "I" ~ init_prop_I[6]),
+                     Var1 == "D_inca" & SI == "S" ~ init_prop_S[5],
+                     Var1 == "D_inca" & SI == "I" ~ init_prop_I[5],
+                     Var1 == "P_inca" & SI == "S" ~ init_prop_S[6],
+                     Var1 == "P_inca" & SI == "I" ~ init_prop_I[6]),
   
   est_pop = value*pop_group*SIprop)
 
@@ -125,98 +133,18 @@ best_est_pop <- as.matrix(as.data.frame(matrix(estPops$est_pop,
                                                nrow = TWPrisoners$npops)))
 
 colnames(best_est_pop) <- c(TWPrisoners$component_name)
+sum(best_est_pop)
 
 save(TWPrisoners,steady, best_est_pop, 
      file = file.path(OutputFolder,
                       paste0(project_name,"cali" ,".rda")))
 
 
-check_steady(model_result = steady, endY = TWPrisoners$endYear,
-             timestep = TWPrisoners$timestep, 
-             Ncomp = TWPrisoners$ncomponent*TWPrisoners$npops, 
-             Tequilibrium = 1500)
-
-
-#extract proportion of pops for initial condition 
-
-df_list <- lapply(steady, as.data.frame.table)
-
-allpop <- df_list$allPops%>%mutate(time = rep(seq(1,(TWPrisoners$endYear - TWPrisoners$timestep),TWPrisoners$timestep), 
-                                              each=TWPrisoners$ncomponent*TWPrisoners$npops),
-                                   Frequency=round(Freq, digits = 10))
-
-popPro_extract <- df_list$allPops%>%
-  mutate(time = rep(seq(TWPrisoners$startYear, (TWPrisoners$endYear - TWPrisoners$timestep), TWPrisoners$timestep), 
-                    each=TWPrisoners$ncomponent * TWPrisoners$npops),
-         Frequency=round(Freq, digits = 10))%>%
-  filter(time == 1000)%>%
-  mutate(cascade_status = sub("^[^_]*_", "", Var2), 
-         dis_prog = sub("\\_.*", "", Var2),
-         SI = ifelse(cascade_status%in%c("s", "cured"), "S","I"),
-         parameter =Var2)%>%group_by(Var1 ,SI)%>%
-  mutate(total = sum(Frequency),
-         value = ifelse(Frequency==0, 0, round(Frequency/total, digits = 10)))%>%
-  ungroup()%>%group_by(Var1)%>%mutate(pop_prop = ifelse(
-    Frequency==0, 0, round(Frequency/sum(Frequency), digits = 6)))%>%
-  ungroup()%>%select(Var1,parameter, value, SI)
-
-
-write.csv(popPro_extract, 
-          file.path(DataFolder,"/Estimate_initial_pop.csv")) 
-
-#### number of PWID/former PWID in each population ####
-
-estPops <- read.csv(file.path(DataFolder, "Estimate_initial_pop.csv"), 
-                    header = TRUE)%>%select(-"X")
-estPops
-
-init_pop <- filter(initialPops, parameter == "init_pop")$value
-
-pop_prop <- initialPops%>%filter(parameter%in% c("pop_prop1", "pop_prop2", 
-                                                 "pop_prop3", "pop_prop4", 
-                                                 "pop_prop5", "pop_prop6"))%>%
-  select(value)%>%unlist()%>%as.vector()
-
-popProp <- as.numeric(init_pop)*pop_prop 
-
-
-# prevalence at initial
-init_prop_I <- c(constantsDf$HCVP1[1], constantsDf$HCVP2[1], 
-                 constantsDf$HCVP3[1], constantsDf$HCVP4[1], constantsDf$HCVP5[1],
-                 constantsDf$HCVP6[1])
-
-init_prop_S <-c(1 - init_prop_I)
-
-estPops <- estPops%>%mutate(
-  pop_group = rep(c(popProp),dim(estPops)[1]/TWPrisoners$npops),
-  SIprop = case_when(Var1 == "N_inca_NCID" & SI == "S" ~ init_prop_S[1],
-                     Var1 == "N_inca_NCID" & SI == "I" ~ init_prop_I[1],
-                     Var1 == "N_inca_CID" & SI == "S" ~ init_prop_S[2],
-                     Var1 == "N_inca_CID" & SI == "I" ~ init_prop_I[2],
-                     Var1 == "E_inca_NCID" & SI == "S" ~ init_prop_S[3],
-                     Var1 == "E_inca_NCID" & SI == "I" ~ init_prop_I[3],
-                     Var1 == "E_inca_CID" & SI == "S" ~ init_prop_S[4],
-                     Var1 == "E_inca_CID" & SI == "I" ~ init_prop_I[4],
-                     Var1 == "D_inca" & SI == "S" ~ init_prop_S[5],
-                     Var1 == "D_inca" & SI == "I" ~ init_prop_I[5],
-                     Var1 == "P_inca" & SI == "S" ~ init_prop_S[6],
-                     Var1 == "P_inca" & SI == "I" ~ init_prop_I[6]),
-  est_pop = value*pop_group*SIprop)
-
-best_est_pop <- as.matrix(as.data.frame(matrix(estPops$est_pop, 
-                                               ncol = TWPrisoners$ncomponent,  
-                                               nrow = TWPrisoners$npops)))
-
-colnames(best_est_pop) <- c(TWPrisoners$component_name)
-
-save(project_name,steady, best_est_pop, 
-     file = file.path(OutputFolder ,
-                      paste0(project_name,"cali" ,".rda")))
 
 
 # calibration 
 tic <- proc.time()
-endY <- 100
+endY <- 15
 calibrateInit <- HCVMSM(TWPrisoners, best_estimates, best_est_pop,
                         disease_progress,  pop_array, dfList, fib,
                         modelrun="UN", proj = "TWPrisoners", end_Y = endY)
@@ -225,11 +153,9 @@ calibrateInit <- HCVMSM(TWPrisoners, best_estimates, best_est_pop,
 toc <- proc.time() - tic 
 toc
 
-
-
-
 save(calibrateInit, 
      file = file.path(OutputFolder ,
                       paste0(project_name,"cali_init" ,".rda")))
+
 
 

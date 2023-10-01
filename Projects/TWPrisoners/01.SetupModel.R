@@ -217,11 +217,13 @@ best_estimates
 
 ## initial population
 initialPops<- read.csv(file.path(DataFolder, "initial_populations.csv"), 
-                       header = TRUE)%>%select(-"X")
+                       header = TRUE)%>%dplyr::select(-"X")
 
 init_pop <- filter(initialPops, parameter == "init_pop")$value 
 initial_pop <- initialPops %>%
   filter(parameter != "init_pop")
+
+
 
 initialPopMat <- as.data.frame(matrix(initial_pop$value, 
                                       ncol = TWPrisoners$ncomponent + 1,  
