@@ -46,11 +46,11 @@ source(file.path(Rcode, "/Functions/plotFunctions.R"))
 source(file.path(Rcode, "/Functions/check_steady.R"))
 
 
-N <- 1000 # number of accepted particles 
+N <- 10 # number of accepted particles 
 
 maxrun <- 5000 # maxmium run to avoid the infinte loop 
 
-epsilon <- 20 # epison value 
+epsilon <- 50 # epison value 
 
 n_par <- 11 # how many parameters will be estimated 
 
@@ -249,7 +249,7 @@ resx <- lapply(res, function(x){
   a <- cbind(year = seq(POC_AU$cabY, (POC_AU$cabY + endY -1), 1),
              commu_proP = x[[9]], prison_proP = x[[10]], 
              prison_profP = x[[11]], commu_proP_fit = 16.67,
-             prison_proP_fit = 16.12, prison_profP_fit = 35.88, 
+             prison_proP_fit = 17.48, prison_profP_fit = 31.74, 
              commu_stopinj = 5.4)
   return(a)
 })

@@ -46,7 +46,7 @@ source(file.path(Rcode, "/Functions/plotFunctions.R"))
 
 # setting end Year 
 
-endY <- 100
+endY <- 36
 
 ```
 
@@ -147,7 +147,7 @@ PopTransition_all <- cbind.data.frame(timestep = PopTransition$timestep,
                                       to = PopTransition$To, 
                                       best = PopTransition$Freq)%>%
   as_tibble()%>%
-  mutate(year = rep(rep(seq(1, 100-1,1),each = 1/POC_AU$timestep),
+  mutate(year = rep(rep(seq(1, endY-1,1),each = 1/POC_AU$timestep),
                     each = POC_AU$npops*POC_AU$npops))
 
 PPTranTo <- PopTransition_all%>%
@@ -311,7 +311,7 @@ datapoint[["flow"]] <-
 datapoint[["abPrev"]] <- 
   cbind.data.frame(year = rep(POC_AU$simY, length(POC_AU$popNames) + 1), 
                    indicator = c(POC_AU$popNames, "Prisons"), 
-                   realpop = c(NA, NA, 91.1, NA, NA, 27.8),
+                   realpop = c(32, NA, NA, NA, NA, 27.8),
                    low= c(NA, NA, NA, NA, NA, NA),
                    up = c(NA, NA, NA, NA, NA, NA))
 ```
@@ -329,7 +329,7 @@ totalPop_plot <- indicatorPlot(POC_AU, total_N,
               facetPlot = NULL,
               observationData = NULL, 
               simulateYear = NULL) + theme_bw() +
-  scale_y_continuous(limits = c(515000,525000)) + 
+  scale_y_continuous(limits = c(0,575000)) + 
   ggtitle("Number of total population") + 
   geom_point(aes(
     y=datapoint[["N"]][datapoint[["N"]][, "indicator"] == "Total", "realpop"], 
@@ -423,7 +423,7 @@ subpop_N_plot[[2]] <- subpop_N_plot[[2]] +
         x = (POC_AU$simY - POC_AU$cabY + 1) , xend = (POC_AU$simY - POC_AU$cabY + 1)))
 
 subpop_N_plot[[3]] <- subpop_N_plot[[3]] + 
-  scale_y_continuous(limits = c(0, 8000), breaks = seq(0, 8000, 500)) + 
+  scale_y_continuous(limits = c(0, 15000), breaks = seq(0, 15000, 500)) + 
   geom_point(aes(
     y=datapoint[["N"]][datapoint[["N"]][, "indicator"] == names(subpop_N)[3], "realpop"], 
     x = POC_AU$simY - POC_AU$cabY + 1 ), colour = "black") + 
@@ -519,7 +519,7 @@ New_incar_plot <-  indicatorPlot(POC_AU, incar_total,
               observationData = NULL, 
               simulateYear = NULL) +
   ggtitle("Annual number entry prisons") + theme_bw() + 
-  scale_y_continuous(limits = c(0, 65000), breaks = seq(0, 65000, 5000)) + 
+  scale_y_continuous(limits = c(0, 75000), breaks = seq(0, 75000, 5000)) + 
   geom_point(aes(
     y=datapoint[["flow"]][datapoint[["flow"]][, "indicator"] == "incar", "realpop"], 
     x = POC_AU$simY ), colour = "black")
@@ -535,7 +535,7 @@ New_release_plot <-  indicatorPlot(POC_AU, release_total,
                                  observationData = NULL, 
                                  simulateYear = NULL) +
   ggtitle("Annual number release from prisons") + theme_bw() + 
-  scale_y_continuous(limits = c(0, 65000), breaks = seq(0, 65000, 5000)) + 
+  scale_y_continuous(limits = c(0, 75000), breaks = seq(0, 75000, 5000)) + 
   geom_point(aes(
     y=datapoint[["flow"]][datapoint[["flow"]][, "indicator"] == "release", "realpop"], 
     x = POC_AU$simY ), colour = "black")
@@ -662,6 +662,127 @@ Inc_relapinj_plot <-  indicatorPlot(POC_AU, inj_relap_inc_bind,
 
 ```
 
+
+```{r echo=FALSE, include=FALSE}
+```
+
+
+## Calibration of population size, population transition
+ 
+(1) Number of total population (Figure 1.)
+(2) Number of population size in community/prisons (Figure 2.)
+(3) Number of population size in each sub-population (Figure 3.)
+(4) Fraction of PWID/former PWID in community/prisons (Figure 4.)
+(5) Annual number of stop/relapse injection in community/prisons (Figure 5.)
+(6) Annual number of incarceration/release in PWID/former PWID (Figure 6.)   
+(7) Incidence of stop injection in community/prisons (Figure 7. )
+(8) Incidence of relapse injection in community/prisons  (Figure 8. )
+(9) Incidence of stopping injection in community/prisons (Figure 9. ) 
+\n
+
+The blue lines are model outputs and black dots and lines represent the data points from in all figures. 
+
+\newpage
+
+## Figure1. number of population 
+```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 6, fig.width = 8, fig.cap = "" }
+ggpubr::ggarrange(totalPop_plot, nrow = 1) + 
+  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
+
+```
+
+\newpage
+## Figure2. number of population size in community/prisons
+```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 6, fig.width = 8, fig.cap = "" }
+ggpubr::ggarrange(commuPop_plot,prisonPop_plot) + 
+  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
+
+```
+
+\newpage
+## Figure3. number of population size in each sup-population  
+```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 8, fig.width = 12, fig.cap = "" }
+ggpubr::ggarrange(subpop_N_plot[[1]], subpop_N_plot[[2]], 
+                  subpop_N_plot[[3]],subpop_N_plot[[4]], 
+                  subpop_N_plot[[5]]) + 
+  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
+
+```
+ 
+
+\newpage
+## Figure4. Fraction of PWID/former PWID in community/prisons 
+$${Fraction of PWID\_setting =
+\frac{PWID\_setting}{N\_setting}*100}$$
+
+$${Fraction of former PWID\_prison =
+\frac{formerPWID\_prison}{N\_prison}*100}$$
+```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "Figure 9." }
+ggpubr::ggarrange(frac_CPWID_plot, frac_PPWID_plot, frac_PfPWID_plot) + 
+  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
+
+``` 
+
+\newpage
+
+## Figure5. Annual number of stop/relapse injection in community/prisons 
+```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
+ggpubr::ggarrange(New_stopinj_plot, New_relapinj_plot) + 
+  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
+
+``` 
+
+\newpage
+
+## Figure6. Annual number of incarceration/release in PWID and former PWID  
+```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
+ggpubr::ggarrange(New_incar_plot, New_release_plot) + 
+  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
+
+``` 
+
+\newpage
+
+## Figure7. Incidence of stop injection in community/prisons 
+Incidence of stop injection in {`setting`} = annual number of stopping injection in {`setting`}/Number of PWID in {`setting`}*100
+```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
+ggpubr::ggarrange(Inc_stopinj_plot[["community"]],Inc_stopinj_plot[["prison"]] ) + 
+  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
+
+``` 
+
+\newpage
+## Figure8. Incidence of relapse injection in community/prisons 
+Incidence of relapse injection in {`setting`} = annual number of relapse injection in {`setting`}/Number of former PWID in {`setting`}*100 
+```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
+ggpubr::ggarrange(Inc_relapinj_plot) + 
+  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
+
+``` 
+
+
+\newpage
+
+## Figure9. Incidence of incarceration/release in PWID and former PWID  
+Incidence of incarceration in {`population`} = annual number of incarceration in {`population`}/Number of {`population`} in community *100 
+Incidence of release in {`population`} = annual number of release in {`population`}/Number of {`population`} in prisons*100 
+
+```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
+ggpubr::ggarrange(Inc_incar_plot, Inc_release_plot) + 
+  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
+
+``` 
+
+
+\newpage 
+## Calibration HCV epidemic
+(10) HCV seroprevalence in each subgorup  (Figure 10. )
+(11) HCV seroprevalence in community/prisons (Figure 11. ) 
+(12) HCV RNA prevalence in each subgorup  (Figure 12. )
+(13) HCV RNA prevalence in community/prisons (Figure 13. ) 
+(14) HCV incidence in each subgorup  (Figure 14. )
+(15) HCV incidence in community/prisons (Figure 15. ) 
+
 ```{r echo=FALSE, include=FALSE}
 #### Results: incidence and prevalence #### 
 # Structure 
@@ -758,70 +879,169 @@ tempPrev_setting[["prisonsPWID"]] <- cbind(year = seq(POC_AU$startYear , endY-1 
                                        as.data.frame(100*(prisonPWID_N[, -c(1)] - 
                                                             tempNOTInfected_prisonPWID[ ,-c(1)])/ 
                                                        prison_N[ ,-c(1)]))%>%tibble::as_tibble()
+
+# (B)RNA prevalence 
+tempNOTInfectedRNA_subpop <- popResults_MidYear(POC_AU, calibrateInit,Population = POC_AU$popNames,
+                                             Disease_prog = NULL, 
+                                             Cascade = c("s", "cured"), 
+                                             param = NULL ,endYear = endY)%>%
+  as_tibble()%>%group_by(year, population)%>%
+  summarise(best = sum(best))%>%arrange(year, population)
+
+
+
+tempPrevRNA_subpop <- cbind(year = rep(seq(POC_AU$startYear , endY-1 ,1), each = POC_AU$npops),
+                         population = POC_AU$popNames,
+                         
+                         as.data.frame(100*(pop_N[, -c(1,2)] - 
+                                              tempNOTInfectedRNA_subpop[ ,-c(1,2)])/ 
+                                         pop_N[ ,-c(1,2)]))%>%
+  tibble::as_tibble()  
+
+
+#prevalence in setting  
+# tempPrev_setting[["setting]]
+
+
+tempNOTInfectedRNA_commu <- popResults_MidYear(POC_AU, calibrateInit,
+                                            Population = c("C_PWID", "C_fPWID"),
+                                            Disease_prog = NULL, 
+                                            Cascade = c("s", "cured"), 
+                                            param = NULL ,endYear = endY)%>%
+  as_tibble()%>%group_by(year)%>%
+  summarise(best = sum(best))%>%arrange(year)
+
+tempPrevRNA_setting <- list()
+
+tempPrevRNA_setting[["commu"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
+                                     as.data.frame(100*(commu_N[, -c(1)] - 
+                                                          tempNOTInfectedRNA_commu[ ,-c(1)])/ 
+                                                     commu_N[ ,-c(1)]))%>%tibble::as_tibble()
+
+# prison 
+## PWID + former PWID + nonPWID 
+
+
+tempNOTInfectedRNA_prison <- popResults_MidYear(POC_AU, calibrateInit,
+                                             Population = c("P_PWID", "P_fPWID", 
+                                                            "P_nPWID"),
+                                             Disease_prog = NULL, 
+                                             Cascade = c("s", "cured"), 
+                                             param = NULL ,endYear = endY)%>%
+  as_tibble()%>%group_by(year)%>%
+  summarise(best = sum(best))%>%arrange(year)
+
+
+tempPrevRNA_setting[["prisons"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
+                                       as.data.frame(100*(prison_N[, -c(1)] - 
+                                                            tempNOTInfectedRNA_prison[ ,-c(1)])/ 
+                                                       prison_N[ ,-c(1)]))%>%tibble::as_tibble()
+
+
+# prison_PWID experienced  
+## PWID + former PWID + nonPWID 
+
+
+tempNOTInfectedRNA_prisonPWID <- popResults_MidYear(POC_AU, calibrateInit,
+                                                 Population = c("P_PWID", "P_fPWID"),
+                                                 Disease_prog = NULL, 
+                                                 Cascade = c("s", "cured"), 
+                                                 param = NULL ,endYear = endY)%>%
+  as_tibble()%>%group_by(year)%>%
+  summarise(best = sum(best))%>%arrange(year)
+
+
+tempPrevRNA_setting[["prisonsPWID"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
+                                           as.data.frame(100*(prisonPWID_N[, -c(1)] - 
+                                                                tempNOTInfectedRNA_prisonPWID[ ,-c(1)])/ 
+                                                           prison_N[ ,-c(1)]))%>%tibble::as_tibble()
+
+
+##### incidence #####
+HCVInfect_subpop <- indicatorResults(POC_AU, calibrateInit, "newInfections", 
+                                     pop=POC_AU$popNames,
+                                  paramR = NULL, range = NULL,
+                                  endY = endY)
+
+HCVInc_subpop <- cbind(year = rep(seq(POC_AU$startYear , endY-1 ,1), 
+                                  each = POC_AU$npops),
+                       population = POC_AU$popNames,
+                       as.data.frame(HCVInfect_subpop[, -c(1,2)] / 
+                                       pop_N[ ,-c(1,2)]*100))%>%
+  tibble::as_tibble() 
+
+
+
+HCVInfect_setting <- list()
+
+HCVInfect_setting[["commu"]] <- indicatorResults(POC_AU, 
+                                                     calibrateInit, 
+                                                     "newInfections", 
+                                                     pop= c("C_PWID", "C_fPWID"),
+                                     paramR = NULL, range = NULL,
+                                     endY = endY)%>%group_by(year)%>%
+  summarise(best = sum(best))%>%arrange(year)
+
+HCVInfect_setting[["prisons"]] <- indicatorResults(POC_AU, 
+                                                   calibrateInit, 
+                                                   "newInfections", 
+                                                   pop= c("P_PWID", "P_fPWID",
+                                                          "P_nPWID"), 
+                                                   paramR = NULL, 
+                                                   range = NULL,
+                                                   endY = endY)%>%group_by(year)%>%
+  summarise(best = sum(best))%>%arrange(year)
+
+HCVInc_setting <- list()
+
+HCVInc_setting[["commu"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
+                                   as.data.frame(100*(HCVInfect_setting[["commu"]][ , -c(1)]/ 
+                                                        commu_N[ ,-c(1)])))%>%
+                                     tibble::as_tibble()
+HCVInc_setting[["prisons"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
+                                   as.data.frame(100*(HCVInfect_setting[["prisons"]][ , -c(1)]/ 
+                                                        prison_N[ ,-c(1)])))%>%
+                                     tibble::as_tibble()
 ```
 
 
 ```{r echo=FALSE, include=FALSE}
 ####Plot: incidence and prevalence  ####
 #####plot: prevalence #####
-endY_plot <- 2050- POC_AU$cabY
+######plot: seroprevalence ######
+endY_plot <- 2030- POC_AU$cabY
 pop_labname <- c("PWID in community",  "Former PWID in community", 
                  "PWID in prisons",  "Former PWID in prisons", 
                  "nonPWID in prisons")
+HCVPrev <-read.csv(file.path(paste0(DataFolder%>%dirname(), "/HCVPrev_POC_AU.csv")), header = TRUE)%>%
+  as.data.frame()%>%mutate(time = year- POC_AU$cabY + 1, 
+                           realPop = HCV.seroprevalence*100,
+                           up = upper*100,
+                           low = lower*100,
+                           population = factor(population, 
+                                               levels = POC_AU$popNames, 
+                                               labels = pop_labname ))
 
 tempPrev_subpop <- tempPrev_subpop%>%
   mutate(population = factor(population, 
                              levels = POC_AU$popNames, 
                              labels = pop_labname ))
-popPrevPlot <- list()
-for(i in 1: length(pop_labname)){ 
-  popPrevPlot[[i]] <- indicatorPlot(POC_AU, tempPrev_subpop%>%
-                                      filter(population ==c(unique(tempPrev_subpop$population))[i]), 
-              ylabel = "HCV prevalence (%)",
+
+popPrevPlot <- indicatorPlot(POC_AU, tempPrev_subpop, 
+              ylabel = "HCV seroprevalence (%)",
               xlimits = c(POC_AU$startYear, 
                           (POC_AU$startYear+endY_plot), 5),
               calibration_Y = POC_AU$cabY,
               rangeun = NULL, 
               groupPlot = NULL, 
               facetPlot = population,
-              observationData = NULL, 
-              simulateYear = POC_AU$simY) + 
-    ggtitle(paste0("HCV prevalence:", pop_labname[i])) + 
-    scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, 10))
-    
-  }
-popPrevPlot[[3]] <- popPrevPlot[[3]] + 
-  geom_point(aes(
-    y=datapoint[["abPrev"]][datapoint[["abPrev"]][, "indicator"] == "P_PWID", "realpop"], 
-    x = POC_AU$simY ), colour = "black")
+              observationData = HCVPrev, 
+              simulateYear = POC_AU$simY) +
+  ggtitle("HCV seroprevalence by population") 
 
-
-# setting 
-tempPrev_setting_bind <- dplyr::bind_rows(tempPrev_setting, .id = 'population')%>%
-  mutate(population = factor(population, 
-                             levels = c("commu", "prisons", "prisonsPWID"), 
-                             labels = c("Community", "Prisons",
-                                        "PWID & fPWID in Prisons")))%>%
-  as.data.frame()
-
-str(tempPrev_setting_bind)
-
-
-settingPrevPlot <- indicatorPlot(POC_AU, tempPrev_setting_bind, 
-                             ylabel = "HCV prevalence (%)",
-                             xlimits = c(POC_AU$startYear, 
-                                         (POC_AU$startYear+endY_plot - 1), 5),
-                             calibration_Y = POC_AU$cabY,
-                             rangeun = NULL, 
-                             groupPlot = NULL, 
-                             facetPlot = population,
-                             observationData = NULL, 
-                             simulateYear = POC_AU$simY) +
-  ggtitle("HCV prevalence by setting") 
-
-settingPrevPlot <- settingPrevPlot + 
+popPrevPlot <- popPrevPlot + 
   facet_custom (~population,
-                scales = "free", ncol = 1,
+                scales = "free", ncol = 3,
                 scale_overrides = 
                   list(
                     scale_new(1,
@@ -830,138 +1050,340 @@ settingPrevPlot <- settingPrevPlot +
                     scale_new(2,
                               scale_y_continuous(limits = 
                                                    c(0, 100))),
+                    
                     scale_new(3,
                               scale_y_continuous(limits = 
-                                                   c(0, 100)))
+                                                   c(0, 100))),
+                    scale_new(4,
+                              scale_y_continuous(limits = 
+                                                   c(0, 100))),
+                    scale_new(5,
+                              scale_y_continuous(limits = 
+                                                   c(0, 50)))
+                   )) + theme_bw()
+
+popPrevPlot 
+# setting 
+tempPrev_setting_bind <- dplyr::bind_rows(tempPrev_setting, .id = 'population')%>%
+  mutate(population = factor(population, 
+                             levels = c("commu", "prisons", "prisonsPWID"), 
+                             labels = c("Community", "Prisons", 
+                                        "Current & former PWID in prisons")))%>%
+  as.data.frame()
+
+str(tempPrev_setting_bind)
+
+
+settingPrevPlot <- indicatorPlot(POC_AU, tempPrev_setting_bind, 
+                             ylabel = "HCV seroprevalence (%)",
+                             xlimits = c(POC_AU$startYear, 
+                                         (POC_AU$startYear+endY_plot - 1), 5),
+                             calibration_Y = POC_AU$cabY,
+                             rangeun = NULL, 
+                             groupPlot = NULL, 
+                             facetPlot = population,
+                             observationData = NULL, 
+                             simulateYear = POC_AU$simY) +
+  ggtitle("HCV seroprevalence by setting") 
+
+settingPrevPlot <- settingPrevPlot + 
+  facet_custom (~population,
+                scales = "free", ncol = 1,
+                scale_overrides = 
+                  list(
+                    scale_new(1,
+                              scale_y_continuous(limits = 
+                                                   c(0, 80))),
+                    scale_new(2,
+                              scale_y_continuous(limits = 
+                                                   c(0, 50))),
+                    scale_new(3,
+                              scale_y_continuous(limits = 
+                                                   c(0, 50)))
                     )) + theme_bw()
 
+##### B: RNA prevalence #####
+tempPrevRNA_subpop <- tempPrevRNA_subpop%>%
+  mutate(population = factor(population, 
+                             levels = POC_AU$popNames, 
+                             labels = pop_labname ))
+
+HCVPrevRNA <-read.csv(file.path(paste0(DataFolder%>%dirname(), "/HCVPrevRNA_POC_AU.csv")), header = TRUE)%>%
+  as.data.frame()%>%mutate(time = year- POC_AU$cabY + 1, 
+                           realPop = HCV.RNA.prevalence*100,
+                           up = upper*100,
+                           low = lower*100,
+                           population = factor(population, 
+                                               levels = POC_AU$popNames, 
+                                               labels = pop_labname ))
+
+popPrevRNAPlot <- indicatorPlot(POC_AU, tempPrevRNA_subpop, 
+                             ylabel = "HCV prevalence (%)",
+                             xlimits = c(POC_AU$startYear, 
+                                         (POC_AU$startYear+endY_plot), 5),
+                             calibration_Y = POC_AU$cabY,
+                             rangeun = NULL, 
+                             groupPlot = NULL, 
+                             facetPlot = population,
+                             observationData = HCVPrevRNA, 
+                             simulateYear = POC_AU$simY) +
+  ggtitle("HCV RNA prevalence by population") 
+
+popPrevRNAPlot <- popPrevRNAPlot + 
+  facet_custom (~population,
+                scales = "free", ncol = 3,
+                scale_overrides = 
+                  list(
+                    scale_new(1,
+                              scale_y_continuous(limits = 
+                                                   c(0, 50))),
+                    scale_new(2,
+                              scale_y_continuous(limits = 
+                                                   c(0, 50))),
+                    
+                    scale_new(3,
+                              scale_y_continuous(limits = 
+                                                   c(0, 50))),
+                    scale_new(4,
+                              scale_y_continuous(limits = 
+                                                   c(0, 50))),
+                    scale_new(5,
+                              scale_y_continuous(limits = 
+                                                   c(0, 2)))
+                  )) + theme_bw()
+
+popPrevRNAPlot 
+# setting 
+tempPrevRNA_setting_bind <- dplyr::bind_rows(tempPrevRNA_setting, .id = 'population')%>%
+  mutate(population = factor(population, 
+                             levels = c("commu", "prisons", "prisonsPWID"), 
+                             labels = c("Community", "Prisons", 
+                                        "Current & former PWID in prisons")))%>%
+  as.data.frame()
+
+
+
+
+settingPrevRNAPlot <- indicatorPlot(POC_AU, tempPrevRNA_setting_bind, 
+                                 ylabel = "HCV RNA prevalence (%)",
+                                 xlimits = c(POC_AU$startYear, 
+                                             (POC_AU$startYear+endY_plot - 1), 5),
+                                 calibration_Y = POC_AU$cabY,
+                                 rangeun = NULL, 
+                                 groupPlot = NULL, 
+                                 facetPlot = population,
+                                 observationData = NULL, 
+                                 simulateYear = POC_AU$simY) +
+  ggtitle("HCV RNA prevalence by setting") 
+
+settingPrevRNAPlot <- settingPrevRNAPlot + 
+  facet_custom (~population,
+                scales = "free", ncol = 1,
+                scale_overrides = 
+                  list(
+                    scale_new(1,
+                              scale_y_continuous(limits = 
+                                                   c(0, 50))),
+                    scale_new(2,
+                              scale_y_continuous(limits = 
+                                                   c(0, 50))),
+                    scale_new(3,
+                              scale_y_continuous(limits = 
+                                                   c(0, 50)))
+                  )) + theme_bw()
+
+#####plot: incidence #####
+HCVInc_subpop <- HCVInc_subpop%>%
+  mutate(population = factor(population, 
+                             levels = POC_AU$popNames, 
+                             labels = pop_labname )) 
+HCVInc <-read.csv(file.path(paste0(DataFolder%>%dirname(), "/HCVInc_POC_AU.csv")), header = TRUE)%>%
+  as.data.frame()%>%mutate(time = year- POC_AU$cabY + 1, 
+                           realPop = HCVInc*100,
+                           up = upper*100,
+                           low = lower*100,
+                           population = factor(population, 
+                                               levels = POC_AU$popNames, 
+                                               labels = pop_labname ))
+
+popIncPlot <- indicatorPlot(POC_AU, HCVInc_subpop, 
+                             ylabel = "HCV incidence",
+                             xlimits = c(POC_AU$startYear, 
+                                         (POC_AU$startYear+endY_plot), 5),
+                             calibration_Y = POC_AU$cabY,
+                             rangeun = NULL, 
+                             groupPlot = NULL, 
+                             facetPlot = population,
+                             observationData = HCVInc, 
+                             simulateYear = POC_AU$simY) +
+  ggtitle("HCV incidence by population") 
+
+popIncPlot <- popIncPlot + 
+  facet_custom (~population,
+                scales = "free", ncol = 3,
+                scale_overrides = 
+                  list(
+                    scale_new(1,
+                              scale_y_continuous(limits = 
+                                                   c(0, 20))),
+                    scale_new(2,
+                              scale_y_continuous(limits = 
+                                                   c(0, 20))),
+                    
+                    scale_new(3,
+                              scale_y_continuous(limits = 
+                                                   c(0, 20))),
+                    scale_new(4,
+                              scale_y_continuous(limits = 
+                                                   c(0, 20))),
+                    scale_new(5,
+                              scale_y_continuous(limits = 
+                                                   c(0, 10)))
+                  )) + theme_bw()
+
+# setting 
+HCVInc_setting_bind <- dplyr::bind_rows(HCVInc_setting, .id = 'population')%>%
+  mutate(population = factor(population, 
+                             levels = c("commu", "prisons"), 
+                             labels = c("Community", "Prisons")))%>%
+  as.data.frame()
+
+HCVInc_setting <-read.csv(file.path(paste0(DataFolder%>%dirname(), "/HCVInc_setting_POC_AU.csv")), header = TRUE)%>%
+  as.data.frame()%>%mutate(time = year- POC_AU$cabY + 1, 
+                           realPop = HCVInc*100,
+                           up = upper*100,
+                           low = lower*100,
+                           population = factor(population, 
+                                               levels = c("commu", "prisons"), 
+                                               labels = c("Community", "Prisons")))
+
+settingIncPlot <- indicatorPlot(POC_AU, HCVInc_setting_bind, 
+                                 ylabel = "HCV incidence",
+                                 xlimits = c(POC_AU$startYear, 
+                                             (POC_AU$startYear+endY_plot - 1), 5),
+                                 calibration_Y = POC_AU$cabY,
+                                 rangeun = NULL, 
+                                 groupPlot = NULL, 
+                                 facetPlot = population,
+                                 observationData = HCVInc_setting, 
+                                 simulateYear = POC_AU$simY) +
+  ggtitle("HCV incidence by setting") 
+
+settingIncPlot <- settingIncPlot + 
+    facet_custom (~population,
+                  scales = "free", ncol = 1,
+                  scale_overrides = 
+                    list(
+                      scale_new(1,
+                                scale_y_continuous(limits = 
+                                                     c(0, 20))),
+                      scale_new(2,
+                                scale_y_continuous(limits = 
+                                                     c(0, 20))))) + theme_bw()
 
 ```
-
 
 ```{r echo=FALSE, include=FALSE}
+####Results: death ####
+#### HCV death ####
+
+HCVdeath <- indicatorResults(POC_AU, calibrateInit, "newHCVdeaths", 
+                            pop=POC_AU$popNames,
+                            paramR = NULL, range = NULL,
+                            endY = endY)%>%
+  mutate(population = factor(population, 
+                           levels = POC_AU$popNames, 
+                           labels = pop_labname ))
+
+death <- indicatorResults(POC_AU, calibrateInit, "newDeath", 
+                          pop=POC_AU$popNames,
+                          paramR = NULL, range = NULL,
+                          endY = endY)%>%
+  mutate(population = factor(population, 
+                             levels = POC_AU$popNames, 
+                             labels = pop_labname ))
+  
+
+HCVdeath_plot <- indicatorPlot(POC_AU, HCVdeath, 
+              ylabel = "HCV-related deaths",
+              xlimits = c(POC_AU$startYear, 
+                          (POC_AU$startYear+endY_plot), 5),
+              calibration_Y = POC_AU$cabY,
+              rangeun = NULL, 
+              groupPlot = NULL, 
+              facetPlot = population,
+              observationData = NULL, 
+              simulateYear = POC_AU$simY) +
+  ggtitle("HCV-related deaths") + theme_bw()
+
+
+HCVdeath_plot <- HCVdeath_plot + 
+  facet_custom(~population,
+               scales = "free", ncol = 3,
+               scale_overrides = 
+                 list(
+                   scale_new(1,
+                             scale_y_continuous(limits = 
+                                                  c(0, 100))),
+                   scale_new(2,
+                             scale_y_continuous(limits = 
+                                                  c(0, 2000))),
+                   scale_new(3,
+                             scale_y_continuous(limits = 
+                                                  c(0, 100))),
+                   scale_new(4,
+                             scale_y_continuous(limits = 
+                                                  c(0, 100))),
+                   scale_new(5,
+                             scale_y_continuous(limits = 
+                                                  c(0, 5))))) 
+
+death_plot <- indicatorPlot(POC_AU, death, 
+                               ylabel = "Deaths",
+                               xlimits = c(POC_AU$startYear, 
+                                           (POC_AU$startYear+endY_plot), 5),
+                               calibration_Y = POC_AU$cabY,
+                               rangeun = NULL, 
+                               groupPlot = NULL, 
+                               facetPlot = population,
+                               observationData = NULL, 
+                               simulateYear = POC_AU$simY) +
+  ggtitle("Deaths") 
+
+
+death_plot <- death_plot + 
+  facet_custom(~population,
+               scales = "free", ncol = 3,
+               scale_overrides = 
+                 list(
+                   scale_new(1,
+                             scale_y_continuous(limits = 
+                                                  c(0, 2000))),
+                   scale_new(2,
+                             scale_y_continuous(limits = 
+                                                  c(0, 10000))),
+                   scale_new(3,
+                             scale_y_continuous(limits = 
+                                                  c(0, 1000))),
+                   scale_new(4,
+                             scale_y_continuous(limits = 
+                                                  c(0, 500))),
+                   scale_new(5,
+                             scale_y_continuous(limits = 
+                                                  c(0, 5))))) 
+
 ```
 
 
-## Calibration of population size, population transition
- 
-(1) Number of total population (Figure 1.)
-(2) Number of population size in community/prisons (Figure 2.)
-(3) Number of population size in each sub-population (Figure 3.)
-(4) Fraction of PWID/former PWID in community/prisons (Figure 4.)
-(5) Annual number of stop/relapse injection in community/prisons (Figure 5.)
-(6) Annual number of incarceration/release in PWID/former PWID (Figure 6.)   
-(7) Incidence of stop injection in community/prisons (Figure 7. )
-(8) Incidence of relapse injection in community/prisons  (Figure 8. )
-(9) Incidence of stopping injection in community/prisons (Figure 9. )
-\n
-The blue lines are model outputs and black dots and lines represent the data points from in all figures. 
-
-\newpage
-
-## Figure1. number of population 
-```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 6, fig.width = 8, fig.cap = "" }
-ggpubr::ggarrange(totalPop_plot, nrow = 1) + 
+##Figure10. HCV seroprevalence  
+```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
+ggpubr::ggarrange(popPrevPlot) + 
   theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
 
 ```
-
-\newpage
-## Figure2. number of population size in community/prisons
-```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 6, fig.width = 8, fig.cap = "" }
-ggpubr::ggarrange(commuPop_plot,prisonPop_plot) + 
-  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
-
-```
-
-\newpage
-## Figure3. number of population size in each sup-population  
-```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 8, fig.width = 12, fig.cap = "" }
-ggpubr::ggarrange(subpop_N_plot[[1]], subpop_N_plot[[2]], 
-                  subpop_N_plot[[3]],subpop_N_plot[[4]], 
-                  subpop_N_plot[[5]]) + 
-  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
-
-```
- 
-
-\newpage
-## Figure4. Fraction of PWID/former PWID in community/prisons 
-$${Fraction of PWID\_setting =
-\frac{PWID\_setting}{N\_setting}*100}$$
-
-$${Fraction of former PWID\_prison =
-\frac{formerPWID\_prison}{N\_prison}*100}$$
-```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "Figure 9." }
-ggpubr::ggarrange(frac_CPWID_plot, frac_PPWID_plot, frac_PfPWID_plot) + 
-  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
-
-``` 
-
-\newpage
-
-## Figure5. Annual number of stop/relapse injection in community/prisons 
-```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
-ggpubr::ggarrange(New_stopinj_plot, New_relapinj_plot) + 
-  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
-
-``` 
-
-\newpage
-
-## Figure6. Annual number of incarceration/release in PWID and former PWID  
-```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
-ggpubr::ggarrange(New_incar_plot, New_release_plot) + 
-  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
-
-``` 
-
-\newpage
-
-## Figure7. Incidence of stop injection in community/prisons 
-Incidence of stop injection in {`setting`} = annual number of stopping injection in {`setting`}/Number of PWID in {`setting`}*100
-```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
-ggpubr::ggarrange(Inc_stopinj_plot[["community"]],Inc_stopinj_plot[["prison"]] ) + 
-  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
-
-``` 
-
-\newpage
-## Figure8. Incidence of relapse injection in community/prisons 
-Incidence of relapse injection in {`setting`} = annual number of relapse injection in {`setting`}/Number of former PWID in {`setting`}*100 
-```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
-ggpubr::ggarrange(Inc_relapinj_plot) + 
-  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
-
-``` 
-
-
-\newpage
-
-## Figure9. Incidence of incarceration/release in PWID and former PWID  
-Incidence of incarceration in {`population`} = annual number of incarceration in {`population`}/Number of {`population`} in community *100 
-Incidence of release in {`population`} = annual number of release in {`population`}/Number of {`population`} in prisons*100 
-
-```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
-ggpubr::ggarrange(Inc_incar_plot, Inc_release_plot) + 
-  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
-
-``` 
-
-
 \newpage 
 
-## calibration HCV epidemic
-
-##Figure10. HCV prevalence  
-
-
-```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
-ggpubr::ggarrange(popPrevPlot[[3]]) + 
-  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
-
-```
-
+##Figure11. HCV seroprevalence by setting
 ```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
 ggpubr::ggarrange(settingPrevPlot ) + 
   theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
@@ -970,10 +1392,36 @@ ggpubr::ggarrange(settingPrevPlot ) +
 
 \newpage 
 
+##Figure12. HCV RNA prevalence by subgroups
+```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
+ggpubr::ggarrange(popPrevRNAPlot) + 
+  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
 
-##Figure11. HCV incidence  
+```
+
+\newpage 
+
+##Figure13. HCV RNA prevalence by setting
+```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
+ggpubr::ggarrange(settingPrevRNAPlot) + 
+  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
+
+```
+
+\newpage 
+
+##Figure14. HCV incidence  
 ```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
 ggpubr::ggarrange(popIncPlot ) + 
+  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
+
+```
+
+\newpage 
+
+##Figure15. HCV incidence by settings  
+```{r echo=FALSE, warning=FALSE, message=FALSE,  fig.height= 9, fig.width = 12, fig.cap = "" }
+ggpubr::ggarrange(settingIncPlot ) + 
   theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) 
 
 ```

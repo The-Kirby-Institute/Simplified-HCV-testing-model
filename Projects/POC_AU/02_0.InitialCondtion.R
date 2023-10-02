@@ -32,6 +32,7 @@ DataFolder <- file.path(data_path, "01. DATA/model input" )
 OutputFolder <- file.path(data_path, "02. Output")
 
 load(file.path(OutputFolder, paste0(project_name, ".rda")))
+# load(file.path(OutputFolder, paste0(project_name, "cali.rda")))
 
 
 urrTime <- format(Sys.time(), "%Y-%m-%d_%H-%M-%S")
@@ -65,7 +66,7 @@ toc
 check_steady(model_result = steady, endY = POC_AU$endYear,
              timestep = POC_AU$timestep, 
              Ncomp = POC_AU$ncomponent*POC_AU$npops, 
-             Tequilibrium = 1500)
+             Tequilibrium = 800)
 
 
 #extract proportion of pops for initial condition 
@@ -74,21 +75,21 @@ df_list <- lapply(steady, as.data.frame.table)
 
 allpop <- df_list$allPops%>%mutate(time = rep(seq(1,(POC_AU$endYear - POC_AU$timestep),POC_AU$timestep), 
                                               each=POC_AU$ncomponent*POC_AU$npops),
-                                   Frequency=round(Freq, digits = 10))
+                                   Frequency=Freq)
 
 popPro_extract <- df_list$allPops%>%
   mutate(time = rep(seq(POC_AU$startYear, (POC_AU$endYear - POC_AU$timestep), POC_AU$timestep), 
                     each=POC_AU$ncomponent * POC_AU$npops),
-         Frequency=round(Freq, digits = 10))%>%
-  filter(time == 1000)%>%
+         Frequency=Freq)%>%
+  filter(time == 500)%>%
   mutate(cascade_status = sub("^[^_]*_", "", Var2), 
          dis_prog = sub("\\_.*", "", Var2),
          SI = ifelse(cascade_status%in%c("s", "cured"), "S","I"),
          parameter =Var2)%>%group_by(Var1 ,SI)%>%
   mutate(total = sum(Frequency),
-         value = ifelse(Frequency==0, 0, round(Frequency/total, digits = 10)))%>%
+         value = ifelse(Frequency==0, 0, Frequency/total))%>%
   ungroup()%>%group_by(Var1)%>%mutate(pop_prop = ifelse(
-    Frequency==0, 0, round(Frequency/sum(Frequency), digits = 6)))%>%
+    Frequency==0, 0, Frequency/sum(Frequency)))%>%
   ungroup()%>%select(Var1,parameter, value, SI)
 
 
@@ -145,7 +146,7 @@ save(project_name,steady, best_est_pop,
 
 # calibration 
 tic <- proc.time()
-endY <- 100
+endY <- 36
 calibrateInit <- HCVMSM(POC_AU, best_estimates, best_est_pop,
                        disease_progress,  pop_array, dfList, fib,
                        modelrun="UN", proj = "POC_AU", end_Y = endY)
