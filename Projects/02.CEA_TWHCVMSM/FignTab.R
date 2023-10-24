@@ -169,6 +169,8 @@ for(n in dt_name){
     select(year, population, testing, best:ncol(.))
 }
 
+Inci$PrEPsame
+
 # WHO elimination threshold 
 
 thres <- list()

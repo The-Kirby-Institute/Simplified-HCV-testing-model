@@ -31,15 +31,15 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     
     years <- HCV$nyears
     
-    npts <-HCV$npts
+    npts <-HCV$npts - 1 
     
   } else if (!is.data.frame(parama)) {
     
     years <- HCV$startYear:end_Y
     pts <- seq(HCV$startYear, end_Y, by = dt)
     
-    pts <- head(pts, -1)
-    
+    #pts <- head(pts, -1)
+    pts <- pts[-1]
     npts <- length(pts)
     
     parama <- lapply(parama, function(x) x[1:(npts + 1)])
@@ -57,8 +57,8 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     
     pts <- seq(HCV$startYear, end_Y, by = dt)
     
-    pts <- head(pts, -1)
-    
+    #pts <- head(pts, -1)
+    pts <- pts[-1]
     npts <- length(pts)
     
     parama <- parama[1:(npts+1),]
@@ -218,12 +218,6 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   ####demographic paramaeters####
   # entry 
   
-  entry <- matrix(0, ncol = npts + 1, nrow = npops)
-  entry[1,] <- parama$entry
-  for(i in 2: npops){ 
-    entry[i,] <- 0
-    }
-  entry_dt <- entry*dt  
   
   ####mortality =rate to leave the model####
   ## 
@@ -238,6 +232,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   morplt <- matrix(0, ncol = npts + 1, nrow = npops)
   
   l <- matrix(0, ncol = npts + 1, nrow = npops)
+
   
   for(i in 1:npops){
     morb[i, ] <- parama[ , paste0("morb", i)]
@@ -353,7 +348,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   cure_dt <- 1-(1-cure)^dt
   
   ####population transition#### 
-  pop_array <- 1-(1-pop_array)^dt 
+  pop_array <- pop_array*dt 
   
   #### cost dt ####
   if(!is.null(cost)){
@@ -363,6 +358,18 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     })
     
     costflow <- costflow*dt
+  }
+  
+  entry <- matrix(0, ncol = npts + 1, nrow = npops)
+  
+  if(isTRUE(!proj%in% c("POC_AU", "TWPrisoners")) & isTRUE(modelrun != "steady")){
+    entry[1,] <- parama$entry
+    
+    
+    for(i in 2: npops){ 
+      entry[i,] <- 0
+    }
+    entry_dt <- entry*dt  
   }
   
   
@@ -460,78 +467,14 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     death_hcv[,"plt_treat_f"] <- morplt_dt[,t]*oldPop[, "plt_treat_f"]
     death_hcv[,"plt_cured"] <- morplt_dt[,t]*oldPop[, "plt_cured"]
     
-   #### in and out flow #### 
-    # pop-array 
-    newarray[ , , t] <- 
-      (pop_array[, , t]*oldPop[, "s"] + 
-         pop_array[, , t]*oldPop[, "a_undiag"] + 
-         pop_array[, , t]*oldPop[, "f0_undiag"] + 
-         pop_array[, , t]*oldPop[, "f1_undiag"] + 
-         pop_array[, , t]*oldPop[, "f2_undiag"] + 
-         pop_array[, , t]*oldPop[, "f3_undiag"] + 
-         pop_array[, , t]*oldPop[, "f4_undiag"] + 
-         pop_array[, , t]*oldPop[, "dc_undiag"] +  
-         pop_array[, , t]*oldPop[, "hcc_undiag"] + 
-         pop_array[, , t]*oldPop[, "lt_undiag"] +  
-         pop_array[, , t]*oldPop[, "plt_undiag"] + 
-         pop_array[, , t]*oldPop[, "a_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "f0_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "f1_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "f2_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "f3_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "f4_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "dc_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "hcc_diag_ab"]+ 
-         pop_array[, , t]*oldPop[, "lt_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "plt_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "a_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "f0_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "f1_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "f2_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "f3_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "f4_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "dc_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "hcc_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "lt_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "plt_diag_RNA"] +
-         pop_array[, , t]*oldPop[, "a_treat"] + 
-         pop_array[, , t]*oldPop[, "f0_treat"] + 
-         pop_array[, , t]*oldPop[, "f1_treat"] + 
-         pop_array[, , t]*oldPop[, "f2_treat"] + 
-         pop_array[, , t]*oldPop[, "f3_treat"] + 
-         pop_array[, , t]*oldPop[, "f4_treat"] + 
-         pop_array[, , t]*oldPop[, "dc_treat"] + 
-         pop_array[, , t]*oldPop[, "hcc_treat"] + 
-         pop_array[, , t]*oldPop[, "lt_treat"] + 
-         pop_array[, , t]*oldPop[, "plt_treat"] + 
-         pop_array[, , t]*oldPop[, "a_treat_f"] + 
-         pop_array[, , t]*oldPop[, "f0_treat_f"] + 
-         pop_array[, , t]*oldPop[, "f1_treat_f"] + 
-         pop_array[, , t]*oldPop[, "f2_treat_f"] + 
-         pop_array[, , t]*oldPop[, "f3_treat_f"] + 
-         pop_array[, , t]*oldPop[, "f4_treat_f"] + 
-         pop_array[, , t]*oldPop[, "dc_treat_f"] + 
-         pop_array[, , t]*oldPop[, "hcc_treat_f"] + 
-         pop_array[, , t]*oldPop[, "lt_treat_f"] + 
-         pop_array[, , t]*oldPop[, "plt_treat_f"] + 
-         pop_array[, , t]*oldPop[, "a_cured"] + 
-         pop_array[, , t]*oldPop[, "f0_cured"] + 
-         pop_array[, , t]*oldPop[, "f1_cured"] + 
-         pop_array[, , t]*oldPop[, "f2_cured"] + 
-         pop_array[, , t]*oldPop[, "f3_cured"] + 
-         pop_array[, , t]*oldPop[, "f4_cured"] + 
-         pop_array[, , t]*oldPop[, "dc_cured"] + 
-         pop_array[, , t]*oldPop[, "hcc_cured"] + 
-         pop_array[, , t]*oldPop[, "lt_cured"] + 
-         pop_array[, , t]*oldPop[, "plt_cured"])
-    
-    
-    #### proportion of cured ####
+       #### proportion of cured ####
     
     # total num
     N <- matrix(0, ncol = 1, nrow = npops)
     
     S <- matrix(0, ncol = 1, nrow = npops) 
+    
+    Sc <- matrix(0, ncol = 1, nrow = npops)
     
     # I
     I <- matrix(0, ncol = 1, nrow = npops)
@@ -540,6 +483,17 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       N[i, ] <- sum(oldPop[i, ], na.rm = TRUE)
       S[i, ] <- (oldPop[i , "s"] + 
                    oldPop[i , "a_cured"] +
+                   oldPop[i , "f0_cured"] +
+                   oldPop[i , "f1_cured"] +
+                   oldPop[i , "f2_cured"] +
+                   oldPop[i , "f3_cured"] +
+                   oldPop[i , "f4_cured"] +
+                   oldPop[i , "dc_cured"] +
+                   oldPop[i , "hcc_cured"] +
+                   oldPop[i , "lt_cured"] +
+                   oldPop[i , "plt_cured"])
+      
+      Sc[i, ] <- (oldPop[i , "a_cured"] +
                    oldPop[i , "f0_cured"] +
                    oldPop[i , "f1_cured"] +
                    oldPop[i , "f2_cured"] +
@@ -569,7 +523,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     
     for(i in 1: npops){ 
       if(proj %in% c("POC_AU", "TWPrisoners")){ 
-        II[i,] <- I[i,]/N[i,]
+        II[i,] <- I[i,]/N[i, ]
       }else{ 
         II[i, ] <-  Iall/(Sall + Iall)
         
@@ -625,17 +579,13 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       
       entry1[1,"s" ] <- sum(death[1, ])  +  sum(death[3, ])  + 
         sum(death_hcv[1, ]) +  sum(death_hcv[3, ]) + 
-        sum(leave[1, ])  + sum(leave[3, ]) +
+        sum(leave[1, ])  + sum(leave[3, ]) + 
         sum(death[2, ]) + sum(death[4, ]) + 
         sum(death_hcv[2, ]) + sum(leave[2, ]) + 
         sum(death_hcv[4, ])  + sum(leave[4, ])
     
-      #### death + leave for all components  
-      leave[5,] <- sum(leave[5,])*(oldPop[5,]/sum(oldPop[5, ])) # leaving by % of each stage 
-      death[5, ] <- sum(death[5,])*(oldPop[5,]/sum(oldPop[5, ])) # leaving by % of each stage 
-      
-      
-      entry1[5, ] <- (sum(leave[5, ]) + sum(death[5, ]))*(oldPop[5,]/sum(oldPop[5, ])) # entry also by distributed by % of stage 
+     
+      entry1[5, ] <- sum(leave[5, ])*oldPop[5, ]/sum(oldPop[5, ])
 
       
 
@@ -653,12 +603,11 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
         sum(leave[5, ]) + sum(leave[6, ]) 
       
     }
-    else { entry1[1,] <- entry_dt[1,t]
+    else { entry1[1,"s"] <- entry_dt[1,t]
       
       
       }
-       
-    
+ 
     #if(!is.null(scenario)){ reinfP[ , ] <- reinfP[ ,t]}
     #else{ reinfP[ ,t] <- c(1,1,1,1)}
     
@@ -668,7 +617,6 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       death[,"s"] -leave[,"s"] - death_hcv[, "s"] + 
       (colSums(pop_array[, , t]*oldPop[, "s"]) -
          rowSums(pop_array[, , t]*oldPop[, "s"])) - 
-      
       #foi_dt[, ]*I[,]*Ps[,]
       foi_dt[, ]*II[,]*oldPop[, "s"]
     
@@ -846,7 +794,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     
     
     ## f1 treat
-    newPop[, "f1_treat"] <- entry1[,"f1_undiag"] + oldPop[ ,"f1_treat"] + 
+    newPop[, "f1_treat"] <- entry1[,"f1_treat"] + oldPop[ ,"f1_treat"] + 
       (colSums(pop_array[, , t]*oldPop[, "f1_treat"]) -
          rowSums(pop_array[, , t]*oldPop[, "f1_treat"])) - 
       death[,"f1_treat"] -leave[,"f1_treat"] - death_hcv[, "f1_treat"] + 
@@ -1646,7 +1594,70 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                                                              0*oldPop[, "lt_cured"] + 
                                                              0*oldPop[, "plt_cured"])
 
-   
+    #### in and out flow #### 
+    # pop-array 
+    newarray[ , , t] <- 
+      (pop_array[, , t]*oldPop[, "s"] + 
+         pop_array[, , t]*oldPop[, "a_undiag"] + 
+         pop_array[, , t]*oldPop[, "f0_undiag"] + 
+         pop_array[, , t]*oldPop[, "f1_undiag"] + 
+         pop_array[, , t]*oldPop[, "f2_undiag"] + 
+         pop_array[, , t]*oldPop[, "f3_undiag"] + 
+         pop_array[, , t]*oldPop[, "f4_undiag"] + 
+         pop_array[, , t]*oldPop[, "dc_undiag"] +  
+         pop_array[, , t]*oldPop[, "hcc_undiag"] + 
+         pop_array[, , t]*oldPop[, "lt_undiag"] +  
+         pop_array[, , t]*oldPop[, "plt_undiag"] + 
+         pop_array[, , t]*oldPop[, "a_diag_ab"] + 
+         pop_array[, , t]*oldPop[, "f0_diag_ab"] + 
+         pop_array[, , t]*oldPop[, "f1_diag_ab"] + 
+         pop_array[, , t]*oldPop[, "f2_diag_ab"] + 
+         pop_array[, , t]*oldPop[, "f3_diag_ab"] + 
+         pop_array[, , t]*oldPop[, "f4_diag_ab"] + 
+         pop_array[, , t]*oldPop[, "dc_diag_ab"] + 
+         pop_array[, , t]*oldPop[, "hcc_diag_ab"]+ 
+         pop_array[, , t]*oldPop[, "lt_diag_ab"] + 
+         pop_array[, , t]*oldPop[, "plt_diag_ab"] + 
+         pop_array[, , t]*oldPop[, "a_diag_RNA"] + 
+         pop_array[, , t]*oldPop[, "f0_diag_RNA"] + 
+         pop_array[, , t]*oldPop[, "f1_diag_RNA"] + 
+         pop_array[, , t]*oldPop[, "f2_diag_RNA"] + 
+         pop_array[, , t]*oldPop[, "f3_diag_RNA"] + 
+         pop_array[, , t]*oldPop[, "f4_diag_RNA"] + 
+         pop_array[, , t]*oldPop[, "dc_diag_RNA"] + 
+         pop_array[, , t]*oldPop[, "hcc_diag_RNA"] + 
+         pop_array[, , t]*oldPop[, "lt_diag_RNA"] + 
+         pop_array[, , t]*oldPop[, "plt_diag_RNA"] +
+         pop_array[, , t]*oldPop[, "a_treat"] + 
+         pop_array[, , t]*oldPop[, "f0_treat"] + 
+         pop_array[, , t]*oldPop[, "f1_treat"] + 
+         pop_array[, , t]*oldPop[, "f2_treat"] + 
+         pop_array[, , t]*oldPop[, "f3_treat"] + 
+         pop_array[, , t]*oldPop[, "f4_treat"] + 
+         pop_array[, , t]*oldPop[, "dc_treat"] + 
+         pop_array[, , t]*oldPop[, "hcc_treat"] + 
+         pop_array[, , t]*oldPop[, "lt_treat"] + 
+         pop_array[, , t]*oldPop[, "plt_treat"] + 
+         pop_array[, , t]*oldPop[, "a_treat_f"] + 
+         pop_array[, , t]*oldPop[, "f0_treat_f"] + 
+         pop_array[, , t]*oldPop[, "f1_treat_f"] + 
+         pop_array[, , t]*oldPop[, "f2_treat_f"] + 
+         pop_array[, , t]*oldPop[, "f3_treat_f"] + 
+         pop_array[, , t]*oldPop[, "f4_treat_f"] + 
+         pop_array[, , t]*oldPop[, "dc_treat_f"] + 
+         pop_array[, , t]*oldPop[, "hcc_treat_f"] + 
+         pop_array[, , t]*oldPop[, "lt_treat_f"] + 
+         pop_array[, , t]*oldPop[, "plt_treat_f"] + 
+         pop_array[, , t]*oldPop[, "a_cured"] + 
+         pop_array[, , t]*oldPop[, "f0_cured"] + 
+         pop_array[, , t]*oldPop[, "f1_cured"] + 
+         pop_array[, , t]*oldPop[, "f2_cured"] + 
+         pop_array[, , t]*oldPop[, "f3_cured"] + 
+         pop_array[, , t]*oldPop[, "f4_cured"] + 
+         pop_array[, , t]*oldPop[, "dc_cured"] + 
+         pop_array[, , t]*oldPop[, "hcc_cured"] + 
+         pop_array[, , t]*oldPop[, "lt_cured"] + 
+         pop_array[, , t]*oldPop[, "plt_cured"])
   #### in and out flow bewtween subpops ####  
     
     inflow[, t]<- 

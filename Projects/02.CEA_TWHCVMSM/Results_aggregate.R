@@ -136,6 +136,7 @@ rm(Outcome_Base_epi, Outcome_Base_cost, SQ, SQ_param)
 
 
 load(file.path(paste0(outputdt, "/Outcome_Base_PrEPsame.rda")))
+load(file.path(paste0(outputdt, "/Outcome_Base_cost.rda")))
 
 Outcome_Base_PrEPsame$costqaly <- Outcome_Base_cost$Base
 save(Outcome_Base_PrEPsame,

@@ -1,4 +1,4 @@
-plotOpts <- theme_bw() + theme(plot.title = element_text(face = "bold",
+plotOpts <- theme_linedraw() + theme(plot.title = element_text(face = "bold",
                                                          size = rel(1.2), 
                                                          hjust = 0.5),
                                text = element_text(face = "bold",size=14,
@@ -11,19 +11,9 @@ plotOpts <- theme_bw() + theme(plot.title = element_text(face = "bold",
                                axis.text.y = element_text(face = "bold",
                                                           size=14,
                                                           colour="black"),
-                               axis.line.x = element_line(colour="black"),
-                               axis.line.y = element_line(colour="black"),
-                               axis.ticks = element_line(colour="black"),
                                legend.background = element_rect(),
                                legend.key = element_blank(),
-                               panel.grid.major = element_blank(), 
-                               panel.grid.minor = element_blank(), 
-                               panel.background = element_blank(), 
-                               panel.border = element_blank(),
-                               axis.line = element_line(colour = "black"),
-                               strip.background = element_blank(),
-                               plot.margin =unit(c(2.5,2.5,2.5,2.5),"mm"),
-                               strip.text = element_text(face="bold")) +
+                               plot.margin =unit(c(1,1,1,1),"mm")) +
   theme(plot.title = element_text(hjust = 0.5))
 
 

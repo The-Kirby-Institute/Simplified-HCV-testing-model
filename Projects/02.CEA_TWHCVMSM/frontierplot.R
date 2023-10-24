@@ -20,6 +20,7 @@ library("writexl")
 library("ggrepel")
 library("magick")
 library("ggpmisc")
+library("scales")
 # Setup directories after setting working directory to source file 
 # directory 
 
@@ -65,7 +66,7 @@ load(file.path(paste0(outputdt, "/" ,"CostBenfit_incre.rda", sep ="")))
 
 # table numbers 
 tab_costben <- dt_tab_char%>%filter(indicator %in% c("Lifetime cost (discounted, millions US$)",
-                                                       "Lifetime QALY (discounted, thousands)"))%>%
+                                                       "Lifetime QALY (discounted)"))%>%
   arrange(scenario, testing, population)%>%
   mutate(M_PI = paste0(round(Med, digits = 0), "(", round(q5,digits = 0), "-", round(q95,digits = 0), ")"))%>%
   select(population, scenario, testing, indicator, M_PI)
@@ -125,25 +126,8 @@ icer_hcv$`MSM who are HIV diagnosed (and on treatment)` %>%
 icer_hcv$`HIV-negative MSM on PrEP` %>%
   kable() %>%
   kable_styling()
-dt_tab_char$population
-dt_tab_HIVD <- dt_tab_char%>%filter(population %in% c("MSM who are HIV diagnosed (and on treatment)") & 
-                                     indicator %in% c("Lifetime cost (discounted, millions US$)",
-                                                      "Lifetime QALY (discounted)",
-                                                      ""))%>%
-  select(front_lab, indicator, Med)%>%
-  spread(indicator, Med)
-
-dt_tab_HIVD <- dt_tab_HIVD%>%mutate(Cost = `Lifetime cost (discounted, millions US$)`,
-                                  effect = `Lifetime QALY (discounted, thousands)`)
 
 
-icer_hcv <- calculate_icers(cost=dt_tab_HIVD$Cost, 
-                            effect=dt_tab_HIVD$effect, 
-                            strategies=dt_tab_HIVD$front_lab)
-icer_hcv %>%
-  kable() %>%
-  kable_styling()
-unique(icer_hcv$`Entire population of MSM`$`Testing strategy`)
 icer_hcv$`Entire population of MSM` <- icer_hcv$`Entire population of MSM`%>%
   mutate(`Testing strategy` = substr(Strategy, 4, nchar(Strategy)),
          `HIV prevention and care scenarios` = substr(Strategy, 1, 2))%>%
@@ -154,7 +138,7 @@ icer_hcv$`Entire population of MSM` <- icer_hcv$`Entire population of MSM`%>%
                                                 "Point-of-care RNA testing"
                                                 ),
                                      
-                                     labels = c("Current practice of HCV testing",
+                                     labels = c("Current HCV testing",
                                                 "Point-of-care antibody testing",
                                                 "Reflex RNA testing",
                                                 "Point-of-care RNA testing"     
@@ -184,19 +168,19 @@ x <- icer_hcv$`Entire population of MSM`%>%
             aes(x=Inc_Effect, y = Inc_Cost),color = "black")  +
   theme_Publication(base_size=14)  +   
   scale_shape_manual(name = "Scenarios",
-                     labels = c("S1: Current practice of HCV testing", 
+                     labels = c("S1: Current HCV testing", 
                                 "S1: Point-of-care antibody testing", 
                                 "S1: Reflex RNA testing",
                                 "S1: Point-of-care RNA testing",
-                                "S2: Current practice of HCV testing", 
+                                "S2: Current HCV testing", 
                                 "S2: Point-of-care antibody testing", 
                                 "S2: Reflex RNA testing",
                                 "S2: Point-of-care RNA testing",
-                                "S3: Current practice of HCV testing", 
+                                "S3: Current HCV testing", 
                                 "S3: Point-of-care antibody testing", 
                                 "S3: Reflex RNA testing",
                                 "S3: Point-of-care RNA testing",
-                                "S4: Current practice of HCV testing", 
+                                "S4: Current HCV testing", 
                                 "S4: Point-of-care antibody testing", 
                                 "S4: Reflex RNA testing",
                                 "S4: Point-of-care RNA testing"),
@@ -205,19 +189,19 @@ x <- icer_hcv$`Entire population of MSM`%>%
                               15,19,17,18,
                               15,19,17,18)) + 
   scale_colour_manual(name = "Scenarios",
-                      labels = c("S1: Current practice of HCV testing", 
+                      labels = c("S1: Current HCV testing", 
                                  "S1: Point-of-care antibody testing", 
                                  "S1: Reflex RNA testing",
                                  "S1: Point-of-care RNA testing",
-                                 "S2: Current practice of HCV testing", 
+                                 "S2: Current HCV testing", 
                                  "S2: Point-of-care antibody testing", 
                                  "S2: Reflex RNA testing",
                                  "S2: Point-of-care RNA testing",
-                                 "S3: Current practice of HCV testing", 
+                                 "S3: Current HCV testing", 
                                  "S3: Point-of-care antibody testing", 
                                  "S3: Reflex RNA testing",
                                  "S3: Point-of-care RNA testing",
-                                 "S4: Current practice of HCV testing", 
+                                 "S4: Current HCV testing", 
                                  "S4: Point-of-care antibody testing", 
                                  "S4: Reflex RNA testing",
                                  "S4: Point-of-care RNA testing"),
@@ -239,53 +223,64 @@ g_legend <- function(a.gplot){
   legend
 } 
 xl <- g_legend(x)
-
-
-# main plot: excluding S4 and explorating the frontier line. 
-x_main <- icer_hcv$`Entire population of MSM`%>%
-  filter(`Testing strategy` != "Point-of-care RNA testing")
-# get the base case 
-x_main[x_main$Inc_Cost==0, "Status"] <- "ND"  
-x_main[x_main$Strategy=="S1_Point-of-care antibody testing", "ICER"] <-  
-  x_main[x_main$Strategy=="S1_Point-of-care antibody testing", "Inc_Cost"]/
-  x_main[x_main$Strategy=="S1_Point-of-care antibody testing", "Inc_Effect"]
-
-exp_intercept <- c(5864953.8 - 4467034.4)/c(7615.584-7355.095)
-# adding the explorated dot (invisible) 
-x_main_exp <- x_main[x_main$Inc_Cost==0,]
-# manuualy calculation exploration 
-
-endp <- exp_intercept* (8000 - 7615.584) + 5864953.8 
+exp_intercept <- c(126269996 - 1730959)/c(10333.847-8307.373)
+endp <- exp_intercept* (6000000- 1730959) + 5864953.8 
 x_main_exp$Inc_Cost <- endp
-x_main_exp$Inc_Effect <- 8000
+x_main_exp$Inc_Effect <- 11000
+x_main <- icer_hcv$`Entire population of MSM`%>%filter(!`Testing strategy` %in% c("Point-of-care RNA testing"))
 
-
+x_main <- x_main%>%mutate(ICER = paste("$", round(ICER, digits = 1), "/QALYs"))
+x_main[1, "ICER"] <- "Dominant"
 x_mainp <- ggplot(data = x_main, 
          aes(x = Inc_Effect, 
              y = Inc_Cost )) + 
   geom_point(aes(color = `HIV prevention and care scenarios`, shape = `Testing strategy`), size = 2) + 
-  geom_line(data = icer_hcv$`Entire population of MSM`%>%filter(Status == "ND" ),
-            aes(x=Inc_Effect, y = Inc_Cost),color = "black")  +
-  geom_segment(x = 7615.584, y = 5864953.8, xend = 8000, yend = endp, 
-               linetype = 2) + 
+  geom_line(data =x_main%>%filter(Status == "ND" ),
+            aes(x=Inc_Effect, y = Inc_Cost),color = "black") + 
   geom_label_repel(data = x_main%>%filter(Status == "ND" & Inc_Cost!= 0),
-                   aes(label=paste0 ("$",round(ICER, digits = 1),"/QALYs")), 
+                   aes(label= ICER), 
                    angle = 45, face = "bold", segment.size=0.5, vjust = 0.5, 
                    position = position_dodge(0.5))+
   theme_Publication(base_size=14) + 
-  scale_x_continuous(limits = c(-1000,  9000), 
-                     breaks = seq(-1000, 8000, 1000)) + 
-  scale_y_continuous(limits = c(-2000000, 10000000), 
-                     breaks = seq(-2000000, 8000000, 1000000),
-                     labels = seq(-2000000, 8000000, 1000000)/1000000) + 
+  scale_x_continuous(limits = c(0,  10000), 
+                     breaks = seq(0, 10000, 1000)) + 
+  scale_y_continuous(limits = c(-10000000, 10000000), 
+                     breaks = seq(-10000000, 10000000, 5000000),
+                     labels = seq(-10000000, 10000000, 5000000)/1000000) + 
   scale_shape_manual(values=c(15,19,17,18)) + 
   scale_colour_manual(values=c("#440154FF","#31688EFF", 
                                "#35B779FF","#FDE725FF")) + 
   theme(legend.position = "") + 
   theme(axis.text.x = element_text(angle = 360, hjust = 0.5)) + 
-  labs(x = "Incremental QALYs", y = "Incremental Cost (millions)")
+  labs(x = "Incremental QALYs", y = "Incremental Cost (millions)") 
   
+x_POCRNA <- ggplot(data = icer_hcv$`Entire population of MSM`%>%
+                     filter(`Testing strategy` == "Point-of-care RNA testing"), 
+                   aes(x = Inc_Effect, 
+                       y = Inc_Cost )) + 
+  geom_point(aes(color = `HIV prevention and care scenarios`, shape = `Testing strategy`), size = 5) + 
+  geom_line(data = icer_hcv$`Entire population of MSM`%>%filter(Status == "ND" ),
+            aes(x=Inc_Effect, y = Inc_Cost),color = "black") +   
+  theme_Publication(base_size=14) + 
+  scale_x_continuous(limits = c(4000,  11000), 
+                     breaks = seq(4000, 11000, 1000)) + 
+  scale_y_continuous(limits = c(5000000, 160000000), 
+                     breaks = seq(5000000, 160000000, 20000000),
+                     labels = seq(5000000, 160000000, 20000000)/1000000) + 
+  scale_shape_manual(values=c(18)) + 
+  scale_colour_manual(values=c("#440154FF","#31688EFF", 
+                               "#35B779FF","#FDE725FF")) + 
+  theme(legend.position = "") + 
+  theme(axis.text.x = element_text(angle = 360, hjust = 0.5)) + 
+  labs(x = "Incremental QALYs", y = "") + 
+  geom_segment(x = 9000, y = 44297061, xend = 10333.847, yend = 126269996, 
+               linetype = 2)
 
+
+x_POCRNA 
+ggsave(path = outputfig, file="frontierplot_POCRNA.png", x_POCRNA , 
+       height = 3
+       , width = 6, dpi = 300)
 # combine main plot and legend
 lay <- lay <- rbind(c(1,1,1,1,1,1,1,1),
                     c(1,1,1,1,1,1,1,1),
@@ -294,50 +289,18 @@ lay <- lay <- rbind(c(1,1,1,1,1,1,1,1),
                     c(2,2,2,2,2,2,2,2)) 
 frontierplot_main <- grid.arrange(grobs = list(x_mainp, xl), layout_matrix = lay) 
 
+POC_RNA_plot <-readPNG(paste0(outputfig, "/frontierplot_POCRNA.png"))
 
-frontierplot_main <- frontierplot_main + annotate(geom = "figure",
-                                                x = 9,
-                                                y = 3)
+frontierplot_main
 
 ggsave(path = outputfig, file="frontierplot_main.png", frontierplot_main, 
        height = 5, width = 11, dpi = 800)
 
 
-x_POCRNA <- ggplot(data = icer_hcv$`Entire population of MSM`%>%
-                     filter(`Testing strategy` == "Point-of-care RNA testing"), 
-                  aes(x = Inc_Effect, 
-                      y = Inc_Cost )) + 
-  geom_point(aes(color = `HIV prevention and care scenarios`, shape = `Testing strategy`), size = 5) + 
-  geom_line(data = icer_hcv$`Entire population of MSM`%>%filter(Status == "ND" ),
-            aes(x=Inc_Effect, y = Inc_Cost),color = "black") +   
-  theme_Publication(base_size=14) + 
-  scale_x_continuous(limits = c(3000,  10000), 
-                     breaks = seq(3000, 10000, 1000)) + 
-  scale_y_continuous(limits = c(80000000, 140000000), 
-                     breaks = seq(80000000, 140000000, 10000000),
-                     labels = seq(80000000, 140000000, 10000000)/1000000) + 
-  scale_shape_manual(values=c(18)) + 
-  scale_colour_manual(values=c("#440154FF","#31688EFF", 
-                               "#35B779FF","#FDE725FF")) + 
-  theme(legend.position = "") + 
-  theme(axis.text.x = element_text(angle = 360, hjust = 0.5)) + 
-  labs(x = "Incremental QALYs", y = "")
 
-x_POCRNA 
-ggsave(path = outputfig, file="frontierplot_POCRNA.png", x_POCRNA , 
-       height = 3
-         , width = 6, dpi = 300)
 
 
 ggsave(path = outputfig, file="frontierplot.png", x, height = 6, width = 15, 
        dpi = 800)
 
-a <- plot(icer_hcv$`Entire population of MSM`, currency = "USD", 
-          effect_units = "quality-adjusted life-years"#, label="all"
-          ) + 
-  theme_Publication(base_size=20) + 
-  
-  theme(axis.text.x = element_text(angle = 360, hjust = 0.5),
-        text = element_text(size = 28))
 
-ggsave(path = outputfig, file="frontierplot.png", a, height = 6, width = 9, dpi = 800)

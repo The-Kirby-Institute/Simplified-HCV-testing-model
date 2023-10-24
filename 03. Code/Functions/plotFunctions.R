@@ -56,6 +56,61 @@ EndyearIndex <- function(n, timestep) {
   
   seq(1, n, 1 / timestep) + round(1 /timestep)-1
 } 
+
+
+SumYear <- function(vector, timestep) {
+  # This function is used to sum every 1/timestep values of a vector. 
+  # Primarily used to calculate annual indicators
+  # 
+  # Args:
+  #   vector: vector to sum
+  #   timestep: modelling timestep used
+  # Returns:
+  #   Vector of sums
+  # 
+  #-----------------------------------------------------------------------
+  
+  return(unname(tapply(vector, (seq_along(vector)-1) %/% (1/timestep),
+                       sum)))
+}
+
+yearDf <- function(df, sumVar, years, npops, timestep, 
+                   midVar = NULL, divideVar = NULL) {
+  # This function applys sumYear and midyear Index to a data frame of 
+  # modelling results. Primarily used to produce a data frame with annual 
+  # indicators rather than for each time step. 
+  # 
+  # Args:
+  #   df:
+  #   sumVar: String naming variable to calculate yearly sums
+  #   years: Vector of years simulated
+  #   npops: Number of populations in the dataframe
+  #   timestep: Simulation timestep
+  #   midVar: String naming variable to extract mid year estimates from.
+  #   Default is NULL as it is optional.
+  #   divideVar: String naming variable given by sumVar / midVar. Default
+  #     is NULL as it is optional. Requires midVar to be non-Null
+  # Returns:
+  #   Dataframe with annual/yearly estimates
+  # 
+  # ----------------------------------------------------------------------
+  
+  yearFrame <- df[seq(1, nrow(df), 1 / timestep), ]
+  yearFrame[, sumVar] <- SumYear(as.matrix(df[, sumVar]), timestep)
+  yearFrame$year <- rep(head(years, -1), npops)
+  
+  if (!is.null(midVar)) {
+    yearFrame[, midVar] <- df[MidyearIndex(nrow(df), timestep), midVar]
+  }
+  
+  if (!is.null(divideVar)) {
+    yearFrame[, divideVar] <- yearFrame[, sumVar] / 
+      yearFrame[, midVar]
+  }
+  return(yearFrame)
+}
+
+
 # Organize results -------------------------------------------------------
 
 FactorPop <- function(df, factorLabels) {
@@ -139,30 +194,37 @@ popResults_MidYear <- function(pg, Best, Population = NULL,
                       each=pg$ncomponent*pg$npops),
            cascade = sub("^[^_]*_", "", Var2), 
            disease_prog = sub("\\_.*", "", Var2))%>%
-    dplyr::select(-Var3)
+    dplyr::select(-Var3)%>%ungroup()
+
+  allpop <- allpop%>%
+    filter(time!= 1)%>%
+    mutate(time = c(rep(seq(pg$startYear, endYear- 2*pg$timestep,
+                            pg$timestep),each = pg$npops*pg$ncomponent)))
   
   names(allpop) <- c("population", "state", "Frequency","timestep", "cascade",
                      "disease_prog")
-  
+
   ## MidyearIndex
   timelong <- seq(pg$startYear, endYear, pg$timestep) 
   if (is.null(YearCut)) {
     MidY <-c(timelong[MidyearIndex(length(timelong),pg$timestep)]) 
+    MidY <- c(na.omit(MidY))
     allpop <- allpop%>%filter(timestep%in% MidY)%>%
       mutate(year = rep(seq(pg$startYear, (endYear-1),1), 
                     each = pg$npops*pg$ncomponent))
   
   } else if (YearCut =="Start") { 
-    
     MidY <-c(timelong[StryearIndex(length(timelong),pg$timestep)]) 
+    MidY <- c(na.omit(MidY))
     allpop <- allpop%>%filter(timestep%in% MidY)%>%
       mutate(year = rep(seq(pg$startYear, (endYear-1),1), 
                         each = pg$npops*pg$ncomponent))
     
   } else {  
     MidY <-c(timelong[EndyearIndex(length(timelong),pg$timestep)]) 
-    allpop <- allpop%>%filter(timestep%in% c(MidY, (endYear - pg$timestep)))%>%
-      mutate(year = rep(seq(pg$startYear, (endYear -1),1), 
+    MidY <- c(na.omit(MidY))
+    allpop <- allpop%>%filter(timestep%in% MidY)%>%
+      mutate(year = rep(seq(pg$startYear, (endYear -2),1), 
                         each = pg$npops*pg$ncomponent))
       
     
@@ -190,8 +252,12 @@ popResults_MidYear <- function(pg, Best, Population = NULL,
                           each=pg$ncomponent*pg$npops),
                cascade = sub("^[^_]*_", "", Var2), 
                disease_prog = sub("\\_.*", "", Var2))%>%
-        dplyr::select(-Var3)
+        dplyr::select(-Var3)%>%
+        filter(time!= 1)
         
+      param_pop[[set]] <- param_pop[[set]]%>%
+        mutate(time = rep(seq(1.0,(endYear - 2*pg$timestep), pg$timestep), 
+                          each=pg$ncomponent*pg$npops))
       
       names(param_pop[[set]]) <- c("population", "state", "Frequency",
                                    "timestep", "cascade","disease_prog")
@@ -213,8 +279,8 @@ popResults_MidYear <- function(pg, Best, Population = NULL,
       } else {  
         MidY <-c(timelong[EndyearIndex(length(timelong),pg$timestep)]) 
         param_pop[[set]] <- param_pop[[set]]%>%
-          filter(timestep%in%c(MidY, (endYear - pg$timestep)))%>%
-          mutate(year = rep(seq(pg$startYear, (endYear -1),1), 
+          filter(timestep%in%MidY)%>%
+          mutate(year = rep(seq(pg$startYear, (endYear -2),1), 
                             each = pg$npops*pg$ncomponent))
         
         
@@ -229,8 +295,6 @@ popResults_MidYear <- function(pg, Best, Population = NULL,
   # Extract the subresults we want
   if (is.null(Disease_prog) && is.null(Cascade) && is.null(Population)){
     popSizes <- popSizes%>%
-      mutate(year = rep(seq(pg$startYear, (endYear-1),1), 
-                        each = pg$npops*pg$ncomponent))%>%
       gather("simulation", "popsize", best:ncol(popSizes))%>%
       group_by(year, simulation) %>%
       summarise(best = sum(popsize))%>%
@@ -238,8 +302,6 @@ popResults_MidYear <- function(pg, Best, Population = NULL,
   
     }else if (is.null(Disease_prog) && is.null(Cascade) && !is.null(Population)){ 
     popSizes <- popSizes%>%
-      mutate(year = rep(seq(pg$startYear, (endYear-1),1), 
-                        each = pg$npops*pg$ncomponent))%>%
       gather("simulation", "popsize", 
                                   best:ncol(popSizes))%>%
       group_by(year, simulation, population)%>%
@@ -248,8 +310,6 @@ popResults_MidYear <- function(pg, Best, Population = NULL,
       spread(simulation, best)%>%arrange(year, population)  
   }else if (is.null(Disease_prog) && !is.null(Cascade) && is.null(Population)) {
     popSizes <- popSizes%>%
-      mutate(year = rep(seq(pg$startYear, (endYear-1),1), 
-                        each = pg$npops*pg$ncomponent))%>%
       gather("simulation", "popsize", 
                                   best:ncol(popSizes))%>%
       group_by(year, simulation, cascade)%>%
@@ -259,8 +319,6 @@ popResults_MidYear <- function(pg, Best, Population = NULL,
   
     }else if (!is.null(Disease_prog) && is.null(Cascade) && is.null(Population)) {
     popSizes <- popSizes%>%
-      mutate(year = rep(seq(pg$startYear, (endYear-1),1), 
-                        each = pg$npops*pg$ncomponent))%>%
       gather("simulation", "popsize",best:ncol(popSizes))%>%
       group_by(year, simulation, disease_prog)%>%
       filter(disease_prog%in%Disease_prog)%>%
@@ -268,8 +326,6 @@ popResults_MidYear <- function(pg, Best, Population = NULL,
       spread(simulation, best)%>%arrange(year, disease_prog) 
   }else if (!is.null(Disease_prog) && !is.null(Cascade) && is.null(Population)) {
     popSizes <- popSizes%>%
-      mutate(year = rep(seq(pg$startYear, (endYear-1),1), 
-                        each = pg$npops*pg$ncomponent))%>%
       gather("simulation", "popsize", 
                                   best:ncol(popSizes))%>%
       group_by(year, simulation, state)%>%
@@ -277,18 +333,14 @@ popResults_MidYear <- function(pg, Best, Population = NULL,
       summarise(best = sum(popsize))%>%
       spread(simulation, best)%>%arrange(year, state)  
   }else if (!is.null(Disease_prog) && is.null(Cascade) && !is.null(Population)) {
-    popSizes <- popSizes%>%mutate(year = rep(seq(pg$startYear, (endYear-1),1), 
-                                             each = pg$npops*pg$ncomponent))%>%
-      gather("simulation", "popsize", 
+    popSizes <- popSizes%>%gather("simulation", "popsize", 
                               best:ncol(popSizes))%>%
       group_by(year, simulation, disease_prog, population)%>%
       filter(disease_prog%in%Disease_prog & population %in% Population)%>%
       summarise(best=sum(popsize))%>%spread(simulation, best)%>%
       arrange(year, population, disease_prog)  
   }else if (is.null(Disease_prog) && !is.null(Cascade) && !is.null(Population)) {
-    popSizes <- popSizes%>%mutate(year = rep(seq(pg$startYear, (endYear-1),1), 
-                                             each = pg$npops*pg$ncomponent))%>%
-      gather("simulation", "popsize", 
+    popSizes <- popSizes%>%gather("simulation", "popsize", 
                                   best:ncol(popSizes))%>%
       group_by(year, simulation, cascade, population)%>%
       filter(cascade %in% Cascade && population %in% Population)%>%
@@ -516,56 +568,46 @@ popResults_range <- function(pg, data, Population = NULL,
       mutate(x, 
              timestep = c(rep(seq(pg$startYear,
                                   endYear - pg$timestep,pg$timestep), 
-                              each = pg$npops)))%>%dplyr::select(-Var2)}) 
+                              each = pg$npops)))%>%dplyr::select(-Var2)
+      
+      }) 
     
     names(result_list[[indicator]]) <- c("population", "total_pop", "timestep") 
     
     
     # update the number of first timepoint as the average number in the year
     
-    impute<- result_list[[indicator]]%>%filter(timestep >1 &timestep <2)%>%
-      group_by(population)%>%
-      mutate(total_pop = sum(total_pop)/length(total_pop))%>%
-      dplyr::select(total_pop)%>%ungroup()
-    impute <- impute[c(1:pg$npops),]
-    
-    result_list[[indicator]][c(1:pg$npops), "total_pop"] <- impute$total_pop 
+    result_list[[indicator]] <- result_list[[indicator]]%>%filter(timestep != 1)
     
     
     # ready for appending parameter set 
     indicatorEstimate <- result_list[[indicator]]%>%
-      relocate(.,population, timestep, total_pop)
+      relocate(.,population, timestep, total_pop)%>%
+      arrange(population, timestep)%>%
+      dplyr::mutate(year = c(rep(c(rep(seq(1, endYear -2, 1), 
+                                       each = (1/pg$timestep)),
+                                   rep(endYear -1, 
+                                       each = (1/pg$timestep - 1))), pg$npops))
+      )
     
     
     if (length(populations) == 1 && populations == "all") {
-      indicatorEstimate <- indicatorEstimate%>%
-        arrange(population, timestep)%>%
-        dplyr::mutate(year = rep(rep(seq(1, endYear-pg$timestep), 
-                                     each=1/pg$timestep),pg$npops))%>%
+      indicatorEstimatex <- indicatorEstimate%>%
         group_by(year)%>%summarise(best = sum(total_pop))%>%ungroup()
     } else if (is.null(populations)){
-      indicatorEstimate<- indicatorEstimate%>%
-        arrange(population, timestep)%>%
-        dplyr::mutate(year = rep(rep(seq(1, endYear-pg$timestep), 
-                                     each=1/pg$timestep),pg$npops))%>%
+      indicatorEstimatex <- indicatorEstimate%>%
         group_by(year, population)%>%
         summarise(best = sum(total_pop))%>%ungroup()
     } else if (length(populations) > 1) {
-      indicatorEstimate <- indicatorEstimate%>%
+      indicatorEstimatex <- indicatorEstimate%>%
         dplyr::filter(population %in% populations)%>%
-        arrange(population, timestep)%>%
-        dplyr::mutate(year = rep(rep(seq(1, endYear-pg$timestep), 
-                                     each=1/pg$timestep),length(populations)))%>%
         group_by(year, population)%>%
         summarise(best = sum(total_pop))%>%ungroup()
       
       
     } else{ 
-      indicatorEstimate <- indicatorEstimate%>%
+      indicatorEstimatex <- indicatorEstimate%>%
         dplyr::filter(population %in% populations)%>%
-        arrange(population, timestep)%>%
-        dplyr::mutate(year = rep(rep(seq(1, endYear-pg$timestep), 
-                                     each=1/pg$timestep),1))%>%
         group_by(year)%>%
         summarise(best = sum(total_pop))%>%ungroup()
       
@@ -573,7 +615,7 @@ popResults_range <- function(pg, data, Population = NULL,
     
     
     
-    return(indicatorEstimate)
+    return(indicatorEstimatex)
     
     
   }

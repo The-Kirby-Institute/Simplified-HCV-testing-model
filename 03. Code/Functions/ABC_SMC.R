@@ -1,11 +1,10 @@
 # pre ABC SMC 
 calc_distance <- function(model_dt, calib_dt){
-  sre1 <- lapply(unique(calib_dt[["N"]]$indicators),
-                 function(x)sqrt(sum((model_dt[["N"]][[x]]$best - 
-                                        calib_dt[["N"]]%>%
-                                        filter(indicators == x)%>%
-                                        dplyr::select(realPop))^2)))
-  sre1 <- sum(unlist(sre1))
+  sre1 <- sqrt(sum(
+    (c(as.numeric(unlist((model_dt[["N"]])))) - 
+                       c(as.numeric(unlist(calib_dt[["N"]][ ,3]))))^2))
+    
+
   
   sre2 <- sqrt(sum((c(unlist(model_dt[["frac"]])) - 
                       calib_dt[["frac"]]$realPop)^2))

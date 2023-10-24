@@ -26,7 +26,7 @@ check_steady <-function(model_result, endY,timestep, Ncomp, Tequilibrium){
     geom_line(aes(colour = state)) + 
     xlab("Year") + ylab("number") +labs(tag = "") + 
     scale_x_continuous(expand = c(0,0), limits = c(0, Tequilibrium), 
-                       breaks = seq(0, Tequilibrium, Tequilibrium/50))  + 
+                       breaks = seq(0, Tequilibrium, 250))  + 
     facet_wrap(.~Var1, ncol=2, scales = "free") + 
     plotOpts 
   

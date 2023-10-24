@@ -376,7 +376,7 @@ x <- dt_tab_char %>%
 x%>%gt(groupname_col = "scenario",
      rowname_col = "testing")%>%
   tab_spanner_delim(delim = "X")%>%
-  gtsave(., file = file.path(outputfig, paste0("mainRes_0913.docx")))
+  gtsave(., file = file.path(outputfig, paste0("mainRes_1013.docx")))
 
 
 #### Incremental table  #### 
@@ -850,7 +850,7 @@ dt_incre%>%gt(groupname_col = "scenario",
    cols_hide(columns = c(`MedXMSM who are HIV diagnosed (and on treatment)`, 
                          `MedXEntire population of MSM`, 
                          `MedXHIV-negative MSM on PrEP`))%>%
-  gtsave(., file = file.path(outputfig, paste0("mainRes_incre_0913.docx"))) 
+  gtsave(., file = file.path(outputfig, paste0("mainRes_incre_1013.docx"))) 
 
 
 #### 2023/09/13 #### 
@@ -908,7 +908,7 @@ xxxt%>%gt(groupname_col = "scenario",
       rows = c(as.numeric(`MedXEntire population of MSM`) > 1*TW_GDP2022
       )))%>%
   cols_hide(columns = c(`MedXEntire population of MSM`))%>%
-  gtsave(., file = file.path(outputfig, paste0("mainRes_Tab_0913.docx")))
+  gtsave(., file = file.path(outputfig, paste0("mainRes_Tab_1013.docx")))
 
 # subpops in supplementary 
 # main table in main text 
@@ -965,7 +965,7 @@ xxxt%>%gt(groupname_col = "scenario",
       rows = c(as.numeric(`MedXMSM who are HIV diagnosed (and on treatment)`) > 1*TW_GDP2022
       )))%>%
   cols_hide(columns = c(`MedXMSM who are HIV diagnosed (and on treatment)`))%>%
-  gtsave(., file = file.path(outputfig, paste0("suppleRes_Tab_HIVMSM_0913.docx")))
+  gtsave(., file = file.path(outputfig, paste0("suppleRes_Tab_HIVMSM_1013.docx")))
 
 # MSM on PrEP
 x_total <- x%>%select(scenario, testing, 
@@ -1019,7 +1019,7 @@ xxxt%>%gt(groupname_col = "scenario",
       rows = c(as.numeric(`MedXHIV-negative MSM on PrEP`) > 1*TW_GDP2022
       )))%>%
   cols_hide(columns = c(`MedXHIV-negative MSM on PrEP`))%>%
-  gtsave(., file = file.path(outputfig, paste0("suppleRes_Tab_PrEPMSM_0913.docx")))
+  gtsave(., file = file.path(outputfig, paste0("suppleRes_Tab_PrEPMSM_1013.docx")))
 
 
 
@@ -1098,7 +1098,7 @@ xxxt <- merge(x_total,incre_wsq, by = c("testing", "scenario"), all = TRUE)%>%
 xxxt%>%gt(groupname_col = "scenario",
           rowname_col = "testing")%>%
   tab_spanner_delim(delim = "X")%>%
-  gtsave(., file = file.path(outputfig, paste0("suppleRes_Tab_infAvrMSMPrEP_0913.docx")))
+  gtsave(., file = file.path(outputfig, paste0("suppleRes_Tab_infAvrMSMPrEP_1013.docx")))
 
 # MSM on HIV treatment
 x_total <- x%>%select(scenario, testing, 
@@ -1134,7 +1134,7 @@ xxxt <- merge(x_total,incre_wsq, by = c("testing", "scenario"), all = TRUE)%>%
 xxxt%>%gt(groupname_col = "scenario",
           rowname_col = "testing")%>%
   tab_spanner_delim(delim = "X")%>%
-  gtsave(., file = file.path(outputfig, paste0("suppleRes_Tab_infAvrMSMHIV_0913.docx")))
+  gtsave(., file = file.path(outputfig, paste0("suppleRes_Tab_infAvrMSMHIV_1013.docx")))
 
 
 ##### Cost categories ##### 
@@ -1423,11 +1423,11 @@ xt_numSum <- xt_num%>%group_by(year,population, testing,scenario)%>%
 ttt <- xt_num%>%
   filter(Casca == "HCV diagnosis" & population == "Entire population of MSM")%>%
   arrange(Med)
-tttt$`HCV treatment`
+
 tttt <- rbind(xt_num, xt_numSum)%>%
   arrange(year, population, testing, scenario)%>%
   pivot_wider(names_from = Casca, values_from = Med)%>%
-  select(!c(`HCV treatment`, `HCV management and follow up`))
+  select(!c(`HCV treatment`, `HCV management`))
 
 tttt_diag <- tttt%>%select(!Total)
 tttt_diag <- tttt_diag%>%na.omit()
@@ -1670,18 +1670,99 @@ for(i in seq_along(test_all)){
       mutate(testing = factor(testing, labels =  c(
                                                    "Point-of-care antibody testing",
                                                    "Reflex RNA testing",
-                                                   "Point-of-care RNA testing")))%>%
-      group_split(population)
+                                                   "Point-of-care RNA testing")))
       
-    names(dt_psa[[i]]) <- unique(test_wide[[i]]$population)
 } 
+
+dt_psa
+
+#
+te <- dplyr::bind_rows(dt_psa, .id = "scenario")%>%
+  mutate(scenario = factor(scenario, 
+                           levels = c(1, 2, 3, 4),
+                           labels = c("S1", 
+                                      "S2",
+                                      "S3",
+                                      "S4")))
 xt <- list()
+
+xt <- lapply(unique(te$population),function(x){
+  
+  ggplot(te%>%filter(population == x), 
+                  aes(y = `Incremental Cost`, x = `QALY gained`, colour = testing)) +
+  geom_point() + 
+  facet_grid(testing~ scenario, 
+             labeller = label_wrap_gen(width = 25, multi_line = TRUE)) +
+  scale_color_viridis(discrete = TRUE, option =  "D") +
+  geom_hline(yintercept=0, color = "black", linewidth = 1) +
+  geom_vline(xintercept=0, color = "black", linewidth = 1)  +
+  labs(colour = "Testing",  x = "Incremental QALY gained", 
+       y = "Incremental cost (Million in US$)") + 
+  theme_bw() +
+  scale_x_continuous(limits = c(-9000, 9000),
+                     breaks = seq(-9000, 9000, 3000))  + 
+  scale_y_continuous(limits = c(-100000000,250000000),
+                     breaks = seq(-100000000,250000000, 50000000),
+                     labels = seq(-100000000,250000000, 50000000)/1000000) +
+  theme(plot.title = element_text(hjust = 0.5)) +  
+  theme(panel.background = element_rect(colour = "white"),
+        plot.background = element_rect(colour = "white"),
+        panel.border     = element_rect(fill = NA, colour = "black", 
+                                        size = NA),
+        plot.title = element_text(face = "bold",
+                                  size = 12, hjust = 0.5),
+        text = element_text(),
+        axis.title = element_text(face = "bold",size = 12),
+        axis.title.y = element_text(angle=90,vjust =1),
+        axis.title.x = element_text(vjust = -0.2),
+        axis.text.x = element_text(angle = 45, vjust = 1,hjust = 1,
+                                   face = "bold",size = 12, colour = "black"), 
+        axis.text.y = element_text(
+          face = "bold",size = 14,colour = "black"),
+        strip.text.x = element_text(size=14, color="black",
+                                    face="bold"),
+        legend.text = element_text(size = 14, face = "bold"),
+        legend.key = element_rect(colour = NA),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.title = element_text(face="bold", size= 14),
+        plot.margin = unit(c(10,5,5,5),"mm")) + 
+  guides(color =guide_legend(direction='horizontal',
+                             override.aes = list(size=2)),
+         fill = "none") +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        panel.border = element_rect(colour = "black", fill = NA, size = 1)) +
+  geom_abline(aes(slope = 32811, intercept = 0,linetype = "1GDP"), colour = "black") + 
+  scale_linetype_manual(name = "Threshold", values = c(2), 
+                        guide = guide_legend(override.aes = list(color = c("black")))) +
+  stat_ellipse(color = "white", 
+               alpha = 0.7,
+               linewidth = 0.6,
+               show.legend = FALSE, 
+               level = 0.95)
+
+  })
+xt[[1]]
+lapply(seq_along(xt), function(x) {
+  a <- ggsave(path = outputfig, file=paste0("PSA_",unique(te$population)[x], ".pdf"), 
+       xt[[x]], width = 14, 
+       height = 12, dpi = 300)
+  })
+
+
+te$`Incremental Cost`
+
+
 
 for(i in seq_along(dt_psa)){ 
   xt[[i]] <- ggplot(dt_psa[[i]][[3]], 
-               aes(y = `Incremental Cost`, x = `QALY gained`)) +
-    geom_point(aes(colour = testing), size = 0.8) + 
+               aes(y = `Incremental Cost`, x = `QALY gained`, alpha = testing)) +
+    geom_point() + 
+    facet_wrap(.~ testing) + 
     scale_color_viridis(discrete = TRUE, option =  "D") +
+    scale_alpha_discrete(range = c(0.05, 0.05, 1)) + 
     geom_hline(yintercept=0, color = "black", linewidth = 1) +
     geom_vline(xintercept=0, color = "black", linewidth = 1) +
     stat_ellipse(aes(colour = testing), 
