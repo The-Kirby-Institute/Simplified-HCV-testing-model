@@ -46,39 +46,88 @@ source(file.path(Rcode, "/Functions/HCV_model.R"))
 source(file.path(Rcode, "/Functions/plotFunctions.R")) 
 source(file.path(Rcode, "/Functions/check_steady.R"))
 
+pop_transitions <- read.csv(file.path(DataFolder, "population_transitions.csv"), 
+                            header = TRUE)
+
+pop_transitions <- pop_transitions[ , -1] # drop the row number
+
+# get first row only 
+pop_transitions <- pop_transitions[1,]
+
+xx <- array(unlist(pop_transitions), c(POC_AU$npops, POC_AU$npops, 1))
+
+xx_array <- aperm(xx, c(2, 1, 3))
+
+colnames(xx_array) <- POC_AU$popNames
+
+rownames(xx_array) <- POC_AU$popNames
+
+xx_array["C_PWID","C_fPWID", 1] <- 0.065
+xx_array["C_PWID","P_PWID", 1] <- 0.11
+xx_array["C_fPWID","C_PWID", 1] <- 0.0015
+xx_array["C_fPWID","P_fPWID", 1] <- 0.021
+xx_array["P_PWID","C_PWID", 1] <- 0.85
+xx_array["P_PWID","P_fPWID", 1] <- 0.5
+xx_array["P_fPWID","C_fPWID", 1] <- 0.82
+xx_array["P_fPWID","P_PWID", 1] <- 0.08
+
+
 
 # extend to same length 
+pop_array  <- array(matrix(xx_array[ , ,1]), 
+                    c(POC_AU$npops, POC_AU$npops,POC_AU$npts))
 
-#### finding steady stage ####
+
+best_estimates$beta1 <- 0.35
+best_estimates$beta2 <- 0.1
+best_estimates$beta3 <- 0.62
+best_estimates$beta4 <- 0.13
+best_estimates$beta5 <- 0.04
+
+best_estimates$HCVP1 <- 0.48
+best_estimates$HCVP2 <- 0.3
+best_estimates$HCVP3 <- 0.7
+best_estimates$HCVP4 <- 0.32
+best_estimates$HCVP5 <- 0.005
+
+# the current best-estimated 
+
+#save(best_estimates,pop_array, 
+#     file = file.path(OutputFolder , paste0(project_name,"temp_best" ,".rda")))
+
 
 tic <- proc.time()
 
 steady <- HCVMSM(POC_AU, best_estimates, best_initial_pop,
-                 disease_progress, pop_array, dfList, fib,
+                 disease_progress, pop_array,
+                 dfList, fib, end_Y = 1000,
                  modelrun = "steady", proj = "POC_AU")
 
 toc <- proc.time() - tic 
 
 toc
+
+
+
 #### extract infected proportion as the infected population allocation #### 
 # finding equilibrium
 
-check_steady(model_result = steady, endY = POC_AU$endYear,
+check_steady(model_result = steady, endY = 1000,
              timestep = POC_AU$timestep, 
              Ncomp = POC_AU$ncomponent*POC_AU$npops, 
-             Tequilibrium = 800)
+             Tequilibrium = 1000)
 
 
 #extract proportion of pops for initial condition 
 
 df_list <- lapply(steady, as.data.frame.table)
 
-allpop <- df_list$allPops%>%mutate(time = rep(seq(1,(POC_AU$endYear - POC_AU$timestep),POC_AU$timestep), 
+allpop <- df_list$allPops%>%mutate(time = rep(seq(1,(1000 - POC_AU$timestep),POC_AU$timestep), 
                                               each=POC_AU$ncomponent*POC_AU$npops),
                                    Frequency=Freq)
 
 popPro_extract <- df_list$allPops%>%
-  mutate(time = rep(seq(POC_AU$startYear, (POC_AU$endYear - POC_AU$timestep), POC_AU$timestep), 
+  mutate(time = rep(seq(POC_AU$startYear, (1000 - POC_AU$timestep), POC_AU$timestep), 
                     each=POC_AU$ncomponent * POC_AU$npops),
          Frequency=Freq)%>%
   filter(time == 500)%>%
@@ -90,7 +139,7 @@ popPro_extract <- df_list$allPops%>%
          value = ifelse(Frequency==0, 0, Frequency/total))%>%
   ungroup()%>%group_by(Var1)%>%mutate(pop_prop = ifelse(
     Frequency==0, 0, Frequency/sum(Frequency)))%>%
-  ungroup()%>%select(Var1,parameter, value, SI)
+  ungroup()%>%dplyr::select(Var1,parameter, value, SI)
 
 
 write.csv(popPro_extract, 
@@ -98,8 +147,7 @@ write.csv(popPro_extract,
 
 #### number of PWID/former PWID in each population ####
 
-estPops <- read.csv(file.path(DataFolder, "Estimate_initial_pop.csv"), 
-                   header = TRUE)%>%select(-"X")
+estPops <- popPro_extract
 
 
 init_pop <- filter(initialPops, parameter == "init_pop")$value
@@ -107,30 +155,28 @@ init_pop <- filter(initialPops, parameter == "init_pop")$value
 pop_prop <- initialPops%>%filter(parameter%in% c("pop_prop1", "pop_prop2", 
                                                  "pop_prop3", "pop_prop4", 
                                                  "pop_prop5"))%>%
-  select(value)%>%unlist()%>%as.vector()
+  dplyr::select(value)%>%unlist()%>%as.vector()
 
 popProp <- as.numeric(init_pop)*pop_prop 
 
 
 # prevalence at initial
-init_prop_I <- c(constantsDf$HCVP1[1], constantsDf$HCVP2[1], 
-                 constantsDf$HCVP3[1], constantsDf$HCVP4[1], constantsDf$HCVP5[1])
+#init_prop_S <- initialPops%>%filter(parameter%in% c("s1", "s2", "s3", "s4", "s5"))%>%
+#  select(value)%>%unlist()%>%as.vector()
+init_prop_I <- c(best_estimates$HCVP1[1], best_estimates$HCVP2[1], 
+                 best_estimates$HCVP3[1], best_estimates$HCVP4[1],
+                 best_estimates$HCVP5[1])
+init_prop_S <- c(1 - init_prop_I)
 
-init_prop_S <-c(1 - init_prop_I)
+
+best_estimates$HCVP1
 
 estPops <- estPops%>%mutate(
   pop_group = rep(c(popProp),dim(estPops)[1]/POC_AU$npops),
-  SIprop = case_when(Var1 == "C_PWID" & SI == "S" ~ init_prop_S[1],
-                     Var1 == "C_PWID" & SI == "I" ~ init_prop_I[1],
-                     Var1 == "C_fPWID" & SI == "S" ~ init_prop_S[2],
-                     Var1 == "C_fPWID" & SI == "I" ~ init_prop_I[2],
-                     Var1 == "P_PWID" & SI == "S" ~ init_prop_S[3],
-                     Var1 == "P_PWID" & SI == "I" ~ init_prop_I[3],
-                     Var1 == "P_fPWID" & SI == "S" ~ init_prop_S[4],
-                     Var1 == "P_fPWID" & SI == "I" ~ init_prop_I[4], 
-                     Var1 == "P_nPWID" & SI == "S" ~ init_prop_S[5],
-                     Var1 == "P_nPWID" & SI == "I" ~ init_prop_I[5]
-                     ),
+  SIprop = ifelse(estPops$SI=="S", 
+                  rep(init_prop_S, POC_AU$diseaseprogress_n*POC_AU$npops),
+                  rep(init_prop_I, POC_AU$ncomponent*POC_AU$npops - 
+                        POC_AU$diseaseprogress_n*POC_AU$npops)),
   est_pop = value*pop_group*SIprop)
 
 best_est_pop <- as.matrix(as.data.frame(matrix(estPops$est_pop, 
@@ -139,16 +185,19 @@ best_est_pop <- as.matrix(as.data.frame(matrix(estPops$est_pop,
 
 colnames(best_est_pop) <- c(POC_AU$component_name)
 
-save(project_name,steady, best_est_pop, 
+save(POC_AU,steady, best_est_pop, best_estimates, pop_array,
      file = file.path(OutputFolder ,
                       paste0(project_name,"cali" ,".rda")))
 
 
 # calibration 
+
+
 tic <- proc.time()
-endY <- 36
+endY <- 100
 calibrateInit <- HCVMSM(POC_AU, best_estimates, best_est_pop,
-                       disease_progress,  pop_array, dfList, fib,
+                       disease_progress,pop_array,
+                       dfList, fib,
                        modelrun="UN", proj = "POC_AU", end_Y = endY)
 
 
@@ -157,10 +206,14 @@ toc
 
 
 
-
 save(calibrateInit, 
      file = file.path(OutputFolder ,
                       paste0(project_name,"cali_init" ,".rda")))
                                 
                                      
-                                        
+check_steady(model_result = calibrateInit, endY = 100,
+             timestep = POC_AU$timestep, 
+             Ncomp = POC_AU$ncomponent*POC_AU$npops, 
+             Tequilibrium = 100)
+
+

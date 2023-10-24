@@ -18,6 +18,7 @@ library("parallel")
 library("pacman")
 library("doMC")
 
+
 Rcode <- file.path(codefun_path, "03. Code")
 
 DataFolder <- file.path(data_path, "01. DATA/model input" )
@@ -25,7 +26,9 @@ OutputFolder <- file.path(data_path, "02. Output")
 
 load(file.path(OutputFolder, paste0(project_name, ".rda")))
 
-POC_AU$endYear
+# test the impact of timestep 
+POC_AU$timestep <- 1/12
+POC_AU$npts <- length(seq(1, POC_AU$endYear, by = POC_AU$timestep))
 
 POC_AU$dimName <- list(POC_AU$popNames, POC_AU$progress_name)
 
@@ -75,7 +78,7 @@ dfList <- lapply(files, function(f) {
                                   "/parameter_varied_stages/", f, sep = "")))
   df <- df[, -1]
   df <- df%>%as_tibble()
-  df <- as.matrix(df, nrow = npops, ncol = HCV$nprogress)
+  df <- as.matrix(df, nrow = npops, ncol = POC_AU$nprogress)
   df <- replicate(POC_AU$npts, df)
   
   rownames(df) <- POC_AU$popNames
@@ -170,7 +173,7 @@ constants <- as.data.frame(t(constants[, -1]))
 colnames(constants) <- parameters
 rownames(constants) <- NULL
 
-
+constants[is.na(constants)] <- 0
 constantsDf <- constants[rep(1, POC_AU$npts), ]
 
 best_estimates <- as.data.frame(matrix(0, ncol = ncol(constantsDf),
@@ -227,4 +230,7 @@ save(POC_AU,constants ,disease_progress, fib, dfList, pop_array,
      constantsDf, initialPops, best_estimates, best_initial_pop, param_constant, 
      file = file.path(OutputFolder,
                       paste0(project_name, ".rda")))
+
+
+
 

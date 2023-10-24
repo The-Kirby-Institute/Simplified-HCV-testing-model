@@ -83,13 +83,13 @@ tic <- proc.time()
 
 for(j in 1:maxrun){ 
   C_PWIDXC_fPWID <- runif(1,0, 0.1)
-  C_PWIDXP_PWID <- runif(1, 0, 0.3)
-  C_fPWIDXC_PWID <- runif(1, 0, 0.001)
-  C_fPWIDXP_fPWID <- runif(1, 0, 0.05)
+  C_PWIDXP_PWID <- runif(1, 0, 0.25)
+  C_fPWIDXC_PWID <- runif(1, 0, 0.005)
+  C_fPWIDXP_fPWID <- runif(1, 0, 0.07)
   P_PWIDXC_PWID <- runif(1, 0, 0.6)
-  P_PWIDXP_fPWID <- runif(1, 0.3, 0.8)
-  P_fPWIDXC_fPWID <- runif(1, 0, 0.6)
-  P_fPWIDXP_PWID <- runif(1, 0, 0.6)
+  P_PWIDXP_fPWID <- runif(1, 0.2, 0.8)
+  P_fPWIDXC_fPWID <- runif(1, 0, 0.8)
+  P_fPWIDXP_PWID <- runif(1, 0, 0.5)
   
   xx_array["C_PWID","C_fPWID", 1] <- C_PWIDXC_fPWID 
   xx_array["C_PWID","P_PWID", 1] <- C_PWIDXP_PWID 
@@ -194,7 +194,16 @@ for(j in 1:maxrun){
                               Cascade = NULL, param = NULL, 
                               endYear = endY)%>%ungroup()%>%
     dplyr::group_by(year, population)%>%summarise_at("best",sum)
+  subpop_N <- lapply(POC_AU$popNames, function(x){ 
+    
+    a <- popResults_MidYear(POC_AU, calibrateInit,
+                            Population = x,
+                            Disease_prog = NULL, 
+                            Cascade = NULL, param = NULL, 
+                            endYear = endY)%>%ungroup()
+  })
   
+  names(subpop_N) <- POC_AU$popNames
   commu_N <- popResults_MidYear(POC_AU, calibrateInit,
                                 Population = c("C_PWID", "C_fPWID"),
                                 Disease_prog = NULL, 
@@ -223,14 +232,94 @@ for(j in 1:maxrun){
   prison_profP <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
                         as_tibble(pop_N[pop_N$population =="P_fPWID",3] / prison_N[ ,-1])*100)%>%
     tibble::as_tibble()
-  output <- c(commu_proP[1,2], prison_proP[1,2], prison_profP[1,2])
+  
+  entry <- indicatorResult_uno(POC_AU, calibrateInit, "newEntry",
+                               populations = POC_AU$popNames, endYear= endY) %>%
+    mutate(year = year + POC_AU$cabY - 1)
+  
+  ##### annual number of incarceration/release/injection relapse/ stopping injection ##### 
+  PopTransition <- as.data.frame.table(calibrateInit$newpop_tran)%>%
+    mutate(timestep = c(rep(seq(POC_AU$startYear, endY-POC_AU$timestep,
+                                POC_AU$timestep),each = POC_AU$npops*POC_AU$npops)),
+           from = Var1,
+           To = Var2)%>%select(-c(Var1, Var2, Var3))%>%ungroup()
+  # giving the average number to first time step 
+  impute <- PopTransition%>%filter(timestep >0 &timestep <2)%>%
+    group_by(from, To)%>%
+    mutate(total_pop = mean(Freq))%>%
+    select(total_pop)%>%ungroup()
+  
+  impute <- impute[c(1:as.numeric(POC_AU$npops*POC_AU$npops)),]
+  
+  PopTransition[c(1:as.numeric(POC_AU$npops*POC_AU$npops)), "Freq"] <- impute$total_pop 
+  
+  PopTransition_all <- cbind.data.frame(timestep = PopTransition$timestep, 
+                                        from = PopTransition$from,  
+                                        to = PopTransition$To, 
+                                        best = PopTransition$Freq)%>%
+    as_tibble()%>%
+    mutate(year = rep(rep(seq(1, endY-1,1),each = 1/POC_AU$timestep),
+                      each = POC_AU$npops*POC_AU$npops))
+  
+  PPTranTo <- PopTransition_all%>%
+    group_by(year, from, to)%>%summarise_at(.vars = "best", sum)
+  PPTranTo%>%filter(from == "C_fPWID" & to == "C_PWID")
+  # incarceration 
+  incarce <- list()
+  
+  incarce[["PWID"]] <- PPTranTo%>%filter(from == "C_PWID" & to == "P_PWID")
+  
+  incarce[["fPWID"]] <- PPTranTo%>%filter(from == "C_fPWID" & to == "P_fPWID")
+  
+  incarce_bind <- dplyr::bind_rows(incarce, .id = 'population')%>%
+    mutate(year = POC_AU$cabY + year - 1)%>%ungroup()%>%
+    select(year, population, best)
+  
+  entry_nonPWID <- entry%>%filter(population =="P_nPWID") 
+  
+  # total incarceration = incarceration in C_PWID + incarceration in C_fPWID + incarceration in non-PWID (entry:non-PWID)
+  incar_total <- rbind(incarce_bind, entry_nonPWID)%>%group_by(year)%>%
+    summarize(best = sum(best))
+  
+  release <- list()
+  
+  release[["PWID"]] <- PPTranTo%>%filter(from == "P_PWID" & to == "C_PWID")
+  
+  release[["fPWID"]] <- PPTranTo%>%filter(from == "P_fPWID" & to == "C_fPWID")
+  
+  release_bind <- dplyr::bind_rows(release, .id = 'population')%>%
+    mutate(year = POC_AU$cabY + year - 1)%>%ungroup()%>%select(year, population, best)
+  
+  release_nonPWID <- rel%>%filter(population =="P_nPWID") 
+  
+  release_total <- rbind(release_bind, release_nonPWID)%>%group_by(year)%>%
+    summarize(best = sum(best))
+  
+  inj_stop_inc <- list()
+  
+  inj_stop_inc[["community"]] <- 
+    cbind(year = seq(POC_AU$startYear , endY-1 ,1),
+          as.data.frame(inj_stop[["community"]][ , "best"] / 
+                          subpop_N[["C_PWID"]][ ,"best"])*100)%>%
+    tibble::as_tibble()
+  
+  n_row <- POC_AU$simY - POC_AU$cabY +1 
+
   
   res[[j]] <- c(C_PWIDXC_fPWID, C_PWIDXP_PWID, C_fPWIDXC_PWID, 
                 C_fPWIDXP_fPWID, P_PWIDXC_PWID, P_PWIDXP_fPWID, 
                 P_fPWIDXC_fPWID, P_fPWIDXP_PWID, 
-                commu_proP[ ,2], 
-                prison_proP[ ,2], 
-                prison_profP[ ,2]) # store result
+                commu_proP[n_row ,2], 
+                prison_proP[n_row ,2], 
+                prison_profP[n_row ,2],
+                subpop_N[[1]][n_row, 3],
+                subpop_N[[2]][n_row, 3],
+                subpop_N[[3]][n_row, 3],
+                subpop_N[[4]][n_row, 3],
+                subpop_N[[5]][n_row, 3],
+                incar_total[n_row, 2],
+                release_total[n_row, 2],
+                inj_stop_inc[["community"]][n_row, 2]) # store result
   
   
   }
