@@ -4,7 +4,8 @@ library(stringr)
 
 HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                    pop_array, param_cascade, fib,  end_Y = NULL, modelrun=NULL,
-                   scenario = NULL, cost = NULL, costflow = NULL, proj=NULL){
+                   scenario = NULL, cost = NULL, costflow = NULL, 
+                   costflow_Neg = NULL, proj=NULL){
   
   # Args:
   #       HCV: a list containing project specifications 
@@ -351,13 +352,23 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   pop_array <- pop_array*dt 
   
   #### cost dt ####
-  if(!is.null(cost)){
+  if(!is.null(cost) &!is.null(costflow_Neg)){
     cost <- lapply(cost, function(x){ 
       
       a <- x*dt
     })
     
     costflow <- costflow*dt
+    costflow_Neg <- costflow_Neg*dt
+  }
+  else if(!is.null(cost) & is.null(costflow_Neg)){
+    cost <- lapply(cost, function(x){ 
+      
+      a <- x*dt
+    })
+    
+    costflow <- costflow*dt
+    costflow_Neg <- costflow_Neg*dt
   }
   
   entry <- matrix(0, ncol = npts + 1, nrow = npops)
@@ -1791,12 +1802,11 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     
     
     #### cost ####
-    if (!is.null(cost)){ 
+    if (!is.null(cost) & proj != "POC_AU"){ 
       costPops[, , t] <- allPops[, , t]*cost$state[,,t]
       
-      costTestingAb[, t] <- costflow[,"ctau_ab", t]*
-        (newTestingAb[, t] + 
-           ((oldPop[, "s"] + oldPop[, "a_cured"])*tau_ab_dt[, "f0", t]))
+      costTestingAb[, t] <- (costflow[,"ctau_ab", t]*newTestingAb[, t]) + 
+        (costflow_Neg[,"ctau_ab", t]*((oldPop[, "s"] + oldPop[, "a_cured"])*tau_ab_dt[, "f0", t]))
     
     if(sum(tau_poct_dt[, "f0", t])==0){ # if not through poct pathway
       costTestingAg[, t] <- costflow[,"ctau_RNA", t]*(newTestingAg[, t] + 
@@ -1822,6 +1832,34 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     
     QALYPops[, , t] <- allPops[, , t]*cost$QALY[,,t]
     
+    }
+    
+    if (!is.null(cost)& proj == "POC_AU"){ 
+      costPops[, , t] <- allPops[, , t]*cost$state[,,t]
+      
+      costTestingAb[, t] <- (costflow[,"ctau_ab", t]*newTestingAb[, t]) + 
+        (costflow_Neg[,"ctau_ab", t]*((oldPop[, "s"] + oldPop[, "a_cured"])*tau_ab_dt[, "f0", t]))
+      
+      costTestingAg[, t] <- (costflow[,"ctau_RNA", t]*newTestingAg[, t]) + 
+        costflow_Neg[,"ctau_RNA", t]*((S[,] - oldPop[,"s"] - oldPop[, "a_cured"])*tau_RNA_dt[, "f0", t]) # all those cured from HCV (except for a_cured) had same probability to receive RNA testing 
+      }
+      
+      costnewTestingPOCT[, t] <- costflow[,"ctau_poct",t ]*newTestingPOCT[, t] + 
+        (costflow_Neg[,"ctau_poct",t ]*S[,]*tau_poct_dt[, "f0", t])
+      
+      
+      
+      costTreatment[, t] <- newTreatment[, t]*costflow[,"ceta", t]
+      
+      
+      costCured[, t] <- newCured[, t]*costflow[,"ccured", t]
+      
+      
+      costRetreat[, t] <- newRetreat[, t]*costflow[,"crho", t]
+      
+      
+      QALYPops[, , t] <- allPops[, , t]*cost$QALY[,,t]
+      
     }
     
   }
