@@ -87,12 +87,14 @@ theme_Publication_facet <- function(base_size=14) {
             legend.spacing = unit(0, "cm"),
             legend.title = element_text(face="bold", size= rel(1)),
             plot.margin = unit(c(10,5,5,5),"mm"),
-            strip.background = element_blank(),
-            strip.text = element_text(face="bold")
+            strip.text = element_text(face="bold"),
+            strip.background = element_blank()
+            
             
       ))
   
 }
- # 
+ # strip.background = element_rect(fill = "", colour = "black", 
+#linewidth = 1)
 #strip.background = element_blank(),
 #strip.text = element_text(face="bold")

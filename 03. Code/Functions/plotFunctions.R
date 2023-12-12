@@ -180,7 +180,9 @@ popResults_MidYear <- function(pg, Best, Population = NULL,
   
   
   
-  # First organize the best estimates  
+  # First organize the best estimates 
+  
+  
   df_list <- lapply(Best, as.data.frame.table)
   if(!is.null(allp)){ 
     allpop <- df_list[[allp]]
@@ -552,13 +554,14 @@ popResults_range <- function(pg, data, Population = NULL,
 
 
 ### incidence #### 
-  indicatorResult_uno<- function(pg, Best, indicator,
+  indicatorResult_uno <- function(pg, Best, indicator,
                                  populations = NULL, endYear ) {
     
    
     # remove the all pops and newpop in  the best result of calibration
     # becuz different structure of dataset in the list
-    df_list <- within(Best, rm(allPops,newpop_tran,death_hcv, HCVdeathState, 
+    df_list <- within(Best, rm(allPops,newpop_tran,newpop_tranState,
+                               death_hcv, HCVdeathState, 
                                newDeathState, costPops,QALYPops))
     
     # convert to data.frame table format 
@@ -567,7 +570,7 @@ popResults_range <- function(pg, data, Population = NULL,
     result_list<- df_list%>%lapply(., function(x) {
       mutate(x, 
              timestep = c(rep(seq(pg$startYear,
-                                  endYear - pg$timestep,pg$timestep), 
+                                  endYear - pg$timestep, pg$timestep), 
                               each = pg$npops)))%>%dplyr::select(-Var2)
       
       }) 
