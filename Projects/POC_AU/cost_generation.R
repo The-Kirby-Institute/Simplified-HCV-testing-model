@@ -18,6 +18,7 @@ library("purrr")
 library("parallel")
 library("pacman")
 library("doMC")
+library(ggpattern)
 
 Rcode <- file.path(codefun_path, "03. Code")
 
@@ -29,6 +30,7 @@ OutputFig <- file.path(data_path, "02. Output/Figs")
 load(file.path(OutputFolder, paste0(project_name, ".rda")))
 load(file.path(OutputFolder, paste0(project_name, "cali.rda")))
 load(file.path(OutputFolder, paste0(project_name, "cali_timev.rda")))
+load(file.path(OutputFolder, paste0(project_name, "Sce_sq.rda")))
 load(file.path(OutputFolder, paste0(project_name, "Sce_np.rda")))
 load(file.path(OutputFolder, paste0(project_name, "S_NP_test.rda")))
 load(file.path(OutputFolder, paste0(project_name, "S_NPscale_test.rda")))
@@ -66,21 +68,21 @@ names(costdfList) <- c(gsub("^|.csv", "", files)) # ^: from beginning, \ end bef
 
 c_sq <- cost_model(POC_AU, costdfList, coverage = coverage_sq, 
                  dfList, dfList_NP = dfList, 
-                 calibrateInit,
-                 S_Yint = 2022, S_Yfir = NULL, S_Ymid = NULL, S_Yend = 2051, 
+                 Sce_sq,
+                 S_Yint = 2022, S_Yfir = NULL, S_Ymid = NULL, S_Yend = 2101, 
                  censor_Y = 2030)
 
 c_np <- cost_model(POC_AU, costdfList, coverage = coverage_np, 
                     dfList, dfList_NP = dfList_NP, 
                     Sce_np,
-                    S_Yint = 2022, S_Yfir = NULL, S_Ymid = NULL, S_Yend = 2051,
+                    S_Yint = 2022, S_Yfir = NULL, S_Ymid = NULL, S_Yend = 2101,
                    censor_Y = 
                      2030)
 
 c_npscale <- cost_model(POC_AU, costdfList, coverage = coverage_npscale, 
                     dfList, dfList_NP = dfList_NPscale, 
                     Sce_npscale,
-                    S_Yint = 2022, S_Yfir = 2024, S_Ymid = 2027, S_Yend = 2051,
+                    S_Yint = 2022, S_Yfir = 2024, S_Ymid = 2027, S_Yend = 2101,
                     censor_Y = 2030)
 
 
@@ -125,7 +127,7 @@ for(n in names(Sce_cost)){
   
 }
 
-discountR <- 0.03
+discountR <- 0.05
 cost_np <- list()
 cost_stage <- list()
 for(n in names(Sce_cost)){
@@ -292,109 +294,139 @@ cost_saving <- rbind(cost_np$`National program`,
 
 
 cost_saving_p <- cost_saving%>%
-  filter(year%in% c(2030, 2040, 2050))%>%
-           ggplot(., aes(x = as.character(year), y = c_saving)) +
+  filter(year%in% c(2100))%>%
+           ggplot(., aes(x = scenario, y = c_saving)) +
   geom_histogram(stat='identity', aes(fill = scenario), 
            position="dodge") + 
-  scale_y_continuous(limits = c(-15000000, 15000000), 
-                     breaks = seq(-15000000, 15000000, 1000000),
-                     labels = paste0(seq(-15,15,1), "M"))+ 
+  scale_y_continuous(limits = c(0, 10000000), 
+                     breaks = seq(0, 10000000, 1000000),
+                     labels = paste0(seq(0,10,1), "M"))+ 
   theme_linedraw() +
   
   scale_fill_brewer(palette="Paired") +
-  labs(x = "Year", y = "Cost saving (AUD)")
+  labs(x = "Scenario", y = "Cost saving (AUD)")
 
 ggsave(path = OutputFig, file="cost_saving.png", cost_saving_p, 
        height = 6, width = 6, dpi = 800)
 
 
 # total cost 
-cost_total <- rbind(cost_np$`status quo`, 
-                    cost_np$`National program`, 
-                     cost_np$`National program scale up`)
+cost_total <- dplyr::bind_rows(cost_np, .id = "scenario")
+
+cost_total <- cost_total%>%filter(year %in% c(2030, 2100))%>%
+  pivot_wider(id_cols = scenario, 
+              names_from = year, 
+              values_from = c("discountValue_cum", "discountValue"))%>%
+  mutate(program_cost_discum = discountValue_cum_2030, 
+         lifetime_cost_discum = discountValue_cum_2100 - discountValue_cum_2030)%>%
+  select(scenario, program_cost_discum, lifetime_cost_discum)%>%
+  gather(catego, discum_cost, -scenario)
 cost_total_p <- cost_total%>%
-  filter(year%in% c(2030, 2040, 2050))%>%
-  ggplot(., aes(x = as.character(year), y = discountValue_cum)) +
-  geom_histogram(stat='identity', aes(fill = scenario), 
-                 position="dodge") + 
-  scale_y_continuous(limits = c(0, 700000000), 
-                     breaks = seq(0, 700000000, 50000000),
-                     labels = paste0(seq(0,700,50), "M"))+ 
+  mutate(scenario = factor(scenario, 
+                           levels = c("status quo", "National program", 
+                                      "National program scale up"),
+                           labels = c("Status quo", "National program", 
+                                      "National program scale up")), 
+         Cost = factor(catego, 
+                       levels = c( "lifetime_cost_discum", "program_cost_discum"),
+                       labels = c("Lifetime cost (2031-2100)", "Program cost(2022-2030)"))
+         
+         )%>%
+  ggplot(., aes(x = scenario, y = discum_cost, fill = scenario, pattern = Cost)) +
+  geom_bar_pattern(stat='identity', 
+                   position="stack", 
+                   pattern_spacing = 0.02,
+                   pattern_angle = 45,
+                   width=0.6,
+                   colour="black") +
   theme_linedraw() +
+  scale_fill_manual(name = "Scenario",values = c("#B2DF8A", "#A6CEE3", "#1F78B4")) + 
+  scale_pattern_manual("Cost",values = c("circle", "stripe")) + 
+  guides(fill = guide_legend(override.aes = list(pattern = c("none", "none", "none")))) + 
+  labs(x = "Scenario", y = "Cumulative cost (AUD)")  + 
+  scale_y_continuous(limits = c(0, 550000000), 
+                     breaks = seq(0, 550000000, 50000000), 
+                     labels = paste0(seq(0, 550000000, 50000000)/1000000, "M")) 
 
-  scale_fill_brewer(palette="Paired") +
-  labs(x = "Year", y = "Cumulative cost (AUD)")
-
-ggsave(path = OutputFig, file="cost_saving.png", cost_saving_p, 
-       height = 6, width = 6, dpi = 800)
+ggsave(path = OutputFig, file="cost_total.png", cost_total_p, 
+       height = 6, width = 8, dpi = 800)
 
 # cost of management/ treatment/ management 
 # three scenario 
 # stacked 
 # also extract 2030 2040 2050 
 
-c_stage_p <- c_stage%>%filter(year %in% c(2030,2040,2050))%>%
+c_stage_p <- c_stage%>%filter(year %in% c(2090))%>%
   mutate(`cost indicator` = factor(`cost indicator`, 
                                    levels = c("diagnosis", "Management", "Treatment"),
-                                   labels = c("Diagnosis", "Managment", "Treatment")))%>%
- ggplot(data = ., aes(x = year, y = discountValue_cum)) + 
-  geom_histogram(stat='identity', aes(fill = scenario), 
-                 position="dodge") + 
-  facet_wrap(.~`cost indicator`, scale ="free") +
+                                   labels = c("Diagnosis", "Managment", "Treatment")),
+         scenario = factor(scenario, 
+                           levels = c("status quo", "National program", 
+                                      "National program scale up"),
+                           labels = c("Status quo", "National program", 
+                                      "National program scale up")
+                           ))%>%
+ ggplot(data = ., aes(x = scenario, y = discountValue_cum, 
+                      fill = scenario, pattern =  `cost indicator`)) + 
+  geom_bar_pattern(stat='identity', 
+                 position="stack", 
+                 pattern_spacing = 0.02,
+                 pattern_angle = 45,
+                 width=0.6,
+                 colour="black") +
   theme_linedraw() +
-  scale_fill_brewer(palette="Paired") +
-  labs(x = "Year", y = "Cumulative cost (AUD)") 
+  scale_fill_manual(name = "Scenario",values = c("#B2DF8A", "#A6CEE3", "#1F78B4")) + 
+  scale_pattern_manual("Categories",values = c("none", "circle", "stripe")) + 
+  guides(fill = guide_legend(override.aes = list(pattern = c("none", "none", "none")))) + 
+  labs(x = "Scenario", y = "Cumulative cost (AUD)") + 
+  scale_y_continuous(limits = c(0, 550000000), 
+                     breaks = seq(0, 550000000, 50000000), 
+                     labels = paste0(seq(0, 550000000, 50000000)/1000000, "M")) 
 
-c_stage_p <- c_stage_p + 
-  facet_custom (~`cost indicator`,
-                scales = "free", ncol = 3,
-                scale_overrides = 
-                  list(
-                    scale_new(1,
-                              scale_y_continuous(limits = 
-                                                   c(0, 120000000), 
-                                                 breaks = seq(0, 120000000, 
-                                                              10000000),
-                                                 labels = paste0(seq(0, 120, 10), "M"))),
-                    scale_new(2,
-                              scale_y_continuous(limits = 
-                                                   c(0, 200000000), 
-                                                 breaks = seq(0, 200000000, 
-                                                              10000000),
-                                                 labels = paste0(seq(0, 200, 10), "M"))),
-                    
-                    scale_new(3,
-                              scale_y_continuous(limits =  c(0, 400000000), 
-                                                 breaks = seq(0, 400000000, 
-                                                              50000000),
-                                                 labels = paste0(seq(0, 400, 50), "M")))))
 
 ggsave(path = OutputFig, file="cost_stage.png", c_stage_p, 
-       height = 6, width = 9, dpi = 800)
+       height = 6, width = 8, dpi = 800)
 
 
 
 # advanced liver disease cost 
 ad_cost <- xxt%>%
-  group_by(year, scenario, population, disease_prog)%>%
+  group_by(year, scenario, disease_prog)%>%
   summarize(discountValue = sum(discountValue),
             discountValue_cum = sum(discountValue_cum))%>%ungroup()%>%
   filter(disease_prog %in% c("dc", "hcc", "lt", "plt"))
 
-ad_cost_p <- ad_cost%>%filter(year %in% c(2030,2040,2050))%>%
+ad_cost_p <- ad_cost%>%filter(year %in% c(2100))%>%
   mutate(disease_prog = factor(disease_prog, 
                                levels = c("dc", "hcc", "lt", "plt"),
                                labels = c("Decompensated cirrhosis", 
                                           "Hepatocellular carcinoma", 
                                           "Liver transplant", 
-                                          "Post-liver transplant")))%>%
-  ggplot(data = ., aes(x = year, y = discountValue_cum)) + 
-  geom_histogram(stat='identity', aes(fill = scenario), 
-                 position="dodge") + 
-  facet_wrap(.~disease_prog, scale ="free") +
+                                          "Post-liver transplant")),
+         scenario = factor(scenario, 
+                           levels = c("status quo", "National program", 
+                                      "National program scale up"),
+                           labels = c("Status quo", "National program", 
+                                      "National program scale up")
+         ))%>%
+  ggplot(data = ., aes(x = scenario, y = discountValue_cum, 
+                       fill = scenario, pattern = disease_prog)) + 
+  geom_bar_pattern(stat='identity', 
+                   position="stack", 
+                   pattern_spacing = 0.02,
+                   pattern_angle = 45,
+                   width=0.6, 
+                   colour="black")  +
   theme_linedraw() +
-  scale_fill_brewer(palette="Paired") +
-  labs(x = "Year", y = "Cumulative cost (AUD)") 
+  scale_fill_manual(name = "Scenario",values = c("#B2DF8A", "#A6CEE3", "#1F78B4")) +
+  scale_pattern_manual("Disease progress",values = c("none", "circle", "stripe", "wave")) + 
+  guides(fill = guide_legend(override.aes = list(pattern = c("none", "none", "none")))) +
+  labs(x = "Scenario", y = "Cumulative cost (AUD)") + 
+  scale_y_continuous(limits = c(0, 600000000), 
+                     breaks = seq(0, 600000000,50000000), 
+                     labels = paste0(seq(0, 600000000,50000000)/10000000, "M"))
+
+
 
 ggsave(path = OutputFig, file="ad_costsaving.png", ad_cost_p, 
        height = 6, width = 8, dpi = 800)

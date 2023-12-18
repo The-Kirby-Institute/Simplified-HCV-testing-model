@@ -166,6 +166,12 @@ save(dfList_NPscale,Ccal_scale,
 tic <- proc.time()
 
 endY <- 100
+
+Sce_sq <- HCVMSM(POC_AU, best_estimates, best_est_pop,
+                 disease_progress,pop_array,
+                 dfList, fib, 
+                 modelrun="UN", proj = "POC_AU", end_Y = endY)
+
 Sce_np <- HCVMSM(POC_AU, best_estimates, best_est_pop,
                  disease_progress,pop_array,
                  dfList_NP, fib, 
@@ -180,6 +186,9 @@ Sce_npscale <- HCVMSM(POC_AU, best_estimates, best_est_pop,
 toc <- proc.time() - tic 
 toc
 
+save(Sce_sq,
+     file = file.path(OutputFolder ,
+                      paste0(project_name,"Sce_sq" ,".rda")))
 
 save(Sce_np,
      file = file.path(OutputFolder ,
@@ -188,6 +197,4 @@ save(Sce_np,
 save(Sce_npscale,
      file = file.path(OutputFolder ,
                       paste0(project_name,"Sce_npscale" ,".rda")))
-
-
 

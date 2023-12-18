@@ -163,11 +163,11 @@ cost_model <- function(pj, costdfList, coverage, dfList, dfList_NP,
         
         np_cured[i,,t] <- 0
         
-        np_tau_rna[i,,t] <- 0
+        np_tau_rna[i,,t] <- soc_tau_rna[i,,t]
         
-        np_tau_poct[i,,t] <- 0
+        np_tau_poct[i,,t] <- soc_tau_poct[i,,t]
         
-        np_eta[i,,t] <- 0
+        np_eta[i,,t] <- soc_eta[i,,t]
         
       }
       

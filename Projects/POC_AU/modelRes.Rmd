@@ -1,0 +1,725 @@
+---
+title: "Model outputs"
+author: "Joyce Wu"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'   
+output: html_document
+---
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(DT)
+library(htmltools)
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
+rm(list = ls())
+
+library(ggplot2)
+library(ggrepel)
+library(directlabels)
+library(gridExtra)
+library(grid)
+
+project_name <- "POC_AU"
+
+codefun_path <- paste("/Users/jjwu/Documents/Simplified-HCV-testing-model")
+
+data_path <- paste("/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/", 
+                   project_name, sep = "")
+# Load useful libraries
+
+library("readr")
+library("dplyr")
+library("tidyr")
+library("purrr")
+library("parallel")
+library("pacman")
+library("doMC")
+
+Rcode <- file.path(codefun_path, "03. Code")
+
+DataFolder <- file.path(data_path, "01. DATA/model input" )
+
+OutputFolder <- file.path(data_path, "02. Output")
+
+load(file.path(OutputFolder, paste0(project_name, ".rda")))
+load(file.path(OutputFolder, paste0(project_name, "coverage_sq.rda")))
+load(file.path(OutputFolder, paste0(project_name, "coverage_np.rda")))
+load(file.path(OutputFolder, paste0(project_name, "coverage_npscale.rda")))
+load(file.path(OutputFolder, paste0(project_name, "ResSum.rda")))
+load(file.path(OutputFolder, paste0(project_name, "cost_np.rda")))
+load(file.path(OutputFolder, paste0(project_name, "S_NPscale_test.rda")))
+load(file.path(OutputFolder, paste0(project_name, "S_NP_test.rda")))
+load(file.path(OutputFolder, paste0(project_name, "TabGen.rda")))
+source(file.path(Rcode, "/Functions/plotManuscript.R"))
+
+source(file.path(Rcode, "/Functions/plotFunctions.R")) 
+
+# setting end Year 
+
+endY <- 100
+# Plot 
+# prevalence & Incidence 
+Sce_lab <- c("Status Quo", "National program", "scale up national program")
+tempPrev_subpop_bind <- dplyr::bind_rows(tempPrev_subpop, .id = "Scenario")%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `Seroprevalence (%)` = round(best, digits = 2),
+         Scenario = factor(Scenario, levels = c(names(tempPrev_subpop)),
+                           labels = Sce_lab))%>%
+  select(-c(year, best))
+
+tempPrevRNA_subpop_bind <- dplyr::bind_rows(tempPrevRNA_subpop, .id = "Scenario")%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `RNA prevalence (%)` = round(best, digits = 2),
+         Scenario = factor(Scenario, levels = c(names(tempPrev_subpop)),
+                           labels = Sce_lab))%>%
+  select(-c(year, best))
+
+HCVInc_subpop_bind <- dplyr::bind_rows(HCVInc_subpop, .id = "Scenario")%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `HCV incidence (/100 PY)` = round(best, digits = 2),
+         Scenario = factor(Scenario, levels = c(names(tempPrev_subpop)),
+                           labels = Sce_lab))%>%
+  select(-c(year, best))
+# Prev_INC table 
+HCVPrevInc_subpop_bind <- cbind(tempPrev_subpop_bind, 
+                                `RNA prevalence (%)` = tempPrevRNA_subpop_bind$`RNA prevalence (%)`,
+                               `HCV incidence (/100 PY)` = HCVInc_subpop_bind$`HCV incidence (/100 PY)`)%>%
+  as_tibble()%>%
+  mutate(population =factor(population, levels = c("C_PWID", "C_fPWID", "P_PWID",
+                                                   "P_fPWID", "P_nPWID")))
+
+
+# subpops plots 
+Prev_p <- ggplot(data = HCVPrevInc_subpop_bind) + 
+  geom_line((aes(x = Year, y = `Seroprevalence (%)`, 
+                         color = Scenario,
+                         linetype = Scenario)))  + 
+  scale_linetype_manual(values = c("dashed", "solid", "solid")) +
+  scale_color_manual(values = c("black", "#E69F00", "#56B4E9")) + 
+  scale_x_continuous(limits = c(2021, 2050)) 
+    
+Prev_p <- Prev_p + facet_custom (~population,
+                scales = "free", ncol = 2,
+                scale_overrides = 
+                  list(
+                    scale_new(1,
+                              scale_y_continuous(limits = 
+                                                   c(0, 100))),
+                    scale_new(2,
+                              scale_y_continuous(limits = 
+                                                   c(0, 100))),
+                    
+                    scale_new(3,
+                              scale_y_continuous(limits = 
+                                                   c(0, 100))),
+                    scale_new(4,
+                              scale_y_continuous(limits = 
+                                                   c(0, 100))),
+                    scale_new(5,
+                              scale_y_continuous(limits = 
+                                                   c(0, 5)))
+                  )) + theme_bw() + 
+  scale_x_continuous(expand = c(0, 0),limits = c(2022, 2050), breaks = c(2022, 2027, 2030,seq(2035, 2050, 5)))  
+  
+
+
+PrevRNA_p <- ggplot(data = HCVPrevInc_subpop_bind) + 
+  geom_line(aes(x = Year, y = `RNA prevalence (%)`, 
+                colour = Scenario, linetype = Scenario))  + 
+  scale_x_continuous(limits = c(2021, 2050)) + 
+  scale_linetype_manual(values = c("dashed", "solid", "solid")) +
+  scale_color_manual(values = c("black", "#E69F00", "#56B4E9"))
+    
+PrevRNA_p <- PrevRNA_p+ facet_custom (~population,
+                scales = "free", ncol = 2,
+                scale_overrides = 
+                  list(
+                    scale_new(1,
+                              scale_y_continuous(limits = 
+                                                   c(0, 20))),
+                    scale_new(2,
+                              scale_y_continuous(limits = 
+                                                   c(0, 12.5))),
+                    
+                    scale_new(3,
+                              scale_y_continuous(limits = 
+                                                   c(0, 25))),
+                    scale_new(4,
+                              scale_y_continuous(limits = 
+                                                   c(0, 16))),
+                    scale_new(5,
+                              scale_y_continuous(limits = 
+                                                   c(0, 1)))
+                  )) + theme_bw() + 
+  scale_x_continuous(expand = c(0, 0),limits = c(2022, 2050), breaks = c(2022, 2027, 2030,seq(2035, 2050, 5)))  
+  
+  
+
+Inc_p <- ggplot(data = HCVPrevInc_subpop_bind) + 
+  geom_line(aes(x = Year, y = `HCV incidence (/100 PY)`, 
+                colour = Scenario, linetype = Scenario))  + 
+  scale_x_continuous(limits = c(2021, 2050)) +
+  scale_linetype_manual(values = c("dashed", "solid", "solid")) +
+  scale_color_manual(values = c("black", "#E69F00", "#56B4E9"))
+    
+Inc_p <- Inc_p+ facet_custom (~population,
+                scales = "free", ncol = 2,
+                scale_overrides = 
+                  list(
+                    scale_new(1,
+                              scale_y_continuous(limits = 
+                                                   c(0, 5))),
+                    scale_new(2,
+                              scale_y_continuous(limits = 
+                                                   c(0, 5))),
+                    
+                    scale_new(3,
+                              scale_y_continuous(limits = 
+                                                   c(0, 15))),
+                    scale_new(4,
+                              scale_y_continuous(limits = 
+                                                   c(0, 5))),
+                    scale_new(5,
+                              scale_y_continuous(limits = 
+                                                   c(0, 0.1)))
+                  )) + theme_bw() + 
+  scale_x_continuous(expand = c(0, 0),limits = c(2022, 2050), breaks = c(2022, 2027, 2030,seq(2035, 2050, 5)))  
+  
+
+
+ROI <- ROI%>%mutate(Year = year, 
+                    Scenario = factor(scenario, levels = c(unique(scenario)),
+                           labels = c("National Program", "scale up national program")),
+                    `Cost (discounted, AUD)` = discountValue,
+                    `Cumulative Cost (discounted, AUD)` = discountValue_cum,
+                    `Return of Investment` = round(ROI, digits = 6))%>%
+  select(-c(year, scenario, discountValue, discountValue_cum, ROI))
+
+
+ROI_p <- ggplot(data = ROI, aes(x = Year, y = `Return of Investment`, group = Scenario)) + 
+  geom_line(aes(colour = Scenario)) + 
+  scale_x_continuous(limits = c(2022, 2050), breaks = c(c(2022,2024, 2027, 2030), seq(2030, 2050,5))) + 
+  scale_y_continuous(limits = c(-0.06, 0.06)) + 
+  scale_color_manual(values = c("#E69F00", "#56B4E9")) +
+  theme_bw()+
+  geom_hline(yintercept = 0, color = "gray", linetype = "dashed") + 
+  geom_vline(xintercept = 2037, color = "black", linetype = "dashed") + 
+  scale_x_continuous(expand = c(0, 0),limits = c(2022, 2050), breaks = c(2022, 2027, 2030,seq(2035, 2050, 5)))  
+  
+  
+
+```
+
+```{r message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
+# setting 
+
+# setting lable 
+set_lab <- c("Community", "Prisons", "current & former PWID in prisons")
+
+tempPrev_setting_bind <- list()
+tempPrev_setting_bind[["status quo"]] <- dplyr::bind_rows(tempPrev_setting$`status quo`, .id = "setting")%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `Seroprevalence (%)` = round(best, digits = 2),
+         Setting = factor(setting, levels = c("commu", "prisons", "prisonsPWID"),
+                           labels = set_lab ))%>%
+  select(-c(year, best, setting))
+
+tempPrev_setting_bind[["National program"]] <- dplyr::bind_rows(tempPrev_setting$`National program`, .id = "setting")%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `Seroprevalence (%)` = round(best, digits = 2),
+         Setting = factor(setting, levels = c("commu", "prisons", "prisonsPWID"),
+                           labels = set_lab ))%>%
+  select(-c(year, best, setting))
+
+tempPrev_setting_bind[["National program scale up"]] <- 
+  dplyr::bind_rows(tempPrev_setting$`National program scale up`, .id = "setting")%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `Seroprevalence (%)` = round(best, digits = 2),
+         Setting = factor(setting, levels = c("commu", "prisons", "prisonsPWID"),
+                           labels = set_lab ))%>%
+  select(-c(year, best, setting))
+
+tempPrev_setting_bind <- dplyr::bind_rows(tempPrev_setting_bind, .id = "Scenario")%>%
+  mutate(Scenario = factor(Scenario, levels = c(names(tempPrev_subpop)),
+                           labels = Sce_lab))
+
+tempPrevRNA_setting_bind <- list()
+tempPrevRNA_setting_bind[["status quo"]] <- dplyr::bind_rows(tempPrevRNA_setting$`status quo`, .id = "setting")%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `RNA prevalence (%)` = round(best, digits = 2),
+         Setting = factor(setting, levels = c("commu", "prisons", "prisonsPWID"),
+                           labels = set_lab ))%>%
+  select(-c(year, best, setting))
+
+tempPrevRNA_setting_bind[["National program"]] <- dplyr::bind_rows(tempPrevRNA_setting$`National program`, .id = "setting")%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `RNA prevalence (%)` = round(best, digits = 2),
+         Setting = factor(setting, levels = c("commu", "prisons", "prisonsPWID"),
+                           labels = set_lab ))%>%
+  select(-c(year, best, setting))
+
+tempPrevRNA_setting_bind[["National program scale up"]] <- 
+  dplyr::bind_rows(tempPrevRNA_setting$`National program scale up`, .id = "setting")%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `RNA prevalence (%)` = round(best, digits = 2),
+         Setting = factor(setting, levels = c("commu", "prisons", "prisonsPWID"),
+                           labels = set_lab ))%>%
+  select(-c(year, best, setting))
+
+tempPrevRNA_setting_bind <- dplyr::bind_rows(tempPrevRNA_setting_bind, .id = "Scenario")%>%
+  mutate(Scenario = factor(Scenario, levels = c(names(tempPrev_subpop)),
+                           labels = Sce_lab))
+
+HCVInc_setting_bind <- list() 
+
+
+HCVInc_setting_bind[["status quo"]] <- dplyr::bind_rows(HCVInc_setting$`status quo`, .id = "setting")%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `HCV incidence (/100 PY)` = round(best, digits = 2),
+         Setting = factor(setting, levels = c("commu", "prisons", "prisonsPWID"),
+                           labels = set_lab ))%>%
+  select(-c(year, best, setting))
+
+HCVInc_setting_bind[["National program"]] <- dplyr::bind_rows(HCVInc_setting$`National program`, .id = "setting")%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `HCV incidence (/100 PY)` = round(best, digits = 2),
+         Setting = factor(setting, levels = c("commu", "prisons", "prisonsPWID"),
+                           labels = set_lab ))%>%
+  select(-c(year, best, setting))
+
+HCVInc_setting_bind[["National program scale up"]] <- dplyr::bind_rows(HCVInc_setting$`National program scale up`, .id = "setting")%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `HCV incidence (/100 PY)` = round(best, digits = 2),
+         Setting = factor(setting, levels = c("commu", "prisons", "prisonsPWID"),
+                           labels = set_lab ))%>%
+  select(-c(year, best, setting))
+
+HCVInc_setting_bind <- dplyr::bind_rows(HCVInc_setting_bind, .id = "Scenario")%>%
+  mutate(Scenario = factor(Scenario, levels = c(names(tempPrev_subpop)),
+                           labels = Sce_lab))
+
+
+HCVPrevInc_setting_bind <- cbind(tempPrev_setting_bind, 
+                                `RNA prevalence (%)` = tempPrevRNA_setting_bind$`RNA prevalence (%)`,
+                               `HCV incidence (/100 PY)` = HCVInc_setting_bind$`HCV incidence (/100 PY)`)%>%
+  as_tibble()%>%select(Year, Scenario, Setting, `Seroprevalence (%)`,
+                       `RNA prevalence (%)`, `HCV incidence (/100 PY)`)
+
+# plot 
+Prev_setting_p <- ggplot(data = HCVPrevInc_setting_bind) + 
+  geom_line((aes(x = Year, y = `Seroprevalence (%)`, 
+                         color = Scenario,
+                         linetype = Scenario)))  + 
+  scale_linetype_manual(values = c("dashed", "solid", "solid")) +
+  scale_color_manual(values = c("black", "#E69F00", "#56B4E9")) + 
+  scale_x_continuous(limits = c(2021, 2050)) 
+    
+Prev_setting_p <- Prev_setting_p+ facet_custom (~Setting,
+                scales = "free", ncol = 1,
+                scale_overrides = 
+                  list(
+                    scale_new(1,
+                              scale_y_continuous(limits = 
+                                                   c(0, 90))),
+                    scale_new(2,
+                              scale_y_continuous(limits = 
+                                                   c(0, 40))),
+                    
+                    scale_new(3,
+                              scale_y_continuous(limits = 
+                                                   c(0, 80))))) + theme_bw() + 
+  scale_x_continuous(expand = c(0, 0),limits = c(2022, 2050), breaks = c(2022, 2027, 2030,seq(2035, 2050, 5)))  
+  
+ 
+
+PrevRNA_setting_p <- ggplot(data = HCVPrevInc_setting_bind) + 
+  geom_line(aes(x = Year, y = `RNA prevalence (%)`, 
+                colour = Scenario, linetype = Scenario))  + 
+  
+  scale_linetype_manual(values = c("dashed", "solid", "solid")) +
+  scale_color_manual(values = c("black", "#E69F00", "#56B4E9"))
+    
+PrevRNA_setting_p <- PrevRNA_setting_p+ facet_custom (~Setting,
+                scales = "free", ncol = 1,
+                scale_overrides = 
+                  list(
+                    scale_new(1,
+                              scale_y_continuous(limits = 
+                                                   c(0, 20))),
+                    scale_new(2,
+                              scale_y_continuous(limits = 
+                                                   c(0, 12.5))),
+                    
+                    scale_new(3,
+                              scale_y_continuous(limits = 
+                                                   c(0, 25))))) + theme_bw() + 
+  scale_x_continuous(expand = c(0, 0),limits = c(2022, 2050), breaks = c(2022, 2027, 2030,seq(2035, 2050, 5)))  
+  
+  
+
+Inc_setting_p <- ggplot(data = HCVPrevInc_setting_bind) + 
+  geom_line(aes(x = Year, y = `HCV incidence (/100 PY)`, 
+                colour = Scenario, linetype = Scenario))  + 
+  scale_x_continuous(limits = c(2021, 2050)) +
+  scale_linetype_manual(values = c("dashed", "solid", "solid")) +
+  scale_color_manual(values = c("black", "#E69F00", "#56B4E9"))
+    
+Inc_setting_p <- Inc_setting_p+ facet_custom (~Setting,
+                scales = "free", ncol = 1,
+                scale_overrides = 
+                  list(
+                    scale_new(1,
+                              scale_y_continuous(limits = 
+                                                   c(0, 2))),
+                    scale_new(2,
+                              scale_y_continuous(limits = 
+                                                   c(0, 5))),
+                    
+                    scale_new(3,
+                              scale_y_continuous(limits = 
+                                                   c(0, 10))))) + theme_bw() + 
+  scale_x_continuous(expand = c(0, 0),limits = c(2022, 2050), breaks = c(2022, 2027, 2030,seq(2035, 2050, 5)))  
+  
+
+
+
+```
+
+estimation of National program's effect 
+```{r, echo = FALSE , warning=FALSE, fig.dim =c(1,1)}
+
+knitr::include_graphics("/Users/jjwu/Documents/Simplified-HCV-testing-model/IMG_2973.jpg")
+
+
+```
+
+
+
+## Plots {.tabset}
+
+### Seroprevalence (each pop)
+
+
+```{r, fig.dim=c(10,10), warning=FALSE, echo =FALSE}
+Prev_p
+```
+
+
+### RNA prevalence (each pop)
+
+
+```{r, fig.dim=c(10,10), warning=FALSE, echo =FALSE}
+PrevRNA_p
+```
+
+### HCV incidence (each pop)
+
+
+```{r, fig.dim=c(10,10), warning=FALSE, echo =FALSE}
+Inc_p
+```
+
+### Seroprevalence (by setting)
+
+
+```{r, fig.dim=c(10,10), warning=FALSE, echo =FALSE}
+Prev_setting_p
+```
+
+
+### RNA prevalence (by setting)
+
+
+```{r, fig.dim=c(10,10), warning=FALSE, echo =FALSE}
+PrevRNA_setting_p
+```
+
+### HCV incidence (by setting)
+
+
+```{r, fig.dim=c(10,10), warning=FALSE, echo =FALSE}
+Inc_setting_p
+```
+
+### Return of investment
+```{r message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
+xt_p <- cost_np$`National program`%>%
+  mutate(budget = 6500000,
+         ROI = (cost_np$`status quo`$discountValue_cum - cost_np$`National program`$discountValue_cum)/budget)%>%
+  mutate(scenario = paste0("National program: community ", 
+                           round(Ccal$C*100, digits = 1),"%" ,", prisons", round(Ccal$P*100, digits = 1), "%"))%>%
+  select(year, scenario, discountValue, discountValue_cum,budget, ROI)%>%
+  filter(year <= 2050)
+
+ xts_p <- cost_np$`National program scale up`%>%
+  mutate(budget = c(6500000, 6500000, rep(10000000, nrow(cost_np$`National program scale up`) -2)),
+         ROI = (cost_np$`status quo`$discountValue_cum - cost_np$`National program scale up`$discountValue_cum)/budget)%>%
+  mutate(scenario = paste0("National program scale up: community ", 
+                           round(Ccal_scale$C*100, digits = 1),"%" ,", prisons", round(Ccal_scale$P*100, digits = 1), "%"))%>%
+  select(year, scenario, discountValue, discountValue_cum, budget,ROI)%>%
+  filter(year <= 2050)
+ ROI_alt <- rbind(xt_p, xts_p)
+ 
+ ROI_alt<-  ROI_alt%>%mutate(Year = year, 
+                    Scenario = factor(scenario, levels = c(unique(scenario)),
+                           labels = c("National Program", "scale up national program")),
+                    `Cost (discounted, AUD)` = discountValue,
+                    `Cumulative Cost (discounted, AUD)` = discountValue_cum,
+                    Budget = budget,
+                    `Return of Investment` = round(ROI, digits = 6)
+                    )%>%
+  select(-c(year, scenario, discountValue, discountValue_cum, budget, ROI))
+
+
+ROI_alt_p <- ggplot(data = ROI_alt, aes(x = Year, y = `Return of Investment`, group = Scenario)) + 
+  geom_line(aes(colour = Scenario)) + 
+  scale_x_continuous(limits = c(2022, 2050), breaks = c(c(2022,2024, 2027, 2030), seq(2030, 2050,5))) + 
+  scale_y_continuous(limits = c(-2, 1)) + 
+  scale_color_manual(values = c("#E69F00", "#56B4E9")) +
+  theme_bw()+
+  geom_hline(yintercept = 0, color = "gray", linetype = "dashed") + 
+  geom_vline(xintercept = 2037, color = "black", linetype = "dashed") + 
+  scale_x_continuous(expand = c(0, 0),limits = c(2022, 2050), breaks = c(2022, 2027, 2030,seq(2035, 2050, 5))) + 
+  ggtitle("Budget: 6500000, 10000000")
+  
+ 
+
+```
+
+```{r, fig.dim=c(6,6), warning=FALSE, echo =FALSE}
+ROI_p
+ROI_alt_p 
+```
+
+
+## {-}
+
+
+## Prevalence and incidence {.tabset}
+
+### each pop
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+xt <- HCVPrevInc_subpop_bind%>%filter(Year<= 2050)
+  htmltools::tagList(DT::datatable(xt))
+```
+
+### by setting
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+xt_set <- HCVPrevInc_setting_bind%>%filter(Year<= 2050)
+  htmltools::tagList(DT::datatable(xt_set))
+```
+
+## {-}
+
+## Numbers in compartments (each pop) {.tabset}
+
+### Number living with current HCV infection 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+xt_sub <- dplyr::bind_rows(Num_state_avert_sub$Num_curInf, .id = "Scenario")%>%
+  as_tibble()%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `Number current HCV infection ` = round(best, digits = 2),
+         `Number averted` = round(num_avert, digits = 2),
+         Scenario = factor(Scenario, levels = c(names(Num_state_avert_sub$Num_diag)),
+                           labels = Sce_lab))%>%
+  select(!c("year", "best", "scenario", "num_avert"))%>%
+  filter(Year <= 2050)
+  
+
+htmltools::tagList(DT::datatable(xt_sub))
+```
+
+### Number living with HCV diagnosed 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+xt_sub <- dplyr::bind_rows(Num_state_avert_sub$Num_diag, .id = "Scenario")%>%
+  as_tibble()%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `Number living with HCV diagnosed` = round(best, digits = 2),
+         `Number averted` = round(num_avert, digits = 2), 
+         Scenario = factor(Scenario, levels = c(names(Num_state_avert_sub$Num_diag)),
+                           labels = Sce_lab))%>%
+  select(!c("year", "best", "num_avert"))%>%
+  filter(Year <= 2050)
+  
+
+htmltools::tagList(DT::datatable(xt_sub))
+```
+
+### Number living with decompensated cirrhosis  
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+xt_sub <- dplyr::bind_rows(Num_state_avert_sub$Num_dc, .id = "Scenario")%>%
+  as_tibble()%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `Number living with decompensated cirrhosis  ` = round(best, digits = 2),
+         `Number averted` = round(num_avert, digits = 2), 
+         Scenario = factor(Scenario, levels = c(names(Num_state_avert_sub$Num_diag)),
+                           labels = Sce_lab))%>%
+  select(!c("year", "best", "num_avert"))%>%
+  filter(Year <= 2050)
+  
+
+htmltools::tagList(DT::datatable(xt_sub))
+```
+
+### Number living with liver cancer  
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+xt_sub <- dplyr::bind_rows(Num_state_avert_sub$Num_hcc, .id = "Scenario")%>%
+  as_tibble()%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `Number living with liver cancer` = round(best, digits = 2),
+         `Number averted` = round(num_avert, digits = 2), 
+         Scenario = factor(Scenario, levels = c(names(Num_state_avert_sub$Num_diag)),
+                           labels = Sce_lab))%>%
+  select(!c("year", "best", "num_avert"))%>%
+  filter(Year <= 2050)
+  
+
+htmltools::tagList(DT::datatable(xt_sub))
+```
+
+
+### Number living with liver transplant  
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+xt_sub <- dplyr::bind_rows(Num_state_avert_sub$Num_lt, .id = "Scenario")%>%
+  as_tibble()%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         `Number living with liver transplant` = round(best, digits = 2),
+         `Number averted` = round(num_avert, digits = 2), 
+         Scenario = factor(Scenario, levels = c(names(Num_state_avert_sub$Num_diag)),
+                           labels = Sce_lab))%>%
+  select(!c("year", "best", "num_avert"))%>%
+  filter(Year <= 2050)
+  
+
+htmltools::tagList(DT::datatable(xt_sub))
+```
+
+
+## {-}
+
+## Numbers (each pop) {.tabset}
+
+### Number of HCV-related deaths
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+xt_sub <- Num_avert_sub$newHCVdeaths%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         Population = population,
+         Scenario = factor(scenario, levels = c(names(Num_state_avert_sub$Num_diag)),
+                           labels = Sce_lab),
+         `HCV deaths` = round(best, digits = 2),
+         `Number averted` = num_avert
+         
+         )%>%
+  select(!c("year", "best", "scenario", "num_avert", "population"))%>%
+  filter(Year <= 2050)
+  
+
+htmltools::tagList(DT::datatable(xt_sub))
+```
+
+### Number of HCV new infections 
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+xt_sub <- Num_avert_sub$newInfections%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         Population = population,
+         Scenario = factor(scenario, levels = c(names(Num_state_avert_sub$Num_diag)),
+                           labels = Sce_lab),
+         `HCV infections` = round(best, digits = 2),
+         `Number averted` = round(num_avert, digits = 2)
+         
+         )%>%
+  select(!c("year", "best", "scenario", "num_avert", "population"))%>%
+  filter(Year <= 2050)
+  
+
+htmltools::tagList(DT::datatable(xt_sub))
+```
+
+### Number of HCV treatment
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+xt_sub <- Num_avert_sub$newTreatment%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         Population = population,
+         Scenario = factor(scenario, levels = c(names(Num_state_avert_sub$Num_diag)),
+                           labels = Sce_lab),
+         `HCV treatment` = round(best, digits = 2),
+         `Number averted` = round(num_avert, digits = 2)
+         
+         )%>%
+  select(!c("year", "best", "scenario", "num_avert", "population"))%>%
+  filter(Year <= 2050)
+  
+
+htmltools::tagList(DT::datatable(xt_sub))
+```
+
+### Number of HCV antibody testing 
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+xt_sub <- Num_avert_sub$newTestingAb%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         Population = population,
+         Scenario = factor(scenario, levels = c(names(Num_state_avert_sub$Num_diag)),
+                           labels = Sce_lab),
+         `HCV antibody testing` = round(best, digits = 2),
+         `Number averted` = round(num_avert, digits = 2)
+         
+         )%>%
+  select(!c("year", "best", "scenario", "num_avert", "population"))%>%
+  filter(Year <= 2050)
+  
+
+htmltools::tagList(DT::datatable(xt_sub))
+```
+
+### Number of HCV RNA testing (after antibobdy testing positive)
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+xt_sub <- Num_avert_sub$newTestingAg%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         Population = population,
+         Scenario = factor(scenario, levels = c(names(Num_state_avert_sub$Num_diag)),
+                           labels = Sce_lab),
+         `HCV RNA testing` = round(best, digits = 2),
+         `Number averted` = round(num_avert, digits = 2)
+         
+         )%>%
+  select(!c("year", "best", "scenario", "num_avert", "population"))%>%
+  filter(Year <= 2050)
+  
+
+htmltools::tagList(DT::datatable(xt_sub))
+```
+
+### Number of HCV RNA only testing
+```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+xt_sub <- Num_avert_sub$newTestingPOCT%>%
+  mutate(Year = (year + POC_AU$cabY - 1),
+         Population = population,
+         Scenario = factor(scenario, levels = c(names(Num_state_avert_sub$Num_diag)),
+                           labels = Sce_lab),
+         `HCV RNA only/POCT testing` = round(best, digits = 2),
+         `Number averted` = round(num_avert, digits = 2)
+         
+         )%>%
+  select(!c("year", "best", "scenario", "num_avert", "population"))%>%
+  filter(Year <= 2050)
+  
+
+htmltools::tagList(DT::datatable(xt_sub))
+```
+
+
+
+{-}
+
+
+

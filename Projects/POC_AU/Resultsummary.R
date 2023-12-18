@@ -26,6 +26,7 @@ OutputFolder <- file.path(data_path, "02. Output")
 load(file.path(OutputFolder, paste0(project_name, ".rda")))
 load(file.path(OutputFolder, paste0(project_name, "cali.rda")))
 load(file.path(OutputFolder, paste0(project_name, "cali_timev.rda")))
+load(file.path(OutputFolder, paste0(project_name, "Sce_sq.rda")))
 load(file.path(OutputFolder, paste0(project_name, "Sce_np.rda")))
 load(file.path(OutputFolder, paste0(project_name, "S_NP_test.rda")))
 load(file.path(OutputFolder, paste0(project_name, "S_NPscale_test.rda")))
@@ -42,7 +43,7 @@ source(file.path(Rcode, "/Functions/check_steady.R"))
 source(file.path(Rcode, "/Functions/check_steady.R"))
 source(file.path(codefun_path,paste0("Projects/", project_name, "/cost_model.R")))
 
-Sce_epi <- list("status quo" = calibrateInit, 
+Sce_epi <- list("status quo" = Sce_sq, 
                  "National program" = Sce_np, 
                  "National program scale up" = Sce_npscale)
 #### HCV diagnosis and treatment #### 

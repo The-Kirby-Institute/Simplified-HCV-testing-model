@@ -113,5 +113,3 @@ save(coverage_npscale,
      file = file.path(OutputFolder ,
                       paste0(project_name,"coverage_npscale" ,".rda")))
 
-coverage_npscale[, 110]
-coverage_np[, 110]
