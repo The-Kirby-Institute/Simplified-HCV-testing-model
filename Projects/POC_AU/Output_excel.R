@@ -101,110 +101,113 @@ Cost_disprog_dt <- dis_prog_fun(POC_AU, Cost_component_dt, cost= "y")
 
 disprog_dt <- cbind(as.data.frame(Num_disprog_dt), as.data.frame(Cost_disprog_dt[, 5:15]))
 
+# flows
+casflow.index <- c("newTestingAb", "newTestingAg", "newTestingPOCT",
+                   "newTreatment", "newRetreat",  "newCured",
+                   "costTestingAb", "costTestingAg","costTestingPOCT",  
+                   "costTreatment", "costRetreat",  "costCured")
 
+cas_flow_dt <- list()
+for(n in names(Sce)){ 
+  for(i in casflow.index){
+    cas_flow_dt[[n]][[i]] <- 
+      modres.flow.t(POC_AU, Sce[[n]], allp = i, endYear = 100)%>%
+      as.data.frame()
+    }
+  cas_flow_dt[[n]] <- dplyr::bind_rows(cas_flow_dt[[n]], .id = "indicator")
+}
 
+cas_flow_dt <- dplyr::bind_rows(cas_flow_dt, .id = "scenario")%>%
+  mutate(indicator = factor(indicator, levels = unique(cas_flow_dt$`status quo`$indicator)))
+
+# spread indicators to columns 
+cas_flow_dt <- cas_flow_dt%>%spread(indicator, best)
+
+# newinf, newhcvdeath 
+epiflow.index <- c("newInfections", "newHCVdeaths", "newreinfection")
+epi_flow_dt <- list()
+for(n in names(Sce)){ 
+  for(i in epiflow.index){
+    epi_flow_dt[[n]][[i]] <- 
+      modres.flow.t(POC_AU, Sce[[n]], allp = i, endYear = 100)%>%
+      as.data.frame()
+  }
+  epi_flow_dt[[n]] <- dplyr::bind_rows(epi_flow_dt[[n]], .id = "indicator")
+}
+unique(epi_flow_dt$`status quo`$indicator)
+epi_flow_dt <- dplyr::bind_rows(epi_flow_dt, .id = "scenario")%>%
+  mutate(indicator = factor(indicator, levels = unique(epi_flow_dt$`status quo`$indicator)))
+
+# spread indicators to columns 
+epi_flow_dt <- epi_flow_dt%>%spread(indicator, best)
 
 
 
 modres_lst <- list("compartments" = component_dt, "cascade" = cascade_dt,
-                   "disprog" = disprog_dt)
+                   "disprog" = disprog_dt, 
+                   "cascade flows" = cas_flow_dt,
+                   "epi flows" = epi_flow_dt
+                   )
 
 write.xlsx(modres_lst, file = file.path(OutputFolder, paste0("num_component.xlsx")))
 
-write.xlsx(list_of_datasets, file = "writeXLSX2.xlsx")
 
+# yearly number 
 
-# ad liver disease 
+#epi: prevalence, incidence 
+#epi: number of advanced liver diseases 
+tempPrevRNA_subpop <- dplyr::bind_rows(tempPrevRNA_subpop, .id = "scenario")
+HCVInc_subpop <- dplyr::bind_rows(HCVInc_subpop, .id = "scenario")
 
-Num_dc_all <- lapply(Num_dc_all, function(x) x%>%
-                       mutate(best = round(best, digits = 2))%>%
-                       mutate(disease_prog = "DC")
-                     )
+epi <- rbind(tempPrevRNA_subpop, HCVInc_subpop)%>%
+  mutate( year = year + POC_AU$cabY - 1)%>%spread(indicator, best)
 
-Num_hcc_all <- lapply(Num_hcc_all, function(x) x%>%
-                        mutate(best = round(best, digits = 2))%>%
-                        mutate(disease_prog = "HCC")
-)
-
-Num_lt_all <- lapply(Num_lt_all, function(x) x%>%
-                        mutate(best = round(best, digits = 2))%>%
-                        mutate(disease_prog = "liver transplant")
-)
-
-Num_plt_all <- lapply(names(Num_component), function(x)
-  Num_component[[x]]%>%
-  filter(disease_prog%in%c("plt"))%>%
-  group_by(year)%>%summarize(best = sum(best))%>%
-  mutate(scenario = x, disease_prog = "post-liver transplant"))
-names(Num_plt_all) <- names(Num_component)
-
-num_ad <- list()
-for(i in 1:3){ 
+ind <- lapply(Sce_flow_sub, function(x){ 
+  a <- x[!names(x)%in%
+           c("newS", "newEntry", "newDeath", "newLeave",
+             "inflow", "outflow", "costTestingAg")]
   
-  num_ad[[i]] <- rbind(Num_dc_all[[i]], Num_hcc_all[[i]], Num_lt_all[[i]], 
-                       Num_plt_all[[i]])%>%spread(disease_prog, best)%>%
-    mutate(year = year + POC_AU$cabY - 1 )%>%
-    select(!scenario)
-  
-  
-  
-  
-  }
+  a <- dplyr::bind_rows(a, .id = 'indicators')%>%
+    select(scenario, year, population, indicators, best)
+  })
 
+ind$`status quo`%>%filter(year %in% c(7:10))
 
-write.xlsx(num_ad, file = file.path(OutputFolder, paste0("num_ad.xlsx")), append=TRUE)  
-
-
-
-tempPrevRNA_subpop <- lapply(tempPrevRNA_subpop, function(x) x%>%
-                               mutate(indicator = "RNA prevlence"))
-
-HCVInc_subpop <- lapply(HCVInc_subpop, function(x) x%>%
-                               mutate(indicator = "HCV incidence"))
-
-preinc <- list()
-for(i in 1:3){ 
+epi.flow.sub <- dplyr::bind_rows(ind, .id = 'scenario')%>%
+  select(scenario, year, population, indicators, best)%>%
+  mutate(year = year + POC_AU$cabY - 1)%>%
+  spread(indicators, best)
   
-  preinc[[i]] <- rbind(tempPrevRNA_subpop[[i]], HCVInc_subpop[[i]])%>%
-                          spread(indicator, best)%>%
-    mutate(year = year + POC_AU$cabY - 1 )
-  
-  
-  
-  
-}
 
 write.xlsx(preinc, file = file.path(OutputFolder, paste0("preinc.xlsx")), 
            append=TRUE)
 
-# number of flow 
-ind_v <- c("newInfections", "newHCVdeaths",  "newTestingAb", "newTestingRNA", 
-           "newTestingPOCT", "newTreatment", "newRetreat")
-
-indflow <- lapply(Sce_flow_all, function(x){ 
-  
-  a <- x[names(x)%in%ind_v]
-  for(n in ind_v){ 
-    
-    a[[n]] <- a[[n]]%>%mutate(indicator = n)
-    
-  }
-  
-  mm <- do.call("rbind", a)
-  
-  mm <- mm%>%
-    spread(indicator, best)%>%
-    mutate(year = year + POC_AU$cabY - 1 )
-  return(mm)
-}
-  
-  )
-write.xlsx(indflow, file = file.path(OutputFolder, paste0("flow_num.xlsx")), 
-           append=TRUE)
 
 
 # cost: 
 # total cost 
+# components cost + cost_testingab, RNA, poct, treatment, retreatment, cured 
+
+box_cost <- component_dt%>%group_by(scenario, year, population)%>%
+  summarise(cost = sum(cost))
+
+flow_cost <- cas_flow_dt%>%mutate(year = lag(year,POC_AU$npops))%>%
+  select(scenario, year, population, costTestingAb,costTestingAg,costTestingPOCT,
+           costTreatment,costRetreat,costCured)%>%
+  ungroup()%>%group_by(scenario, year, population)%>%
+  mutate(flow_cost = costTestingAb + costTestingAg + costTestingPOCT + 
+           costTreatment + costRetreat + costCured)%>%na.omit()%>%
+  summarise_at(.var = c("costTestingAb","costTestingAg","costTestingPOCT", 
+                        "costTreatment","costRetreat","costCured", "flow_cost"),
+               .funs = c(sum = sum
+                         ))%>%
+  mutate(year = year + POC_AU$cabY)
+
+cost_all <- cbind(as.data.frame(flow_cost), costCompartment_sum = box_cost$cost)%>%
+  mutate(cost_total = costCompartment_sum + flow_cost_sum)%>%
+  mutate(id = year - POC_AU$simY)%>%
+  mutate(discount = (1 + 0.05)^id)%>%filter(id>= 0)%>%
+  mutate(discountValue = cost_total/discount)
 
 for(n in names(Sce_cost)){
   for(s in names(x_np[[1]])){ 
@@ -236,7 +239,7 @@ x_np_total <- lapply(x_np, function(x) x%>%filter(categories != "cost_state")%>%
                               discountValue_cum, Value_cum))
 
 cost_detail <- list()
-for(i in 1:3){ 
+for(i in 1:2){ 
   
   cost_detail[[i]] <- rbind(x_np_total[[i]], x_np[[i]])%>%
     pivot_wider(id_cols = year, 
