@@ -209,7 +209,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   if (!is.null(cost)){ 
     costTestingAb <- ResultMatrix
     costTestingAg <- ResultMatrix
-    costnewTestingPOCT <- ResultMatrix
+    costTestingPOCT <- ResultMatrix
     costTreatment <- ResultMatrix
     costCured <- ResultMatrix
     costRetreat <- ResultMatrix 
@@ -2027,7 +2027,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
           (S[,] - oldPop[,"s"] - oldPop[, "a_cured"])*(tau_RNA_sc_dt[, "f0", t]))
       
       
-      costnewTestingPOCT[, t] <- costflow[[1]][,"ctau_poct",t ]*(newTestingPOCT[, t] - newTestingPOCT_sc[, t]) + 
+      costTestingPOCT[, t] <- costflow[[1]][,"ctau_poct",t ]*(newTestingPOCT[, t] - newTestingPOCT_sc[, t]) + 
         costflow[[2]][,"ctau_poct",t ]*(newTestingPOCT_sc[, t]) + 
         (costflow_Neg[[1]][,"ctau_poct",t ]*S[,]*(tau_poct_dt[, "f0", t] - tau_poct_sc_dt[, "f0", t])) + 
         (costflow_Neg[[2]][,"ctau_poct",t ]*S[,]*(tau_poct_sc_dt[, "f0", t]))
@@ -2074,7 +2074,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                     QALYPops = QALYPops,
                     costTestingAb = costTestingAb,
                     costTestingAg = costTestingAg,
-                    costnewTestingPOCT = costnewTestingPOCT,
+                    costTestingPOCT = costTestingPOCT,
                     costTreatment = costTreatment,
                     costCured = costCured,
                     costRetreat = costRetreat)
