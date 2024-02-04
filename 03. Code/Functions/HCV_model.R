@@ -3,7 +3,7 @@ library(stringr)
 # simulate the HCV model equations
 
 HCVMSM <- function(HCV, parama, initialPop, disease_progress,
-                   pop_array, param_cascade, fib,  end_Y = NULL, modelrun=NULL,
+                   pop_array, param_cascade, param_cascade_sc, fib,  end_Y = NULL, modelrun=NULL,
                    scenario = NULL, cost = NULL, costflow = NULL, 
                    costflow_Neg = NULL, proj=NULL){
   
@@ -17,12 +17,15 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   #     pop_array:  
   #     param_cascade: a list of array includes those paramaeters that varies across 
   #               population and disease progress, (tau_ab, tau_RNA, tau_poct, 
-  #               eta, lota, rho, cured) 
-  #     scenario: testing the reinfection reduction related to behavior intervnetions
+  #               eta, lota, rho, cured)  
+  #              * if intervention applied, the parameters equals to base case + scenarios (total effect)
+  #    param_cascade_sc:  intervention parameters 
+  #     
+  #    scenario: testing the reinfection reduction related to behavior intervnetions
   #                            
-  # cost data (apply discount rate already)
-  # costdt: cost in each state in each timestep 
-  # costcas: cost in the cascade (e.g. cost of testing ab)
+  # cost: cost attached to compartments 
+  # costflow: cost attached to flows 
+  # costflow_Neg: cost for those not living with HCV 
   # Proj: project name 
   # simulation time period 
   dt <- HCV$timestep
@@ -176,7 +179,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   
   newHCVdeathsState <- ResultMatrix
   
-  newTreatment <- ResultMatrix
+  newTreatment <- ResultMatrix 
   
   newRetreat <- ResultMatrix
   
@@ -193,6 +196,15 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   inflow <-ResultMatrix
   
   outflow <-ResultMatrix 
+  
+  # intervention 
+  newTestingAb_sc <- ResultMatrix
+  
+  newTestingAg_sc <- ResultMatrix
+  
+  newTestingPOCT_sc <- ResultMatrix 
+  
+  newTreatment_sc <- ResultMatrix
   
   if (!is.null(cost)){ 
     costTestingAb <- ResultMatrix
@@ -353,6 +365,31 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   cure <- param_cascade$cured
   cure_dt <- 1-(1-cure)^dt
   
+  
+  # intervention 
+  ####testing rate#### 
+  #####antibody####
+  dimN <- list(popNames, progressName) 
+  tau_ab_sc <- array(0, c(npops, nprogress, npts +1), dimnames = dimN)
+  tau_ab_sc <- param_cascade_sc$tau_ab
+  tau_ab_sc_dt <- 1-(1-tau_ab_sc)^dt
+  
+  #####ag/RNA (second step testing)####
+  tau_RNA_sc <- array(0, c(npops, nprogress, npts +1), dimnames = dimN)
+  tau_RNA_sc <- param_cascade_sc$tau_RNA
+  tau_RNA_sc_dt <- 1-(1-tau_RNA_sc)^dt
+  
+  #####POCT: undiag>>diag_RNA####
+  tau_poct_sc <- array(0, c(npops, nprogress, npts +1), dimnames = dimN)
+  tau_poct_sc <- param_cascade_sc$tau_poct
+  tau_poct_sc_dt <- 1-(1-tau_poct_sc)^dt
+  
+  ####treatment####
+  eta_sc <- array(0, c(npops, nprogress, npts +1), dimnames = dimN)
+  eta_sc <- param_cascade_sc$eta
+  eta_sc_dt <- 1-(1-eta_sc)^dt
+  
+  
   ####population transition#### 
   pop_array <- pop_array*dt 
   
@@ -363,8 +400,8 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       a <- x*dt
     })
     
-    costflow <- costflow*dt
-    costflow_Neg <- costflow_Neg*dt
+    costflow <- costflow
+    costflow_Neg <- costflow_Neg
   }
   else if(!is.null(cost) & is.null(costflow_Neg)){
     cost <- lapply(cost, function(x){ 
@@ -372,8 +409,8 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       a <- x*dt
     })
     
-    costflow <- costflow*dt
-    costflow_Neg <- costflow_Neg*dt
+    costflow <- costflow
+    costflow_Neg <- lapply(costflow, function(x){ x*0})
   }
   
   entry <- matrix(0, ncol = npts + 1, nrow = npops)
@@ -1595,6 +1632,62 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                              cure_dt[i, "plt", t]*oldPop[i,"plt_treat"])
       
       
+      #### intervention  ####
+      
+      ##### new treat #####
+      
+      newTreatment_sc[i, t] <- sum(eta_sc_dt[i, "a", t]*oldPop[i,"a_diag_RNA"],
+                                eta_sc_dt[i, "f0", t]*oldPop[i,"f0_diag_RNA"],
+                                eta_sc_dt[i, "f1", t]*oldPop[i,"f1_diag_RNA"],
+                                eta_sc_dt[i, "f2", t]*oldPop[i,"f2_diag_RNA"],
+                                eta_sc_dt[i, "f3", t]*oldPop[i,"f3_diag_RNA"],
+                                eta_sc_dt[i, "f4", t]*oldPop[i,"f4_diag_RNA"],
+                                eta_sc_dt[i, "dc", t]*oldPop[i,"dc_diag_RNA"],
+                                eta_sc_dt[i, "hcc", t]*oldPop[i,"hcc_diag_RNA"],
+                                eta_sc_dt[i, "lt", t]*oldPop[i,"lt_diag_RNA"],
+                                eta_sc_dt[i, "plt", t]*oldPop[i,"plt_diag_RNA"]) 
+      
+      
+      ##### antibody test ##### 
+      
+      newTestingAb_sc[i, t] <- sum(tau_ab_sc_dt[i,"a", t]*(1-spc1_dt[i, t])*oldPop[i,"a_undiag"],
+                                 tau_ab_sc_dt[i, "f0", t]*oldPop[i,"f0_undiag"],
+                                 tau_ab_sc_dt[i, "f1", t]*oldPop[i,"f1_undiag"],
+                                 tau_ab_sc_dt[i, "f2", t]*oldPop[i,"f2_undiag"],
+                                 tau_ab_sc_dt[i, "f3", t]*oldPop[i,"f3_undiag"],
+                                 tau_ab_sc_dt[i, "f4", t]*oldPop[i,"f4_undiag"],
+                                 tau_ab_sc_dt[i, "dc", t]*oldPop[i,"dc_undiag"],
+                                 tau_ab_sc_dt[i, "hcc", t]*oldPop[i,"hcc_undiag"],
+                                 tau_ab_sc_dt[i, "lt", t]*oldPop[i,"lt_undiag"],
+                                 tau_ab_sc_dt[i, "plt", t]*oldPop[i,"plt_undiag"])
+      
+      ##### antigen test ##### 
+      
+      newTestingAg_sc[i, t] <- sum(tau_RNA_sc_dt[i, "a", t]*oldPop[i,"a_diag_ab"],
+                                tau_RNA_sc_dt[i, "f0", t]*oldPop[i,"f0_diag_ab"],
+                                tau_RNA_sc_dt[i, "f1", t]*oldPop[i,"f1_diag_ab"],
+                                tau_RNA_sc_dt[i, "f2", t]*oldPop[i,"f2_diag_ab"],
+                                tau_RNA_sc_dt[i, "f3", t]*oldPop[i,"f3_diag_ab"],
+                                tau_RNA_sc_dt[i, "f4", t]*oldPop[i,"f4_diag_ab"],
+                                tau_RNA_sc_dt[i, "dc", t]*oldPop[i,"dc_diag_ab"],
+                                tau_RNA_sc_dt[i, "hcc", t]*oldPop[i,"hcc_diag_ab"],
+                                tau_RNA_sc_dt[i, "lt", t]*oldPop[i,"lt_diag_ab"],
+                                tau_RNA_sc_dt[i, "plt", t]*oldPop[i,"plt_diag_ab"])
+      
+      ##### POCT test #####
+      
+      newTestingPOCT_sc[i, t] <- sum( tau_poct_sc_dt[i, "a", t]*(1-spc1_dt[i, t])*oldPop[i,"a_undiag"],
+                                   tau_poct_sc_dt[i, "f0", t]*oldPop[i,"f0_undiag"],
+                                   tau_poct_sc_dt[i, "f1", t]*oldPop[i,"f1_undiag"],
+                                   tau_poct_sc_dt[i, "f2", t]*oldPop[i,"f2_undiag"],
+                                   tau_poct_sc_dt[i, "f3", t]*oldPop[i,"f3_undiag"],
+                                   tau_poct_sc_dt[i, "f4", t]*oldPop[i,"f4_undiag"],
+                                   tau_poct_sc_dt[i, "dc", t]*oldPop[i,"dc_undiag"],
+                                   tau_poct_sc_dt[i, "hcc", t]*oldPop[i,"hcc_undiag"],
+                                   tau_poct_sc_dt[i, "lt", t]*oldPop[i,"lt_undiag"],
+                                   tau_poct_sc_dt[i, "plt", t]*oldPop[i,"plt_undiag"])
+      
+      
     }
     #####reinfection##### 
     
@@ -1912,22 +2005,39 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     
     if (!is.null(cost)& proj == "POC_AU"){ 
       costPops[, , t] <- allPops[, , t]*cost$state[,,t]
+      # costflow is a list and contain the unit cost for the standard of care and intervnetion
+      # costflow[[1]]: unit cost for standard of care 
+      # costflow[[2]]: unit cost for intervention 
+      # same rules apply to costflow_Neg 
       
-      costTestingAb[, t] <- (costflow[,"ctau_ab", t]*newTestingAb[, t]) + 
-        (costflow_Neg[,"ctau_ab", t]*((oldPop[, "s"] + oldPop[, "a_cured"])*tau_ab_dt[, "f0", t]))
+      costTestingAb[, t] <- (costflow[[1]][,"ctau_ab", t]*(newTestingAb[, t] - newTestingAb_sc[, t])) +
+        (costflow[[2]][,"ctau_ab", t]*(newTestingAb_sc[, t])) + 
+        (costflow_Neg[[1]][,"ctau_ab", t]*(
+          (oldPop[, "s"] + oldPop[, "a_cured"])*(
+            tau_ab_dt[, "f0", t] - tau_ab_sc_dt[, "f0", t]))) + 
+        (costflow_Neg[[2]][,"ctau_ab", t]*(
+          (oldPop[, "s"] + oldPop[, "a_cured"])*(tau_ab_sc_dt[, "f0", t])))
       
-      costTestingAg[, t] <- (costflow[,"ctau_RNA", t]*newTestingAg[, t]) + 
-        costflow_Neg[,"ctau_RNA", t]*((S[,] - oldPop[,"s"] - oldPop[, "a_cured"])*tau_RNA_dt[, "f0", t]) # all those cured from HCV (except for a_cured) had same probability to receive RNA testing 
-      
-      costnewTestingPOCT[, t] <- costflow[,"ctau_poct",t ]*newTestingPOCT[, t] + 
-        (costflow_Neg[,"ctau_poct",t ]*S[,]*tau_poct_dt[, "f0", t])
-      
-      costTreatment[, t] <- newTreatment[, t]*costflow[,"ceta", t]
-      
-      costCured[, t] <- newCured[, t]*costflow[,"ccured", t]
+      costTestingAg[, t] <- (costflow[[1]][,"ctau_ag", t]*(newTestingAg[, t] - newTestingAg_sc[, t])) + 
+        (costflow[[2]][,"ctau_ag", t]*(newTestingAg_sc[, t])) + 
+        costflow_Neg[[1]][,"ctau_ag", t]*(
+          (S[,] - oldPop[,"s"] - oldPop[, "a_cured"])*(
+            tau_RNA_dt[, "f0", t] - tau_RNA_sc_dt[, "f0", t])) +  # all those cured from HCV (except for a_cured) had same probability to receive RNA testing 
+        costflow_Neg[[2]][,"ctau_ag", t]*(
+          (S[,] - oldPop[,"s"] - oldPop[, "a_cured"])*(tau_RNA_sc_dt[, "f0", t]))
       
       
-      costRetreat[, t] <- newRetreat[, t]*costflow[,"crho", t]
+      costnewTestingPOCT[, t] <- costflow[[1]][,"ctau_poct",t ]*(newTestingPOCT[, t] - newTestingPOCT_sc[, t]) + 
+        costflow[[2]][,"ctau_poct",t ]*(newTestingPOCT_sc[, t]) + 
+        (costflow_Neg[[1]][,"ctau_poct",t ]*S[,]*(tau_poct_dt[, "f0", t] - tau_poct_sc_dt[, "f0", t])) + 
+        (costflow_Neg[[2]][,"ctau_poct",t ]*S[,]*(tau_poct_sc_dt[, "f0", t]))
+      
+      costTreatment[, t] <- newTreatment[, t]*costflow[[1]][,"ceta", t]
+      
+      costCured[, t] <- newCured[, t]*costflow[[1]][,"ccured", t]
+      
+      
+      costRetreat[, t] <- newRetreat[, t]*costflow[[1]][,"crho", t]
       
       
       QALYPops[, , t] <- allPops[, , t]*cost$QALY[,,t]
