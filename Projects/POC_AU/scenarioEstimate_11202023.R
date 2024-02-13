@@ -84,24 +84,27 @@ Param_cal <- function(pj, dlist, index ,S_Yint, S_Yend, ORlist, Ccal ){
   # S_Yend: end year of scenario 
   # Orlist: the oddration of the parameters in scenario (save in a list)
   # Ccal: the list of national program coverage 
+  # convert to monthly probability then convert back to yearly probability 
   SYpoint_int <- (S_Yint - pj$cabY)/pj$timestep + 1
-  SYpoint_end <- (S_Yend - pj$cabY)/POC_AU$timestep + 1
-  SY_leng <- SYpoint_end - SYpoint_int
+  SYpoint_end <- (S_Yend - pj$cabY)/POC_AU$timestep
+  SY_leng <- SYpoint_end - SYpoint_int + 1 
   
-  intVal <- dlist[[index]][, 3, SYpoint_int] 
+  intVal <- dlist[[index]][, 3, SYpoint_int]
   
   endVal <- c() 
-  endVal[1] <- intVal[1] + (ORlist[["C"]][[index]])*Ccal[["C"]]
-  endVal[2] <- intVal[2] + (ORlist[["C"]][[index]])*Ccal[["C"]]
-  endVal[3] <- intVal[3] + (ORlist[["P"]][[index]])*Ccal[["P"]]
-  endVal[4] <- intVal[4] + (ORlist[["P"]][[index]])*Ccal[["P"]] 
-  endVal[5] <- intVal[5] 
+  endVal[1] <- 1-(1- intVal[1])^pj$timestep + (1-(1- (ORlist[["C"]][[index]])*Ccal[["C"]])^pj$timestep)
+  endVal[2] <- 1-(1- intVal[2])^pj$timestep + (1-(1- (ORlist[["C"]][[index]])*Ccal[["C"]])^pj$timestep)
+  endVal[3] <- 1-(1- intVal[3])^pj$timestep + (1-(1- (ORlist[["P"]][[index]])*Ccal[["P"]])^pj$timestep)
+  endVal[4] <- 1-(1- intVal[4])^pj$timestep + (1-(1- (ORlist[["P"]][[index]])*Ccal[["P"]])^pj$timestep)
+  endVal[5] <- 1-(1- intVal[5])^pj$timestep + (1-(1- (ORlist[["P"]][[index]])*Ccal[["P"]])^pj$timestep)
   
-  endVal[1] <- ifelse(endVal[1]>= 1, 1, endVal[1])
-  endVal[2] <- ifelse(endVal[2]>= 1, 1, endVal[2])
-  endVal[3] <- ifelse(endVal[3]>= 1, 1, endVal[3])
-  endVal[4] <- ifelse(endVal[4]>= 1, 1, endVal[4])
-  
+  endVal[1] <- 1- (1 - endVal[1])^(1/pj$timestep)
+  endVal[2] <- 1- (1 - endVal[2])^(1/pj$timestep)
+  endVal[3] <- 1- (1 - endVal[3])^(1/pj$timestep)
+  endVal[4] <- 1- (1 - endVal[4])^(1/pj$timestep)
+  endVal[5] <- 1- (1 - endVal[5])^(1/pj$timestep)
+
+
   if(index== "tau_poct"){ 
     avcov <- dlist[["tau_ab"]][, 3, SYpoint_int]
     endVal[1] <- 
@@ -113,7 +116,7 @@ Param_cal <- function(pj, dlist, index ,S_Yint, S_Yend, ORlist, Ccal ){
     endVal[4] <- 
       ifelse((endVal[4] + avcov[4])>= 1, (1 - avcov[4]), endVal[4])
     endVal[5] <- 
-      intVal[5]
+      ifelse((endVal[5] + avcov[5])>= 1, (1 - avcov[5]), endVal[5])
   }
   
   
@@ -121,19 +124,23 @@ Param_cal <- function(pj, dlist, index ,S_Yint, S_Yend, ORlist, Ccal ){
   for ( i in 2:dim(dlist[[index]])[[2]]){
     dlist[[index]][1, i, c(SYpoint_int:pj$npts)] <- 
       c(seq(as.numeric(intVal[1]), as.numeric(endVal[1]), length = (SY_leng)), 
-        rep(endVal[1], pj$npts - SYpoint_end +1))
+        rep(intVal[1], pj$npts - SYpoint_end))
     
     dlist[[index]][2, i, c(SYpoint_int:pj$npts)] <- 
       c(seq(as.numeric(intVal[2]), as.numeric(endVal[2]), length = (SY_leng)), 
-        rep(endVal[2], pj$npts - SYpoint_end +1))
+        rep(intVal[2], pj$npts - SYpoint_end))
     
     dlist[[index]][3, i, c(SYpoint_int:pj$npts)] <- 
       c(seq(as.numeric(intVal[3]), as.numeric(endVal[3]), length = (SY_leng)), 
-        rep(endVal[3], pj$npts - SYpoint_end +1))
+        rep(intVal[3], pj$npts - SYpoint_end))
     
     dlist[[index]][4, i, c(SYpoint_int:pj$npts)] <- 
       c(seq(as.numeric(intVal[4]), as.numeric(endVal[4]), length = (SY_leng)), 
-        rep(endVal[4], pj$npts - SYpoint_end +1))
+        rep(intVal[4], pj$npts - SYpoint_end))
+    
+    dlist[[index]][5, i, c(SYpoint_int:pj$npts)] <- 
+      c(seq(as.numeric(intVal[5]), as.numeric(endVal[5]), length = (SY_leng)), 
+        rep(intVal[5], pj$npts - SYpoint_end))
     
     
   }
@@ -144,10 +151,12 @@ Param_cal <- function(pj, dlist, index ,S_Yint, S_Yend, ORlist, Ccal ){
 param_var <- c("tau_RNA", "tau_poct", "eta")
 
 for(i in param_var){ 
-  dfList_NP[[i]] <- Param_cal(pj = POC_AU, dlist = dfList_NP, index = i, 
+  dfList_NP[[i]] <- Param_cal(pj = POC_AU, dlist = dfList, index = i, 
                               S_Yint = 2022, S_Yend = 2024, ORlist = RRlst, 
                               Ccal = Ccal)
 }
+
+
 
 save(dfList_NP, Ccal,
      file = file.path(OutputFolder ,
