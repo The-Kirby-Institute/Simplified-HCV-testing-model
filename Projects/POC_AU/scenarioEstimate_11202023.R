@@ -76,7 +76,7 @@ POC_AU$cabY
 S_Yint <- 2022
 S_Yend <-2024
 # function to estimate the parameters of national program 
-Param_cal <- function(pj, dlist, index ,S_Yint, S_Yend, ORlist, Ccal ){ 
+Param_cal <- function(pj, dlist, index ,S_Yint, S_Yend, r_Yend,ORlist, Ccal ){ 
   #proj: project name 
   # dlist: list of cascade parameters 
   # index: the parameter to calculate 
@@ -87,9 +87,14 @@ Param_cal <- function(pj, dlist, index ,S_Yint, S_Yend, ORlist, Ccal ){
   # convert to monthly probability then convert back to yearly probability 
   SYpoint_int <- (S_Yint - pj$cabY)/pj$timestep + 1
   SYpoint_end <- (S_Yend - pj$cabY)/POC_AU$timestep
-  SY_leng <- SYpoint_end - SYpoint_int + 1 
   
-  intVal <- dlist[[index]][, 3, SYpoint_int]
+  SY_leng <- SYpoint_end - SYpoint_int + 1 
+  # remain the same level to end of which year
+  rYpoint_end <- (r_Yend - pj$cabY)/POC_AU$timestep
+  
+  rY_leng <- rYpoint_end - SYpoint_end
+  
+  intVal <- dlist[[index]][, 3, (SYpoint_int - 1)]
   
   endVal <- c() 
   endVal[1] <- 1-(1- intVal[1])^pj$timestep + (1-(1- (ORlist[["C"]][[index]])*Ccal[["C"]])^pj$timestep)
@@ -122,25 +127,30 @@ Param_cal <- function(pj, dlist, index ,S_Yint, S_Yend, ORlist, Ccal ){
   
   
   for ( i in 2:dim(dlist[[index]])[[2]]){
-    dlist[[index]][1, i, c(SYpoint_int:pj$npts)] <- 
-      c(seq(as.numeric(intVal[1]), as.numeric(endVal[1]), length = (SY_leng)), 
-        rep(intVal[1], pj$npts - SYpoint_end))
+    dlist[[index]][1, i, c((SYpoint_int - 1):pj$npts)] <- 
+      c(seq(as.numeric(intVal[1]), as.numeric(endVal[1]), length = (SY_leng + 1)), 
+        rep(as.numeric(endVal[1]), length = (rY_leng)),
+        rep(intVal[1], pj$npts - rYpoint_end))
     
-    dlist[[index]][2, i, c(SYpoint_int:pj$npts)] <- 
-      c(seq(as.numeric(intVal[2]), as.numeric(endVal[2]), length = (SY_leng)), 
-        rep(intVal[2], pj$npts - SYpoint_end))
+    dlist[[index]][2, i, c((SYpoint_int - 1):pj$npts)] <- 
+      c(seq(as.numeric(intVal[2]), as.numeric(endVal[2]), length = (SY_leng + 1)), 
+        rep(as.numeric(endVal[2]), length = (rY_leng)),
+        rep(intVal[2], pj$npts - rYpoint_end))
     
-    dlist[[index]][3, i, c(SYpoint_int:pj$npts)] <- 
-      c(seq(as.numeric(intVal[3]), as.numeric(endVal[3]), length = (SY_leng)), 
-        rep(intVal[3], pj$npts - SYpoint_end))
+    dlist[[index]][3, i, c((SYpoint_int - 1):pj$npts)] <- 
+      c(seq(as.numeric(intVal[3]), as.numeric(endVal[3]), length = (SY_leng + 1)), 
+        rep(as.numeric(endVal[3]), length = (rY_leng)),
+        rep(intVal[3], pj$npts - rYpoint_end))
     
-    dlist[[index]][4, i, c(SYpoint_int:pj$npts)] <- 
-      c(seq(as.numeric(intVal[4]), as.numeric(endVal[4]), length = (SY_leng)), 
-        rep(intVal[4], pj$npts - SYpoint_end))
+    dlist[[index]][4, i, c((SYpoint_int - 1):pj$npts)] <- 
+      c(seq(as.numeric(intVal[4]), as.numeric(endVal[4]), length = (SY_leng + 1)), 
+        rep(as.numeric(endVal[4]), length = (rY_leng)),
+        rep(intVal[4], pj$npts - rYpoint_end))
     
-    dlist[[index]][5, i, c(SYpoint_int:pj$npts)] <- 
-      c(seq(as.numeric(intVal[5]), as.numeric(endVal[5]), length = (SY_leng)), 
-        rep(intVal[5], pj$npts - SYpoint_end))
+    dlist[[index]][5, i, c((SYpoint_int - 1):pj$npts)] <- 
+      c(seq(as.numeric(intVal[5]), as.numeric(endVal[5]), length = (SY_leng + 1)), 
+        rep(as.numeric(endVal[4]), length = (rY_leng)),
+        rep(intVal[4], pj$npts - rYpoint_end))
     
     
   }
@@ -149,22 +159,52 @@ Param_cal <- function(pj, dlist, index ,S_Yint, S_Yend, ORlist, Ccal ){
 }
 
 param_var <- c("tau_RNA", "tau_poct", "eta")
-
+# Scenario: current achievement 
+dfList_NP <- dfList
 for(i in param_var){ 
   dfList_NP[[i]] <- Param_cal(pj = POC_AU, dlist = dfList, index = i, 
-                              S_Yint = 2022, S_Yend = 2024, ORlist = RRlst, 
+                              S_Yint = 2022, S_Yend = 2024, r_Yend = 2024,ORlist = RRlst, 
                               Ccal = Ccal)
 }
 
+# Scenario: current achievement + 2024 prediction 
+# odds of coverage: 1.08 (total test_predicited/ number test in 2023)
+Ccal2024 <- lapply(Ccal,function(x) x*1.08)
+dfList_NP2024 <- dfList_NP
+for(i in param_var){ 
+  dfList_NP2024[[i]] <- Param_cal(pj = POC_AU, dlist = dfList_NP, index = i, 
+                              S_Yint = 2024, S_Yend = 2026, r_Yend = 2026,ORlist = RRlst, 
+                              Ccal = Ccal2024)
+}
 
-
-save(dfList_NP, Ccal,
+save(dfList_NP2024, Ccal2024 ,
      file = file.path(OutputFolder ,
-                      paste0(project_name,"S_NP_test" ,".rda")))
+                      paste0(project_name,"NP_2024" ,".rda")))
 
-param_sc <- lapply(names(dfList), function(x) a <- dfList_NP[[x]] - dfList[[x]])
-names(param_sc) <- names(dfList)
+# scenarioA: remaining at level of 2024 to end of 2027 
+dfList_NPscale_A <- dfList_NP
+for(i in param_var){ 
+  dfList_NPscale_A[[i]] <- Param_cal(pj = POC_AU, dlist = dfList_NP, index = i, 
+                                  S_Yint = 2024, S_Yend = 2026, r_Yend = 2028,ORlist = RRlst, 
+                                  Ccal = Ccal2024)
+}
+# scenarioB: further increase coverage in 2025 
+# 2025 coverage: cov_2024*1.5
+dfList_NPscale_B <- dfList_NP
 
+
+
+
+# extract the additional probability contributed by national program 
+extra_cascade <- function(dList, dList_sc){ 
+  param_sc <- lapply(names(dList), function(x) a <- dList_sc[[x]] - dList[[x]])
+  names(param_sc) <- names(dList)
+  
+  return(param_sc)
+  }
+
+param_NP <- extra_cascade(dfList, dfList_NP)
+param_NP$tau_poct[, , 85]
 # import cost data
 files <- list.files(path = paste0(DataFolder, 
                                   "/cost/", sep =  ""), pattern = '*.csv')
