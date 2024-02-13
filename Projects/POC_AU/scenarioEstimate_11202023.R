@@ -67,14 +67,14 @@ RRlst <- list("C" = list("tau_RNA" = RR_tauRNA_C,
 Ccal_C <- 0.01208
 
 Ccal_P <- 0.05424902
-Ccal_scale <- list("C" = Ccal_C*2, "P" = Ccal_P*2)
+
 
 Ccal <- list("C" = Ccal_C, "P" = Ccal_P)
 # set up parameters for scenario 
 dfList_NP <- dfList 
 POC_AU$cabY
 S_Yint <- 2022
-S_Yend <-2023
+S_Yend <-2024
 # function to estimate the parameters of national program 
 Param_cal <- function(pj, dlist, index ,S_Yint, S_Yend, ORlist, Ccal ){ 
   #proj: project name 
@@ -145,7 +145,7 @@ param_var <- c("tau_RNA", "tau_poct", "eta")
 
 for(i in param_var){ 
   dfList_NP[[i]] <- Param_cal(pj = POC_AU, dlist = dfList_NP, index = i, 
-                              S_Yint = 2022, S_Yend = 2023, ORlist = RRlst, 
+                              S_Yint = 2022, S_Yend = 2024, ORlist = RRlst, 
                               Ccal = Ccal)
 }
 
@@ -153,34 +153,61 @@ save(dfList_NP, Ccal,
      file = file.path(OutputFolder ,
                       paste0(project_name,"S_NP_test" ,".rda")))
 
-dfList_NPscale <- dfList_NP
-for(i in param_var){ 
-  dfList_NPscale[[i]] <- Param_cal(pj = POC_AU, dlist = dfList_NPscale, index = i, 
-                                   S_Yint = 2024, S_Yend = 2027, ORlist = RRlst, 
-                                   Ccal = Ccal_scale)
-}
-save(dfList_NPscale,Ccal_scale,
-     file = file.path(OutputFolder ,
-                      paste0(project_name,"S_NPscale_test" ,".rda")))
+param_sc <- lapply(names(dfList), function(x) a <- dfList_NP[[x]] - dfList[[x]])
+names(param_sc) <- names(dfList)
 
+# import cost data
+files <- list.files(path = paste0(DataFolder, 
+                                  "/cost/", sep =  ""), pattern = '*.csv')
+
+
+costdfList <- lapply(files, function(f) {
+  
+  df <- read.csv(file.path(paste0(DataFolder, "/cost/", f, sep = "")), header = TRUE)
+  
+  df <- df[, -1]
+  
+  df <- df%>%as_tibble()
+  
+  df <- as.matrix(df, nrow = npops, ncol = length(.) + 1)
+
+})
+
+names(costdfList) <- c(gsub("^|.csv", "", files)) # ^: from beginning, \ end before .csv
+
+
+cost_state <- costdfList$state
+costflow <- list()
+costflow[[1]] <- costdfList$costFlow
+costflow[[2]] <- costdfList$costFlow_POCRNA
+
+costflow_Neg <- list()
+costflow_Neg[[1]] <- costdfList$costFlow_NEG
+costflow_Neg[[2]] <- costdfList$`costFlow_POCRNA _NEG`
 tic <- proc.time()
 
 endY <- 100
 
+param_dfList <- lapply(dfList, function(x) x*0)
+names(param_dfList) <- names(dfList)
+
+
 Sce_sq <- HCVMSM(POC_AU, best_estimates, best_est_pop,
                  disease_progress,pop_array,
-                 dfList, fib, 
-                 modelrun="UN", proj = "POC_AU", end_Y = endY)
+                 dfList, param_cascade_sc = param_dfList , fib = fib, 
+                 modelrun="UN", proj = "POC_AU", end_Y = endY, 
+                 cost = costdfList, costflow = costflow, 
+                 costflow_Neg = costflow_Neg)
 
 Sce_np <- HCVMSM(POC_AU, best_estimates, best_est_pop,
                  disease_progress,pop_array,
-                 dfList_NP, fib, 
-                 modelrun="UN", proj = "POC_AU", end_Y = endY)
+                 dfList, param_cascade_sc = param_sc , fib = fib, 
+                 modelrun="UN", proj = "POC_AU", end_Y = endY, 
+                 cost = costdfList, costflow = costflow, 
+                 costflow_Neg = costflow_Neg)
 
-Sce_npscale <- HCVMSM(POC_AU, best_estimates, best_est_pop,
-                      disease_progress,pop_array,
-                      dfList_NPscale, fib, 
-                      modelrun="UN", proj = "POC_AU", end_Y = endY)
+
+
 
 
 toc <- proc.time() - tic 
@@ -194,7 +221,4 @@ save(Sce_np,
      file = file.path(OutputFolder ,
                       paste0(project_name,"Sce_np" ,".rda")))
 
-save(Sce_npscale,
-     file = file.path(OutputFolder ,
-                      paste0(project_name,"Sce_npscale" ,".rda")))
 

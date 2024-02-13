@@ -30,10 +30,10 @@ load(file.path(OutputFolder, paste0(project_name, "Sce_sq.rda")))
 load(file.path(OutputFolder, paste0(project_name, "Sce_np.rda")))
 load(file.path(OutputFolder, paste0(project_name, "S_NP_test.rda")))
 load(file.path(OutputFolder, paste0(project_name, "S_NPscale_test.rda")))
-load(file.path(OutputFolder, paste0(project_name, "Sce_npscale.rda")))
+
 load(file.path(OutputFolder, paste0(project_name, "coverage_sq.rda")))
 load(file.path(OutputFolder, paste0(project_name, "coverage_np.rda")))
-load(file.path(OutputFolder, paste0(project_name, "coverage_npscale.rda")))
+
 load(file.path(OutputFolder, paste0(project_name, "cost_np.rda")))
 
 source(file.path(Rcode, "/Functions/HCV_model.R"))
@@ -44,8 +44,7 @@ source(file.path(Rcode, "/Functions/check_steady.R"))
 source(file.path(codefun_path,paste0("Projects/", project_name, "/cost_model.R")))
 
 Sce_epi <- list("status quo" = Sce_sq, 
-                 "National program" = Sce_np, 
-                 "National program scale up" = Sce_npscale)
+                 "National program" = Sce_np)
 #### HCV diagnosis and treatment #### 
 # Number of people living with diagnosed RNA 
 # Number of people living with diagnosed ab
@@ -57,7 +56,8 @@ Sce_epi <- list("status quo" = Sce_sq,
 indicator_flow <- Sce_epi$`status quo`[!names(Sce_epi$`status quo`)%in%
                                          c("allPops", "newpop_tran", "newpop_tranState",
                                            "HCVdeathState",
-                                           "newDeathState", "death_hcv")]
+                                           "newDeathState", "death_hcv", 
+                                           "costPops", "QALYPops")]
 endY <- 100
 
 
@@ -140,7 +140,7 @@ for(n in names(Sce_epi)){
                                                paramR = NULL, range = NULL,
                                                endY = endY)%>%
       mutate(scenario = n)
-    
+ 
     Sce_flow_setting[["commu"]][[n]][[x]] <- 
       Sce_flow_sub[[n]][[x]]%>%filter(population %in% c("C_PWID", "C_fPWID"))%>%
       group_by(year)%>%summarise_at("best", sum)%>%
