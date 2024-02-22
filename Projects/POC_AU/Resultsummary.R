@@ -22,29 +22,22 @@ Rcode <- file.path(codefun_path, "03. Code")
 
 DataFolder <- file.path(data_path, "01. DATA/model input" )
 OutputFolder <- file.path(data_path, "02. Output")
+# project specific code path 
+Proj_code <- file.path(codefun_path, paste0("projects/", project_name))
+
+
 
 load(file.path(OutputFolder, paste0(project_name, ".rda")))
-load(file.path(OutputFolder, paste0(project_name, "cali.rda")))
-load(file.path(OutputFolder, paste0(project_name, "cali_timev.rda")))
-load(file.path(OutputFolder, paste0(project_name, "Sce_sq.rda")))
-load(file.path(OutputFolder, paste0(project_name, "Sce_np.rda")))
-load(file.path(OutputFolder, paste0(project_name, "S_NP_test.rda")))
-load(file.path(OutputFolder, paste0(project_name, "S_NPscale_test.rda")))
+load(file.path(OutputFolder, paste0(project_name, "Simulations.rda")))
 
-load(file.path(OutputFolder, paste0(project_name, "coverage_sq.rda")))
-load(file.path(OutputFolder, paste0(project_name, "coverage_np.rda")))
-
-load(file.path(OutputFolder, paste0(project_name, "cost_np.rda")))
-
-source(file.path(Rcode, "/Functions/HCV_model.R"))
 source(file.path(Rcode, "/Functions/plotManuscript.R"))
 source(file.path(Rcode, "/Functions/plotFunctions.R")) 
-source(file.path(Rcode, "/Functions/check_steady.R"))
-source(file.path(Rcode, "/Functions/check_steady.R"))
-source(file.path(codefun_path,paste0("Projects/", project_name, "/cost_model.R")))
+source(file.path(Proj_code, "/model_timestep.R")) 
+# simulation outcomes 
+# Sce_sq: pre-national program scenario 
+# Sce_np: national program scenarios 
 
-Sce_epi <- list("status quo" = Sce_sq, 
-                 "National program" = Sce_np)
+#### epi outcomes ####  
 #### HCV diagnosis and treatment #### 
 # Number of people living with diagnosed RNA 
 # Number of people living with diagnosed ab
@@ -53,435 +46,382 @@ Sce_epi <- list("status quo" = Sce_sq,
 # number of people current HCV infection 
 
 
-indicator_flow <- Sce_epi$`status quo`[!names(Sce_epi$`status quo`)%in%
-                                         c("allPops", "newpop_tran", "newpop_tranState",
-                                           "HCVdeathState",
-                                           "newDeathState", "death_hcv", 
-                                           "costPops", "QALYPops")]
+indicator_flow <- Sce_sq[!names(Sce_sq)%in% c("allPops", "newpop_tran", 
+                                              "newpop_tranState", "HCVdeathState",
+                                              "newDeathState", "death_hcv", 
+                                              "costPops", "QALYPops")]
 endY <- 100
 
 
+Num_box <- list()
 
-Num_component <- list()
+# get number in each component in each timestep 
 
-# get number in each component
-for(n in names(Sce_epi)){ 
-  Num_component[[n]] <- popResults_MidYear(POC_AU, Sce_epi[[n]], 
-                     Population = POC_AU$popNames,
-                     Disease_prog = POC_AU$progress_name, 
-                     Cascade = c("s",POC_AU$cascade_name), 
-                     param = NULL,
-                     endYear = 100)%>%
-    as.data.frame() 
-}
+Num_box[["Status quo"]] <- modres.t(POC_AU, Sce_sq, endYear = 100)%>%as.data.frame() 
+
+for(i in names(Sce_np)){ 
+  
+  Num_box[[i]] <- modres.t(POC_AU, Sce_np[[i]], endYear = 100)%>%as.data.frame() 
+  
+  }
 
 pop_N <- list()
+
 commu_N <- list()
+
 prison_N <- list()
+
 prisonPWID_N <- list()
-for(n in names(Sce_epi)){ 
-  pop_N[[n]] <- Num_component[[n]]%>%group_by(year, population)%>%
-    summarise_at("best", sum)%>%arrange(year)
-    
-  commu_N[[n]] <- pop_N[[n]]%>%
-    filter(population %in% c("C_PWID", "C_fPWID"))%>%
-    summarise_at("best", sum)%>%arrange(year)
+
+# total N of all compartments in each timestep 
+
+for(i in names(Num_box)){ 
+  pop_N[[i]] <- N_pop_sum(Num_box[[i]], pop = NULL)
   
-  prison_N[[n]] <- pop_N[[n]]%>%
-    filter(population %in% c("P_PWID", "P_fPWID","P_nPWID"))%>%
-    summarise_at("best", sum)%>%arrange(year)
+  commu_N[[i]] <- N_pop_sum(Num_box[[i]], 
+                            pop = c("C_PWID", "C_fPWID"))
   
-  prisonPWID_N[[n]] <- pop_N[[n]]%>%
-    filter(population %in% c("P_PWID", "P_fPWID"))%>%
-    summarise_at("best", sum)%>%arrange(year)
+  prison_N[[i]] <- N_pop_sum(Num_box[[i]], 
+                             pop = c("P_PWID", "P_fPWID", "P_nPWID"))
+  
+  prisonPWID_N[[i]] <- N_pop_sum(Num_box[[i]], 
+                                 pop = c("P_PWID", "P_fPWID"))
+}
+  
+
+
+# number in the each cascade box 
+Num_diag <- list()
+
+Num_diag_ab <- list()
+
+Num_diag_Treated <- list() 
+
+Num_chronic_cured <- list() 
+
+Num_curInf <- list()
+
+Num_dc <- list()
+
+Num_hcc <- list()
+
+Num_lt <- list()
+
+Num_plt <- list()
+# diagnosis: compartments includes those cured from treatment: excluding those achieved cured at acute stage
+for(i in names(Num_box)){
+  Num_diag[[i]] <- N_pop_casdisprog(Num_box[[i]], pop = NULL, 
+                                    cas = c("diag_RNA", "treat", "treat_f"),
+                                    disprog = c(POC_AU$progress_name)[-1])
+  
+  Num_diag_ab[[i]] <- N_pop_casdisprog(Num_box[[i]], pop = NULL, 
+                                       cas = c("diag_ab","diag_RNA", "treat", 
+                                               "treat_f", "cured"), 
+                                       disprog = c(POC_AU$progress_name)[-1])
+  
+  Num_diag_Treated[[i]] <- N_pop_casdisprog(Num_box[[i]], pop = NULL, 
+                                            cas = c("treat", "treat_f", "cured"),
+                                            disprog = c(POC_AU$progress_name)[-1])
+  
+  Num_chronic_cured[[i]] <- N_pop_casdisprog(Num_box[[i]], pop = NULL, 
+                                             cas = c("cured"),
+                                             disprog = c(POC_AU$progress_name)[-1])
+  
+  Num_curInf[[i]] <- N_pop_casdisprog(Num_box[[i]], pop = NULL, 
+                                      cas = c("undiag", "diag_ab", "diag_RNA", 
+                                              "treat", "treat_f"),
+                                      disprog = NULL)
+  
+  Num_dc[[i]] <- N_pop_casdisprog(Num_box[[i]], pop = NULL, cas = NULL,
+                                  disprog = c("dc"))
+  
+  Num_hcc[[i]] <- N_pop_casdisprog(Num_box[[i]], pop = NULL, cas = NULL,
+                                   disprog = c("hcc"))
+  
+  Num_lt[[i]] <- N_pop_casdisprog(Num_box[[i]], pop = NULL, cas = NULL,
+                                  disprog = c("lt"))
+  
+  Num_plt[[i]] <- N_pop_casdisprog(Num_box[[i]], pop = NULL, cas = NULL,
+                                   disprog = c("plt"))
   
 }
 
-Sce_flow_sub  <- list()
-Sce_flow_all <- list()
-Sce_flow_setting <- list()
+# number in flows in each timestep
+Sce_flow <- list() 
 
-Num_diag <- list()
-Num_diag_ab <- list()
-Num_Treated <- list()
-Num_chronic_cured <- list()
-Num_curInf <- list()
 
-Num_diag_all <- list()
-Num_diag_ab_all <- list()
-Num_Treated_all <- list()
-Num_chronic_cured_all <- list()
-Num_curInf_all <- list()
+for(x in names(indicator_flow)){ 
+  
+  Sce_flow[["Status quo"]][[x]] <- modres.flow.t(POC_AU, Sce_sq, endYear = endY, 
+                                                 allp = x)
+}
 
-Num_diag_setting <- list()
-Num_diag_ab_setting <- list()
-Num_Treated_setting <- list()
-Num_chronic_cured_setting <- list()
-Num_curInf_setting <- list()
-
-# advanced liver stage
-Num_dc <- list()
-Num_hcc <- list()
-Num_lt <- list()
-
-Num_dc_all <- list()
-Num_hcc_all <- list()
-Num_lt_all <- list()
-
-Num_dc_setting <- list()
-Num_hcc_setting <- list()
-Num_lt_setting <- list()
-
-for(n in names(Sce_epi)){ 
+for(i in names(Sce_np)){
   for(x in names(indicator_flow)){ 
-    
-    Sce_flow_sub[[n]][[x]] <- indicatorResults(POC_AU, Sce_epi[[n]], x, 
-                                               pop=POC_AU$popNames,
-                                               paramR = NULL, range = NULL,
-                                               endY = endY)%>%
-      mutate(scenario = n)
- 
-    Sce_flow_setting[["commu"]][[n]][[x]] <- 
-      Sce_flow_sub[[n]][[x]]%>%filter(population %in% c("C_PWID", "C_fPWID"))%>%
-      group_by(year)%>%summarise_at("best", sum)%>%
-      mutate(scenario = n)%>%arrange(year)
-    
-    Sce_flow_setting[["prisons"]][[n]][[x]] <- 
-      Sce_flow_sub[[n]][[x]]%>%
-      filter(population %in% c("P_PWID", "P_fPWID", "P_nPWID"))%>%
-      group_by(year)%>%summarise_at("best", sum)%>%
-      mutate(scenario = n)%>%arrange(year)
-    
-    Sce_flow_setting[["prisonsPWID"]][[n]][[x]] <- 
-      Sce_flow_sub[[n]][[x]]%>%
-      filter(population %in% c("P_PWID", "P_fPWID"))%>%
-      group_by(year)%>%summarise_at("best", sum)%>%
-      mutate(scenario = n)%>%arrange(year)
-    
-    Sce_flow_all[[n]][[x]] <- Sce_flow_sub[[n]][[x]]%>%
-      group_by(year)%>%summarise_at("best", sum)%>%
-      mutate(scenario = n)
-  }
-  
-  Num_diag[[n]] <- Num_component[[n]]%>%
-    filter(cascade%in%c("diag_RNA", "treat", "treat_f"))%>%
-    group_by(year, population)%>%summarize(best = sum(best))%>%
-    mutate(scenario = n)
-  
-  Num_diag_all[[n]] <- Num_diag[[n]]%>%
-    group_by(year)%>%summarise_at("best", sum)%>%
-    mutate(scenario = n)
-  
-  Num_diag_ab[[n]] <- Num_component[[n]]%>%
-    filter(cascade%in%c("diag_ab","diag_RNA", "treat", "treat_f"))%>%
-    group_by(year, population)%>%summarize(best = sum(best))%>%
-    mutate(scenario = n)
-  
-  Num_diag_ab_all[[n]] <- Num_diag_ab[[n]]%>%
-    group_by(year)%>%summarise_at("best", sum)%>%
-    mutate(scenario = n)
-  
-  Num_Treated[[n]] <- Num_component[[n]]%>%
-    filter(cascade%in%c("treat", "treat_f"))%>%
-    group_by(year, population)%>%summarize(best = sum(best))%>%
-    mutate(scenario = n)
-  
-  Num_Treated_all[[n]] <- Num_Treated[[n]]%>%
-    group_by(year)%>%summarise_at("best", sum)%>%
-    mutate(scenario = n)
-  
-  Num_chronic_cured[[n]] <- Num_component[[n]]%>%
-    filter(cascade%in%c("cured"))%>%
-    group_by(year, population)%>%summarize(best = sum(best))%>%
-    mutate(scenario = n)
-  
-  Num_chronic_cured_all[[n]] <- Num_chronic_cured[[n]]%>%
-    group_by(year)%>%summarise_at("best", sum)%>%
-    mutate(scenario = n)
-  
-  Num_curInf[[n]] <- Num_component[[n]]%>%
-    filter(cascade%in%c("undiag", "diag_ab",  "diag_RNA", "treat",  
-                        "treat_f"))%>%
-    group_by(year, population)%>%summarize(best = sum(best))%>%
-    mutate(scenario = n)
-  
-  Num_curInf_all[[n]] <- Num_curInf[[n]]%>%
-    group_by(year)%>%summarise_at("best", sum)%>%
-    mutate(scenario = n)
-  
-  Num_dc[[n]] <- Num_component[[n]]%>%
-    filter(disease_prog%in%c("dc"))%>%
-    group_by(year, population)%>%summarize(best = sum(best))%>%
-    mutate(scenario = n)
-  
-  Num_dc_all[[n]] <- Num_dc[[n]]%>%
-    group_by(year)%>%summarise_at("best", sum)%>%
-    mutate(scenario = n)
-  
-  Num_hcc[[n]] <- Num_component[[n]]%>%
-    filter(disease_prog%in%c("hcc"))%>%
-    group_by(year, population)%>%summarize(best = sum(best))%>%
-    mutate(scenario = n)
-  
-  Num_hcc_all[[n]] <- Num_hcc[[n]]%>%
-    group_by(year)%>%summarise_at("best", sum)%>%
-    mutate(scenario = n)
-  
-  Num_lt[[n]] <- Num_component[[n]]%>%
-    filter(disease_prog%in%c("lt"))%>%
-    group_by(year, population)%>%summarize(best = sum(best))%>%
-    mutate(scenario = n)
-  
-  Num_lt_all[[n]] <- Num_lt[[n]]%>%
-    group_by(year)%>%summarise_at("best", sum)%>%
-    mutate(scenario = n) 
-} 
-setting_lab <- c("commu", "prisons", "prisonsPWID")
-popfil_lab <- list("commu" = c("C_PWID", "C_fPWID"),
-                   "prisons" = c("P_PWID", "P_fPWID", "P_nPWID"),
-                   "prisonsPWID" = c("P_PWID", "P_fPWID"))
-
-for(s in setting_lab){ 
-  for(n in names(Sce_epi)){ 
-    Num_diag_setting[[s]][[n]] <- Num_diag[[n]]%>%
-      filter(population%in%popfil_lab[[s]])%>%
-      group_by(year)%>%summarize(best = sum(best))%>%
-      mutate(scenario = n)
-    
-    Num_diag_ab_setting[[s]][[n]] <- Num_diag_ab[[n]]%>%
-      filter(population%in%popfil_lab[[s]])%>%
-      group_by(year)%>%summarize(best = sum(best))%>%
-      mutate(scenario = n)
-    
-    Num_Treated_setting[[s]][[n]] <- Num_Treated[[n]]%>%
-      filter(population%in%popfil_lab[[s]])%>%
-      group_by(year)%>%summarize(best = sum(best))%>%
-      mutate(scenario = n)
-    
-    Num_chronic_cured_setting[[s]][[n]] <- Num_chronic_cured[[n]]%>%
-      filter(population%in%popfil_lab[[s]])%>%
-      group_by(year)%>%summarize(best = sum(best))%>%
-      mutate(scenario = n)
-    
-    Num_curInf_setting[[s]][[n]] <- Num_curInf[[n]]%>%
-      filter(population%in%popfil_lab[[s]])%>%
-      group_by(year)%>%summarize(best = sum(best))%>%
-      mutate(scenario = n)
-    
-    Num_dc_setting[[s]][[n]] <- Num_dc[[n]]%>%
-      filter(population%in%popfil_lab[[s]])%>%
-      group_by(year)%>%summarize(best = sum(best))%>%
-      mutate(scenario = n)
-    
-    Num_hcc_setting[[s]][[n]] <- Num_hcc[[n]]%>%
-      filter(population%in%popfil_lab[[s]])%>%
-      group_by(year)%>%summarize(best = sum(best))%>%
-      mutate(scenario = n)
-    
-    Num_lt_setting[[s]][[n]] <- Num_lt[[n]]%>%
-      filter(population%in%popfil_lab[[s]])%>%
-      group_by(year)%>%summarize(best = sum(best))%>%
-      mutate(scenario = n)
-    
-    
-  }
+    Sce_flow[[i]][[x]] <- modres.flow.t(POC_AU, Sce_np[[i]], endYear = endY, 
+                                        allp = x)
   
   }
+}
 
+#### prev & inc in each population ####
+# the prevalence and incidence only include chronic stage, excluding acute stage (a)
 
-# prev & inc 
 tempNOTInfected_subpop <- list()
-tempChronic_subpop <- list()
-tempPrev_subpop <- list()
-tempPrev_setting <- list()
 
-tempNOTInfected_commu <- list()
-tempNOTInfected_prison <- list()
-tempNOTInfected_prisonPWID <- list()
+tempChronic_subpop <- list()
+
+tempPrev_subpop <- list()
 
 tempNOTInfectedRNA_subpop <- list()
-tempNOTInfectedRNA_commu <- list()
-tempNOTInfectedRNA_prison <- list()
-tempNOTInfectedRNA_prisonPWID <- list()
 
 tempPrevRNA_subpop <- list()
-tempPrevRNA_setting <- list()
 
 HCVInc_subpop <- list()
-HCVInc_setting <- list()
 
-for(n in names(Sce_epi)){   
-  # Prevalence 
-  tempNOTInfected_subpop[[n]] <- Num_component[[n]]%>%filter(disease_prog!= "a")%>%
-    filter(state == "s")%>%group_by(year, population)%>%
-    summarise(best = sum(best))%>%arrange(year, population)
+for(i in names(Num_box)){ 
+  tempNOTInfected_subpop[[i]] <- Num_box[[i]]%>%
+    filter(disease_prog!= "a")%>%
+    filter(state == "s")%>%group_by(timestep, population)%>%
+    summarise(best = sum(best))%>%arrange(timestep, population)
   
-  tempChronic_subpop[[n]] <- Num_component[[n]]%>%filter(disease_prog!= "a")%>%
-    group_by(year, population)%>%
-    summarise(best = sum(best))%>%arrange(year, population)
+  tempChronic_subpop[[i]] <- Num_box[[i]]%>%filter(disease_prog!= "a")%>%
+    group_by(timestep, population)%>%
+    summarise(best = sum(best))%>%arrange(timestep, population) 
+  
   
   # arrange order to align with other dts 
-  tempPrev_subpop[[n]] <- cbind(year = rep(seq(POC_AU$startYear , endY-1 ,1), each = POC_AU$npops),
-                           population = POC_AU$popNames,
-                           
-                           as.data.frame(100*(pop_N[[n]][, -c(1,2)] - 
-                                                tempNOTInfected_subpop[[n]][ ,-c(1,2)])/ 
-                                           pop_N[[n]][ ,-c(1,2)]))%>%
+  tempPrev_subpop[[i]] <- cbind(timestep = pop_N[[i]]$timestep,
+                                population = POC_AU$popNames,
+                                as.data.frame(100*(pop_N[[i]][, -c(1,2)] - 
+                                                     tempNOTInfected_subpop[[i]][ ,-c(1,2)])/ 
+                                                pop_N[[i]][ ,-c(1,2)]))%>%
     tibble::as_tibble() 
   
+  
+  # RNA prevalence 
+  tempNOTInfectedRNA_subpop[[i]] <- Num_box[[i]]%>%
+    filter(cascade%in% c("s", "cured"))%>%group_by(timestep, population)%>%
+    summarise(best = sum(best))%>%arrange(timestep, population)
+  
+  tempPrevRNA_subpop[[i]] <- 
+    cbind(timestep = pop_N[[i]]$timestep,
+          population = POC_AU$popNames,
+          
+          as.data.frame(100*(pop_N[[i]][, -c(1,2)] - 
+                               tempNOTInfectedRNA_subpop[[i]][ ,-c(1,2)])/ 
+                          pop_N[[i]][ ,-c(1,2)]))%>%
+    tibble::as_tibble() 
+  
+  
+  # incidence 
+  HCVInc_subpop[[i]] <- cbind(timestep = pop_N[[i]]$timestep,
+                              population = POC_AU$popNames,
+                              as.data.frame(100*Sce_flow[[i]]$newInfections[, "best"] / 
+                                              pop_N[[i]][ ,-c(1,2)]))%>%
+    tibble::as_tibble() 
+  
+  }
 
-  tempNOTInfected_commu[[n]] <- Num_component[[n]]%>%
+#### prev & inc by settings ####
+tempNOTInfected_commu <- list()
+
+tempNOTInfected_prison <- list()
+
+tempNOTInfected_prisonPWID <- list()
+
+tempPrev_setting <- list()
+
+tempNOTInfectedRNA_commu <- list()
+
+tempNOTInfectedRNA_prison <- list()
+
+tempNOTInfectedRNA_prisonPWID <- list()
+
+tempPrevRNA_setting <- list()
+
+for(n in names(Num_box)){ 
+  
+  tempNOTInfected_commu[[n]] <- Num_box[[n]]%>%
     filter(population %in% c("C_PWID", "C_fPWID") & disease_prog == "s")%>%
-    group_by(year)%>%
-    summarise(best = sum(best))%>%arrange(year)
+    group_by(timestep)%>%
+    summarise(best = sum(best))%>%arrange(timestep)
   
-  tempPrev_setting[[n]][["commu"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
-                                       as.data.frame(100*(commu_N[[n]][, -c(1)] - 
-                                                            tempNOTInfected_commu[[n]][ ,-c(1)])/ 
-                                                       commu_N[[n]][ ,-c(1)]))%>%tibble::as_tibble()
+  tempPrev_setting[[n]][["commu"]] <- cbind(timestep = commu_N[[n]]$timestep,
+                                            as.data.frame(100*(commu_N[[n]][, -c(1)] - 
+                                                                 tempNOTInfected_commu[[n]][ ,-c(1)])/ 
+                                                            commu_N[[n]][ ,-c(1)]))%>%tibble::as_tibble()
   
-  # prison 
-  ## PWID + former PWID + nonPWID 
-
   
-  tempNOTInfected_prison[[n]] <- Num_component[[n]]%>%
+  tempNOTInfected_prison[[n]] <- Num_box[[n]]%>%
     filter(population %in% c("P_PWID", "P_fPWID", "P_nPWID") & disease_prog == "s")%>%
-    group_by(year)%>%
-    summarise(best = sum(best))%>%arrange(year)
+    group_by(timestep)%>%
+    summarise(best = sum(best))%>%arrange(timestep)
+  
+  tempPrev_setting[[n]][["prisons"]] <- cbind(timestep = prison_N[[n]]$timestep,
+                                              as.data.frame(100*(prison_N[[n]][, -c(1)] - 
+                                                                   tempNOTInfected_prison[[n]][ ,-c(1)])/ 
+                                                              prison_N[[n]][ ,-c(1)]))%>%tibble::as_tibble()
   
   
-  tempPrev_setting[[n]][["prisons"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
-                                         as.data.frame(100*(prison_N[[n]][, -c(1)] - 
-                                                              tempNOTInfected_prison[[n]][ ,-c(1)])/ 
-                                                         prison_N[[n]][ ,-c(1)]))%>%tibble::as_tibble()
-  
-  
-  # prison_PWID experienced  
-  ## PWID + former PWID + nonPWID 
-  
-  
-  tempNOTInfected_prisonPWID[[n]] <- Num_component[[n]]%>%
+  tempNOTInfected_prisonPWID[[n]] <- Num_box[[n]]%>%
     filter(population %in% c("P_PWID", "P_fPWID") & disease_prog == "s")%>%
-    group_by(year)%>%
-    summarise(best = sum(best))%>%arrange(year)
+    group_by(timestep)%>%
+    summarise(best = sum(best))%>%arrange(timestep)
   
   
   tempPrev_setting[[n]][["prisonsPWID"]] <- 
-    cbind(year = seq(POC_AU$startYear , endY-1 ,1),
+    cbind(timestep = prisonPWID_N[[n]]$timestep,
           as.data.frame(100*(prisonPWID_N[[n]][, -c(1)] - 
                                tempNOTInfected_prisonPWID[[n]][ ,-c(1)])/ 
-                          prisonPWID_N[[n]][, -c(1)]))%>%tibble::as_tibble()%>%
-    mutate()
+                          prisonPWID_N[[n]][, -c(1)]))%>%tibble::as_tibble() 
+  
   
   # RNA prevalence 
-  tempNOTInfectedRNA_subpop[[n]] <- Num_component[[n]]%>%
-    filter(cascade%in% c("s", "cured"))%>%group_by(year, population)%>%
-    summarise(best = sum(best))%>%arrange(year, population)
   
-  tempPrevRNA_subpop[[n]] <- 
-    cbind(year = rep(seq(POC_AU$startYear , endY-1 ,1), each = POC_AU$npops),
-          population = POC_AU$popNames,
-          
-          as.data.frame(100*(pop_N[[n]][, -c(1,2)] - 
-                               tempNOTInfectedRNA_subpop[[n]][ ,-c(1,2)])/ 
-                          pop_N[[n]][ ,-c(1,2)]))%>%
-    tibble::as_tibble()
   
-  tempNOTInfectedRNA_commu[[n]] <- Num_component[[n]]%>%
+  tempNOTInfectedRNA_commu[[n]] <- Num_box[[n]]%>%
     filter(cascade%in% c("s", "cured") & population %in% c("C_PWID", "C_fPWID"))%>%
-    group_by(year)%>%
-    summarise(best = sum(best))%>%arrange(year)
+    group_by(timestep)%>%
+    summarise(best = sum(best))%>%arrange(timestep)
   
-  tempPrevRNA_setting[[n]][["commu"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
-                                          as.data.frame(100*(commu_N[[n]][, -c(1)] - 
-                                                               tempNOTInfectedRNA_commu[[n]][ ,-c(1)])/ 
-                                                          commu_N[[n]][ ,-c(1)]))%>%tibble::as_tibble()
+  tempPrevRNA_setting[[n]][["commu"]] <- cbind(timestep = commu_N[[n]]$timestep,
+                                               as.data.frame(100*(commu_N[[n]][, -c(1)] - 
+                                                                    tempNOTInfectedRNA_commu[[n]][ ,-c(1)])/ 
+                                                               commu_N[[n]][ ,-c(1)]))%>%tibble::as_tibble()
   
-  tempNOTInfectedRNA_prison[[n]] <- Num_component[[n]]%>%
+  tempNOTInfectedRNA_prison[[n]] <- Num_box[[n]]%>%
     filter(cascade%in% c("s", "cured") & population %in% c("P_PWID", "P_fPWID", "P_nPWID"))%>%
-    group_by(year)%>%
-    summarise(best = sum(best))%>%arrange(year)
+    group_by(timestep)%>%
+    summarise(best = sum(best))%>%arrange(timestep)
   
   tempPrevRNA_setting[[n]][["prisons"]] <- 
-    cbind(year = seq(POC_AU$startYear , endY-1 ,1),
+    cbind(timestep = prison_N[[n]]$timestep,
           as.data.frame(100*(prison_N[[n]][, -c(1)] - 
                                tempNOTInfectedRNA_prison[[n]][ ,-c(1)])/ 
                           prison_N[[n]][ ,-c(1)]))%>%tibble::as_tibble()
   
-  tempNOTInfectedRNA_prisonPWID[[n]] <- Num_component[[n]]%>%
+  tempNOTInfectedRNA_prisonPWID[[n]] <- Num_box[[n]]%>%
     filter(cascade%in% c("s", "cured") & population %in% c("P_PWID", "P_fPWID"))%>%
-    group_by(year)%>%
-    summarise(best = sum(best))%>%arrange(year)
+    group_by(timestep)%>%
+    summarise(best = sum(best))%>%arrange(timestep)
   
   tempPrevRNA_setting[[n]][["prisonsPWID"]] <- 
-    cbind(year = seq(POC_AU$startYear , endY-1 ,1),
+    cbind(timestep = prisonPWID_N[[n]]$timestep,
           as.data.frame(100*(prisonPWID_N[[n]][, -c(1)] - 
                                tempNOTInfectedRNA_prisonPWID[[n]][ ,-c(1)])/ 
                           prisonPWID_N[[n]][ ,-c(1)]))%>%tibble::as_tibble()
   
-  # incidence 
-  HCVInc_subpop[[n]] <- cbind(year = rep(seq(POC_AU$startYear , endY-1 ,1), 
-                                    each = POC_AU$npops),
-                         population = POC_AU$popNames,
-                         as.data.frame(100*Sce_flow_sub[[n]]$newInfections[, "best"] / 
-                                         pop_N[[n]][ ,-c(1,2)]))%>%
-    tibble::as_tibble() 
+  }
+
+#### incidence in settings ####
+newInf_commu <- list()
+newInf_prison <- list()
+newInf_prisonPWID <- list()
+HCVInc_setting <- list()
+for(n in names(Sce_flow)){ 
+  newInf_commu[[n]] <- Sce_flow[[n]]$newInfections%>%filter(population %in% c("C_PWID", "C_fPWID"))%>%
+    group_by(timestep)%>%
+    summarise_at("best", sum)%>%arrange(timestep)
   
-  HCVInc_setting[[n]][["commu"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
-                                     as.data.frame(100*(Sce_flow_setting[["commu"]][[n]]$newInfections[ , "best"]/ 
-                                                          commu_N[[n]][ ,-c(1)])))%>%
+  newInf_prison[[n]] <- Sce_flow[[n]]$newInfections%>%
+    filter(population %in% c("P_PWID", "P_fPWID", "P_nPWID"))%>%group_by(timestep)%>%
+    summarise_at("best", sum)%>%arrange(timestep)
+  
+  newInf_prisonPWID[[n]] <- Sce_flow[[n]]$newInfections%>%
+    filter(population %in% c("P_PWID", "P_fPWID"))%>%group_by(timestep)%>%
+    summarise_at("best", sum)%>%arrange(timestep)
+  
+  HCVInc_setting[[n]][["commu"]] <- cbind(timestep = commu_N[[n]]$timestep,
+                                          as.data.frame(100*(newInf_commu[[n]][ , "best"]/ 
+                                                               commu_N[[n]][ ,-c(1)])))%>%
     tibble::as_tibble()
   
-  HCVInc_setting[[n]][["prisons"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
-                                          as.data.frame(100*(Sce_flow_setting[["prisons"]][[n]]$newInfections[ , "best"]/ 
+  HCVInc_setting[[n]][["prison"]] <- cbind(timestep = prison_N[[n]]$timestep,
+                                          as.data.frame(100*(newInf_prison[[n]][ , "best"]/ 
                                                                prison_N[[n]][ ,-c(1)])))%>%
     tibble::as_tibble()
   
-  HCVInc_setting[[n]][["prisonsPWID"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
-                                            as.data.frame(100*(Sce_flow_setting[["prisonsPWID"]][[n]]$newInfections[ , "best"]/ 
-                                                                 prisonPWID_N[[n]][ ,-c(1)])))%>%
+  HCVInc_setting[[n]][["prisonPWID"]] <- cbind(timestep = prisonPWID_N[[n]]$timestep,
+                                           as.data.frame(100*(newInf_prisonPWID[[n]][ , "best"]/ 
+                                                                prisonPWID_N[[n]][ ,-c(1)])))%>%
     tibble::as_tibble()
   
-    
-  
   }
 
-save(Sce_flow_sub, Sce_flow_all, Sce_flow_setting,
-     Num_component, 
-     Num_diag, Num_diag_ab, Num_Treated, Num_chronic_cured, Num_curInf, 
-     Num_diag_all, Num_diag_ab_all, Num_Treated_all, Num_chronic_cured_all, Num_curInf_all, 
-     Num_diag_setting, Num_diag_ab_setting, Num_Treated_setting, Num_chronic_cured_setting, Num_curInf_setting,
-     Num_dc, Num_hcc, Num_lt, 
-     Num_dc_all, Num_hcc_all, Num_lt_all, 
-     Num_dc_setting, Num_hcc_setting, Num_lt_setting,
-     tempPrev_subpop,
-     tempPrev_setting,
-     tempPrevRNA_subpop,
-     tempPrevRNA_setting,
-     HCVInc_subpop,
-     HCVInc_setting,
-     
-     file = file.path(OutputFolder ,
-                                  paste0(project_name,"ResSum" ,".rda")))
 
-endY_plot <- 35
-x_plot <- list()
-for(n in names(Sce_flow_sub)){ 
+save(Num_box, pop_N, commu_N, prison_N, prisonPWID_N, 
+     Num_diag, Num_diag_ab, Num_diag_Treated, Num_chronic_cured, Num_curInf,
+     Num_dc, Num_hcc, Num_lt, Num_plt, 
+     Sce_flow, tempNOTInfected_subpop, tempChronic_subpop, tempPrev_subpop,
+     tempNOTInfectedRNA_subpop, tempPrevRNA_subpop, HCVInc_subpop, 
+     tempNOTInfected_commu, tempNOTInfected_prison, tempNOTInfected_prisonPWID,
+     tempPrev_setting, tempNOTInfectedRNA_commu, tempNOTInfectedRNA_prison,
+     tempNOTInfectedRNA_prisonPWID, tempPrevRNA_setting, 
+     newInf_commu, newInf_prison, newInf_prisonPWID, HCVInc_setting, 
+     file = file.path(OutputFolder,
+                      paste0(project_name,"epiRes_timestep" ,".rda")))
+
+
+#### tidy up cost #### 
+##### total cost in each time step ##### 
+
+# cost attached to each compartment
+cost_box <- list()
+cost_box_sum <- list()
+cost_box[["Status quo"]] <- modres.t(POC_AU, Sce_sq, endYear = 100, 
+                                     allp = "costPops")%>%as.data.frame() 
+cost_box_sum[["Status quo"]] <- N_pop_sum(cost_box[["Status quo"]], pop = NULL)
+
+for(i in names(Sce_np)){ 
   
-  x_plot[[n]] <- indicatorPlot(POC_AU,Sce_flow_all[[n]]$newTreatment, 
-                               ylabel = "N",
-                               xlimits = c(POC_AU$startYear, 
-                                           (POC_AU$startYear+endY_plot), 5),
-                               calibration_Y = POC_AU$cabY,
-                               rangeun = NULL, 
-                               groupPlot = NULL, 
-                               facetPlot = NULL,
-                               observationData = NULL, 
-                               simulateYear = POC_AU$simY) + 
-    ggtitle("number of diagnosed HCV") +
-    scale_y_continuous(limits = c(0,60000))
-  }
+  cost_box[[i]] <- modres.t(POC_AU, Sce_np[[i]], endYear = 100,
+                           allp = "costPops")%>%as.data.frame()
+  
+  # sum all compartment at each timestep 
+  cost_box_sum[[i]] <- N_pop_sum(cost_box[[i]], pop = NULL)
+  
+}
 
-ggplot(data= Num_component$`status quo`) + 
-  geom_line(aes(x = year, y = best, group = population)) + 
-  facet_wrap(.~ state, scale = "free")
+# cost dataset: costs attached to compartments and costs attaced to each flow
+# flow numbers: numbers transit between compartments at each timestep
+Rescost_dt <- list()
+Resflow_dt <- list()
+for(i in names(cost_box)){ 
+  
+  Rescost_dt[[i]] <- cbind(cost_box_sum[[i]], 
+                           cost_ab = Sce_flow[[i]]$costTestingAb$best, 
+                           cost_RNA = Sce_flow[[i]]$costTestingAg$best,
+                           cost_POCT = Sce_flow[[i]]$costTestingPOCT$best,
+                           cost_Treatment = Sce_flow[[i]]$costTreatment$best,
+                           cost_Retreat = Sce_flow[[i]]$costRetreat$best,
+                           cost_Cured = Sce_flow[[i]]$costCured$best)
+  
+  Rescost_dt[[i]] <- Rescost_dt[[i]]%>%
+    mutate(cost_compartment = best,
+           cost_total = cost_compartment + cost_ab + cost_RNA + cost_POCT +
+                            cost_Treatment + cost_Retreat + cost_Cured)%>%
+    select(timestep, population, cost_total, cost_compartment, 
+           cost_ab, cost_RNA, cost_POCT, 
+           cost_Treatment, cost_Retreat, cost_Cured)
+  
+  
+  
+  Resflow_dt[[i]] <- cbind(year = Sce_flow[[i]]$newInfections$year,
+                           timestep = Sce_flow[[i]]$newInfections$timestep, 
+                           population = Sce_flow[[i]]$newInfections$population,
+                           newInfections = Sce_flow[[i]]$newInfections$best,
+                           HCVdeath = Sce_flow[[i]]$newHCVdeaths$best,
+                           Treatment = Sce_flow[[i]]$newTreatment$best,
+                           Retreat = Sce_flow[[i]]$newRetreat$best,
+                           Testing_ab = Sce_flow[[i]]$newTestingAb$best,
+                           Testing_RNA = Sce_flow[[i]]$newTestingAg$best,
+                           Testing_POCT = Sce_flow[[i]]$newTestingPOCT$best, 
+                           Cured = Sce_flow[[i]]$newCured$best)
+
+}
+
+save(Num_box, Resflow_dt, Rescost_dt, 
+     file = file.path(OutputFolder,
+                      paste0(project_name,"Res_dt" ,".rda")))
+
