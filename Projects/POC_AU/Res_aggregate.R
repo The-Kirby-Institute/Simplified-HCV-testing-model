@@ -135,7 +135,6 @@ for(i in names(RescostDAA)){
       totalDAA_cost = sum(totalDAA_cost, na.rm = TRUE))%>%ungroup()
 }
 
-
 # cost_total DAA, exculdeDAA replaced cost_Treatment & cost_Retreat 
 # valide with cost_total, 
 # calculating total_cost_cap  
@@ -203,6 +202,7 @@ for(i in names(Rescost_dt)){
            cost_totalDAA, cost_totalDAA_ycum,
            cost_Cured, cost_Cured_ycum)
 }
+
 
 # cumulative yearly cost by population  & discount value 
 Rescost_yearcum_pop <- list()
@@ -344,18 +344,18 @@ for(i in names(Rescost_dt)){
            cost_totalDAA_ycum = ifelse(index == 11, cost_totalDAA_year, NA),
            cost_Cured_ycum = ifelse(index == 11,  cost_Cured_year, NA)
     )%>%
-    mutate(cost_totalDAAcap_ycum = ifelse(cost_totalDAA_ycum>= cap, cap, cost_totalDAA_ycum))%>%
-    mutate(cost_total_ycumcap = cost_compartment_ycum + cost_ab_ycum + cost_RNA_ycum + cost_POCT_ycum + 
-             cost_totalDAAcap_ycum + cost_TreatOther_ycum + cost_RetreatOther_ycum + cost_Cured_ycum)%>%
-    select(year, timestep, cost_total, cost_total_ycum, cost_total_ycumcap,
+    mutate(cost_totalDAA_ycumCap = ifelse(cost_totalDAA_ycum>= cap, cap,cost_totalDAA_ycum))%>%
+    mutate(cost_total_ycumCap = cost_compartment_ycum + cost_ab_ycum + cost_RNA_ycum + cost_POCT_ycum + 
+             cost_totalDAA_ycumCap + cost_TreatOther_ycum + cost_RetreatOther_ycum + cost_Cured_ycum)%>%
+    
+    select(year, timestep, cost_total, cost_total_ycum, cost_total_ycumCap,
            cost_compartment, cost_compartment_ycum, cost_ab, cost_ab_ycum, 
            cost_RNA, cost_RNA_ycum, cost_POCT, cost_POCT_ycum, 
            cost_TreatDAA, cost_TreatDAA_ycum, 
            cost_RetreatDAA, cost_RetreatDAA_ycum, 
            cost_TreatOther, cost_TreatOther_ycum, 
            cost_RetreatOther, cost_RetreatOther_ycum, 
-           cost_totalDAA, cost_totalDAA_ycum, 
-           cost_totalDAAcap_ycum, 
+           cost_totalDAA, cost_totalDAA_ycum, cost_totalDAA_ycumCap,
            cost_Cured, cost_Cured_ycum)
 }
 
@@ -385,16 +385,16 @@ for(i in names(Rescost_dt)){
            cost_RetreatDAA_cum = ifelse(is.na(cost_RetreatDAA_ycum), NA, cost_RetreatDAA_cum), 
            cost_TreatOther_cum = ifelse(is.na(cost_TreatOther_ycum), NA, cost_TreatOther_cum), 
            cost_RetreatOther_cum = ifelse(is.na(cost_RetreatOther_ycum), NA, cost_RetreatOther_cum), 
-           cost_totalDAA_ycum = ifelse(is.na(cost_totalDAA_ycum), NA, cost_totalDAA_cum), 
+           cost_totalDAA_ycum = ifelse(is.na(cost_totalDAA_ycum), NA, cost_totalDAA_ycum), 
            cost_Cured_cum = ifelse(is.na(cost_Cured_ycum), NA, cost_Cured_cum)
     )%>%
     # discount index 
     mutate(year = year + POC_AU$cabY - 1,
            id = year - POC_AU$simY, 
            discount = ifelse(id>=0, (1 + AUdiscount)^id, NA))%>%
+    
     # discount yearly value 
     mutate(cost_total_disycum = ifelse(is.na(cost_total_ycum)|is.na(discount), 0, cost_total_ycum/discount), 
-           cost_total_ycumcap_disycum = ifelse(is.na(cost_total_ycumcap)|is.na(discount), 0, cost_total_ycumcap/discount), 
            cost_compartment_disycum = ifelse(is.na(cost_compartment_ycum)|is.na(discount), 0, cost_compartment_ycum/discount), 
            cost_ab_disycum  = ifelse(is.na(cost_ab_ycum)|is.na(discount), 0, cost_ab_ycum/discount), 
            cost_RNA_disycum  = ifelse(is.na(cost_RNA_ycum)|is.na(discount), 0, cost_RNA_ycum/discount), 
@@ -404,12 +404,10 @@ for(i in names(Rescost_dt)){
            cost_TreatOther_disycum = ifelse(is.na(cost_TreatOther_ycum)|is.na(discount), 0, cost_TreatOther_ycum/discount),
            cost_RetreatOther_disycum = ifelse(is.na(cost_RetreatOther_ycum)|is.na(discount), 0, cost_RetreatOther_ycum/discount),
            cost_totalDAA_disycum = ifelse(is.na(cost_totalDAA_ycum)|is.na(discount), 0,  cost_totalDAA_ycum/discount),
-           cost_totalDAAcap_disycum = ifelse(is.na(cost_totalDAAcap_ycum)|is.na(discount), 0, ifelse(cost_totalDAAcap_ycum>=cap, cap,cost_totalDAAcap_ycum/discount)),
            cost_Cured_disycum = ifelse(is.na(cost_Cured_ycum)|is.na(discount), 0, cost_Cured_ycum/discount)
     )%>%
     # discount cumulative value 
     mutate(cost_total_discum = cumsum(cost_total_disycum), 
-           cost_total_ycumcap_discum = cumsum(cost_total_ycumcap_disycum),
            cost_compartment_discum = cumsum(cost_compartment_disycum), 
            cost_ab_discum  = cumsum(cost_ab_disycum), 
            cost_RNA_discum  = cumsum(cost_RNA_disycum), 
@@ -419,14 +417,12 @@ for(i in names(Rescost_dt)){
            cost_TreatOther_discum = cumsum(cost_TreatOther_disycum),
            cost_RetreatOther_discum = cumsum(cost_RetreatOther_disycum),
            cost_totalDAA_discum = cumsum(cost_totalDAA_disycum),
-           cost_totalDAAcap_discum = cumsum(cost_totalDAAcap_disycum),
            cost_Cured_discum = cumsum(cost_RetreatDAA_disycum)
     )%>%
     select(year, timestep, discount, 
            
            cost_total, cost_total_ycum, cost_total_cum, cost_total_disycum, 
            cost_total_discum, 
-           cost_total_ycumcap, cost_total_ycumcap_disycum, cost_total_ycumcap_discum,
            
            cost_compartment, cost_compartment_ycum, cost_compartment_cum, 
            cost_compartment_disycum, cost_compartment_discum,
@@ -454,16 +450,13 @@ for(i in names(Rescost_dt)){
            cost_totalDAA, cost_totalDAA_ycum, cost_totalDAA_cum, 
            cost_totalDAA_disycum, cost_totalDAA_discum, 
            
-           cost_totalDAAcap_ycum, cost_totalDAAcap_disycum, cost_totalDAAcap_discum,
-           
-           
-           
            cost_Cured, cost_Cured_ycum, cost_Cured_cum, cost_Cured_disycum, 
            cost_Cured_discum
     )
 
 }
 
+View(Rescost_yearcum_all$dfList_NP_2024)
 
 # save rda files 
 save(Resflow_year_pop, Resflow_year_all, 
