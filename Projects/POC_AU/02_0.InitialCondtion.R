@@ -78,15 +78,15 @@ pop_array  <- array(matrix(xx_array[ , ,1]),
                     c(POC_AU$npops, POC_AU$npops,POC_AU$npts))
 
 
-best_estimates$beta1 <- 0.3
+best_estimates$beta1 <- 0.19
 
 best_estimates$beta2 <- 0.08
-best_estimates$beta3 <- 1.3
+best_estimates$beta3 <- 1.2
 best_estimates$beta4 <- 0.35
 best_estimates$beta5 <- 0.08
-best_estimates$HCVP1 <- 0.48
+best_estimates$HCVP1 <- 0.5
 best_estimates$HCVP2 <- 0.25
-best_estimates$HCVP3 <- 0.9
+best_estimates$HCVP3 <- 0.8
 best_estimates$HCVP4 <- 0.3
 best_estimates$HCVP5 <- 0.003
 
@@ -96,13 +96,14 @@ best_estimates$HCVP5 <- 0.003
 
 #save(best_estimates,pop_array, 
 #     file = file.path(OutputFolder , paste0(project_name,"temp_best" ,".rda")))
-
+dfList_sc <- lapply(dfList, function(x) x*0)
+names(dfList_sc) <- names(dfList)
 
 tic <- proc.time()
 
 steady <- HCVMSM(POC_AU, best_estimates, best_initial_pop,
                  disease_progress, pop_array,
-                 dfList, fib, end_Y = 1000, 
+                 dfList, param_cascade_sc = dfList_sc , fib, end_Y = 1000, 
                  modelrun = "steady", proj = "POC_AU")
 
 toc <- proc.time() - tic 
@@ -228,8 +229,8 @@ best_estimates$beta4 <-
   c(seq(best_estimates$beta4[1], bvalue[4], length = (varyingYpoint_end)), 
     rep(bvalue[4], POC_AU$npts - varyingYpoint_end))
 
-TreatInit <- c(0.48,
-               0.24,
+TreatInit <- c(0.4,
+               0.4,
                0.999999,
                0.999999,
                0.999999)
@@ -259,14 +260,14 @@ for ( i in 2:dim(dfList$eta)[[2]]){
   dfList$eta[1, i, c(varyingYpoint_int:POC_AU$npts)] <- 
     c(seq(as.numeric(intVal[1]),as.numeric(TreatInit[1]) , length = (varyingYpoint_fir)),
       seq(as.numeric(TreatInit[1]), as.numeric(TreatInit[1]), length = (varyingYpoint_mid - varyingYpoint_fir)),
-      seq(as.numeric(TreatInit[1]), 0.25, length = (varyingYpoint_end - varyingYpoint_mid)),
-      rep(0.25, POC_AU$npts - varyingYpoint_end))
+      seq(as.numeric(TreatInit[1]), as.numeric(TreatInit[1]), length = (varyingYpoint_end - varyingYpoint_mid)),
+      rep(as.numeric(TreatInit[1]), POC_AU$npts - varyingYpoint_end))
   
   dfList$eta[2, i, c(varyingYpoint_int:POC_AU$npts)] <- 
     c(seq(as.numeric(intVal[2]), as.numeric(TreatInit[2]), length = (varyingYpoint_fir)),
       seq(as.numeric(TreatInit[2]), as.numeric(TreatInit[2]), length = (varyingYpoint_mid - varyingYpoint_fir)),
-      seq(as.numeric(TreatInit[2]), 0.09, length = (varyingYpoint_end - varyingYpoint_mid)),
-      rep(0.09, POC_AU$npts - varyingYpoint_end))
+      seq(as.numeric(TreatInit[2]), 0.2, length = (varyingYpoint_end - varyingYpoint_mid)),
+      rep(0.2, POC_AU$npts - varyingYpoint_end))
 }
 varying_Yint <- 2015
 varying_Yfir <- 2019
@@ -329,7 +330,7 @@ tic <- proc.time()
 endY <- 100
 calibrateInit <- HCVMSM(POC_AU, best_estimates, best_est_pop,
                         disease_progress,pop_array,
-                        dfList, fib, 
+                        dfList,dfList_sc ,fib, 
                         modelrun="UN", proj = "POC_AU", end_Y = endY)
 
 
@@ -342,4 +343,160 @@ save(calibrateInit, bvalue, TreatInit,best_estimates, dfList,
      file = file.path(OutputFolder ,
                       paste0(project_name,"cali_timev" ,".rda")))
 
+# quick check out the key indicators 
+endY_plot <- 2030- POC_AU$cabY
+subpop_N <- lapply(POC_AU$popNames, function(x){ 
+  
+  a <- popResults_MidYear(POC_AU, calibrateInit,
+                          Population = x,
+                          Disease_prog = NULL, 
+                          Cascade = NULL, param = NULL, 
+                          endYear = endY)%>%ungroup()
+})
 
+names(subpop_N) <- POC_AU$popNames
+pop_N <- dplyr::bind_rows(subpop_N, .id = 'population')
+pop_N <- pop_N%>%arrange(year, population)
+tempNOTInfectedRNA_subpop <- popResults_MidYear(POC_AU, calibrateInit,Population = POC_AU$popNames,
+                                                Disease_prog = NULL, 
+                                                Cascade = c("s", "cured"), 
+                                                param = NULL ,endYear = endY)%>%
+  as_tibble()%>%group_by(year, population)%>%
+  summarise(best = sum(best))%>%arrange(year, population)
+
+
+
+tempPrevRNA_subpop <- cbind(year = rep(seq(POC_AU$startYear , endY-1 ,1), each = POC_AU$npops),
+                            population = POC_AU$popNames,
+                            
+                            as.data.frame(100*(pop_N[, -c(1,2)] - 
+                                                 tempNOTInfectedRNA_subpop[ ,-c(1,2)])/ 
+                                            pop_N[ ,-c(1,2)]))%>%
+  tibble::as_tibble()  
+pop_labname <- c("PWID in community",  "Former PWID in community", 
+                 "PWID in prisons",  "Former PWID in prisons", 
+                 "nonPWID in prisons")
+tempPrevRNA_subpop <- tempPrevRNA_subpop%>%
+  mutate(population = factor(population, 
+                             levels = POC_AU$popNames, 
+                             labels = pop_labname ))
+HCVPrevRNA <-read.csv(file.path(paste0(DataFolder%>%dirname(), "/HCVPrevRNA_POC_AU.csv")), header = TRUE)%>%
+  as.data.frame()%>%mutate(time = year- POC_AU$cabY + 1, 
+                           realPop = HCV.RNA.prevalence*100,
+                           up = upper*100,
+                           low = lower*100,
+                           population = factor(population, 
+                                               levels = POC_AU$popNames, 
+                                               labels = pop_labname ))
+popPrevRNAPlot <- indicatorPlot(POC_AU, tempPrevRNA_subpop, 
+                                ylabel = "HCV prevalence (%)",
+                                xlimits = c(POC_AU$startYear, 
+                                            (POC_AU$startYear+endY_plot), 5),
+                                calibration_Y = POC_AU$cabY,
+                                rangeun = NULL, 
+                                groupPlot = NULL, 
+                                facetPlot = population,
+                                observationData = HCVPrevRNA , 
+                                simulateYear = POC_AU$simY) +
+  ggtitle("HCV RNA prevalence by population") 
+
+popPrevRNAPlot <- popPrevRNAPlot + 
+  facet_custom (~population,
+                scales = "free", ncol = 3,
+                scale_overrides = 
+                  list(
+                    scale_new(1,
+                              scale_y_continuous(limits = 
+                                                   c(0, 100))),
+                    scale_new(2,
+                              scale_y_continuous(limits = 
+                                                   c(0, 100))),
+                    
+                    scale_new(3,
+                              scale_y_continuous(limits = 
+                                                   c(0, 100))),
+                    scale_new(4,
+                              scale_y_continuous(limits = 
+                                                   c(0, 100))),
+                    scale_new(5,
+                              scale_y_continuous(limits = 
+                                                   c(0, 20)))
+                  )) + theme_bw()
+
+
+calibrateFlow <- calibrateInit[!names(calibrateInit)%in%
+                                 c("allPops", "newpop_tran", "newpop_tranState", "HCVdeathState",
+                                   "newDeathState", "death_hcv")]
+flow_sub <- list()
+
+
+flow_sub <- lapply(names(calibrateFlow), function(x){ 
+  a <- indicatorResults(POC_AU, calibrateFlow, x, 
+                        pop=POC_AU$popNames,
+                        paramR = NULL, range = NULL,
+                        endY = endY)
+})
+
+names(flow_sub) <- names(calibrateFlow)
+
+
+flow_setting <- lapply(flow_sub, function(x){ 
+  
+  a <- x%>%
+    mutate(setting = ifelse(population %in% c("C_PWID", "C_fPWID"), 
+                            "commu", "prisons"))
+  
+  a <- a%>%group_by(year, setting)%>%summarise_at("best", sum)%>%
+    mutate(population = setting)%>%select(-setting)
+}) 
+N_treatment <- cbind(year = rep(seq(POC_AU$startYear , endY-1 ,1), 
+                                each = 2),
+                     population = flow_setting$newTreatment[ ,3],
+                     as.data.frame(flow_setting$newTreatment[, -c(1,3)] + 
+                                     flow_setting$newRetreat[, -c(1,3)] ))%>%
+  tibble::as_tibble()%>%
+  mutate(population = factor(population, 
+                             levels = c("commu", "prisons"), 
+                             labels = c("Community", "Prisons" )))
+
+
+
+HCVtreatinitN_setting_fit <-read.csv(file.path(paste0(DataFolder%>%dirname(), "/HCVtreatinitN_setting_POC_AU.csv")), header = TRUE)%>%
+  as.data.frame()%>%mutate(time = year- POC_AU$cabY + 1, 
+                           realPop = realpop,
+                           up = upper,
+                           low = lower,
+                           population = factor(population, 
+                                               levels = c("commu", "prisons"), 
+                                               labels = c("Community", "Prisons")))
+
+
+N_treatment_setting_p <- indicatorPlot(POC_AU, N_treatment, 
+                                       ylabel = "N",
+                                       xlimits = c(POC_AU$startYear, 
+                                                   (POC_AU$startYear+endY_plot), 5),
+                                       calibration_Y = POC_AU$cabY,
+                                       rangeun = NULL, 
+                                       groupPlot = NULL, 
+                                       facetPlot = population,
+                                       observationData = HCVtreatinitN_setting_fit, 
+                                       simulateYear = POC_AU$simY) + 
+  ggtitle("Number of treatment init") + theme_bw()
+
+N_treatment_setting_p <- N_treatment_setting_p + 
+  facet_custom (~population,
+                scales = "free", ncol = 2,
+                scale_overrides = 
+                  list(
+                    scale_new(1,
+                              scale_y_continuous(limits = 
+                                                   c(0, 40000))),
+                    scale_new(2,
+                              scale_y_continuous(limits = 
+                                                   c(0, 5000)))))
+N_treatment_setting_p
+
+
+popPrevRNAPlot
+
+View(N_treatment)

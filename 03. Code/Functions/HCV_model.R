@@ -185,9 +185,15 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   
   newTestingAb <- ResultMatrix
   
+  newTestingAb_neg <- ResultMatrix
+  
   newTestingAg <- ResultMatrix
   
+  newTestingAg_neg <- ResultMatrix
+  
   newTestingPOCT <- ResultMatrix
+  
+  newTestingPOCT_neg <- ResultMatrix
   
   newCured <- ResultMatrix
   
@@ -206,6 +212,14 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   
   newTreatment_sc <- ResultMatrix
   
+  newTestingAb_sc_neg <- ResultMatrix
+  
+  newTestingAg_sc_neg <- ResultMatrix
+  
+  newTestingPOCT_sc_neg <- ResultMatrix 
+  
+
+  
   if (!is.null(cost)){ 
     costTestingAb <- ResultMatrix
     costTestingAg <- ResultMatrix
@@ -213,6 +227,11 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     costTreatment <- ResultMatrix
     costCured <- ResultMatrix
     costRetreat <- ResultMatrix 
+    
+    costTestingAb_sc <- ResultMatrix
+    costTestingAg_sc <- ResultMatrix
+    costTestingPOCT_sc <- ResultMatrix
+    costTreatment_sc <- ResultMatrix
     
     costPops <- array(0, c(npops, ncomponent, npts), dimnames = dimNames) 
     
@@ -1593,6 +1612,9 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                                   tau_ab_dt[i, "lt", t]*oldPop[i,"lt_undiag"],
                                   tau_ab_dt[i, "plt", t]*oldPop[i,"plt_undiag"])
       
+      newTestingAb_neg[i, t] <- tau_ab_dt[i, "f0", t]*(oldPop[i,"s"] + oldPop[i,"a_cured"] )
+                                 
+      
       ##### antigen test ##### 
       
       newTestingAg[i, t] <- sum(tau_RNA_dt[i, "a", t]*oldPop[i,"a_diag_ab"],
@@ -1606,6 +1628,16 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                                 tau_RNA_dt[i, "lt", t]*oldPop[i,"lt_diag_ab"],
                                 tau_RNA_dt[i, "plt", t]*oldPop[i,"plt_diag_ab"])
       
+      newTestingAg_neg[i, t] <- tau_RNA_dt[i,"f0",t]*(oldPop[i , "f0_cured"] +
+                                                        oldPop[i , "f1_cured"] +
+                                                        oldPop[i , "f2_cured"] +
+                                                        oldPop[i , "f3_cured"] +
+                                                        oldPop[i , "f4_cured"] +
+                                                        oldPop[i , "dc_cured"] +
+                                                        oldPop[i , "hcc_cured"] +
+                                                        oldPop[i , "lt_cured"] +
+                                                        oldPop[i , "plt_cured"])
+      
       ##### POCT test #####
       
       newTestingPOCT[i, t] <- sum( tau_poct_dt[i, "a", t]*(1-spc1_dt[i, t])*oldPop[i,"a_undiag"],
@@ -1618,6 +1650,17 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                                    tau_poct_dt[i, "hcc", t]*oldPop[i,"hcc_undiag"],
                                    tau_poct_dt[i, "lt", t]*oldPop[i,"lt_undiag"],
                                    tau_poct_dt[i, "plt", t]*oldPop[i,"plt_undiag"])
+      
+      newTestingPOCT_neg[i, t] <- tau_poct_dt[i, "f0", t]*(oldPop[i , "f0_cured"] +
+                                                                oldPop[i , "f1_cured"] +
+                                                                oldPop[i , "f2_cured"] +
+                                                                oldPop[i , "f3_cured"] +
+                                                                oldPop[i , "f4_cured"] +
+                                                                oldPop[i , "dc_cured"] +
+                                                                oldPop[i , "hcc_cured"] +
+                                                                oldPop[i , "lt_cured"] +
+                                                                oldPop[i , "plt_cured"]) + 
+        tau_poct_dt[i, "f0", t]*((oldPop[i,"s"] + oldPop[i,"a_cured"] ))
       
       ##### Cured ##### 
       newCured[i, t] <- sum( cure_dt[i, "a", t]*oldPop[i,"a_treat"],
@@ -1661,6 +1704,8 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                                  tau_ab_sc_dt[i, "lt", t]*oldPop[i,"lt_undiag"],
                                  tau_ab_sc_dt[i, "plt", t]*oldPop[i,"plt_undiag"])
       
+      newTestingAb_sc_neg[i, t] <- tau_ab_sc_dt[i, "f0", t]*(oldPop[i,"s"] + oldPop[i,"a_cured"] )
+      
       ##### antigen test ##### 
       
       newTestingAg_sc[i, t] <- sum(tau_RNA_sc_dt[i, "a", t]*oldPop[i,"a_diag_ab"],
@@ -1674,6 +1719,16 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                                 tau_RNA_sc_dt[i, "lt", t]*oldPop[i,"lt_diag_ab"],
                                 tau_RNA_sc_dt[i, "plt", t]*oldPop[i,"plt_diag_ab"])
       
+      newTestingAg_sc_neg[i,t] <- tau_RNA_sc_dt[i, "f0", t]*(oldPop[i , "f0_cured"] +
+                                                               oldPop[i , "f1_cured"] +
+                                                               oldPop[i , "f2_cured"] +
+                                                               oldPop[i , "f3_cured"] +
+                                                               oldPop[i , "f4_cured"] +
+                                                               oldPop[i , "dc_cured"] +
+                                                               oldPop[i , "hcc_cured"] +
+                                                               oldPop[i , "lt_cured"] +
+                                                               oldPop[i , "plt_cured"])
+      
       ##### POCT test #####
       
       newTestingPOCT_sc[i, t] <- sum( tau_poct_sc_dt[i, "a", t]*(1-spc1_dt[i, t])*oldPop[i,"a_undiag"],
@@ -1686,6 +1741,17 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                                    tau_poct_sc_dt[i, "hcc", t]*oldPop[i,"hcc_undiag"],
                                    tau_poct_sc_dt[i, "lt", t]*oldPop[i,"lt_undiag"],
                                    tau_poct_sc_dt[i, "plt", t]*oldPop[i,"plt_undiag"])
+      
+      newTestingPOCT_sc_neg[i,t] <- tau_poct_sc_dt[i, "f0", t]*(oldPop[i , "f0_cured"] +
+                                                                  oldPop[i , "f1_cured"] +
+                                                                  oldPop[i , "f2_cured"] +
+                                                                  oldPop[i , "f3_cured"] +
+                                                                  oldPop[i , "f4_cured"] +
+                                                                  oldPop[i , "dc_cured"] +
+                                                                  oldPop[i , "hcc_cured"] +
+                                                                  oldPop[i , "lt_cured"] +
+                                                                  oldPop[i , "plt_cured"]) + 
+        tau_poct_sc_dt[i, "f0", t]*((oldPop[i,"s"] + oldPop[i,"a_cured"] ))
       
       
     }
@@ -2012,25 +2078,19 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       
       costTestingAb[, t] <- (costflow[[1]][,"ctau_ab"]*(newTestingAb[, t] - newTestingAb_sc[, t])) +
         (costflow[[2]][,"ctau_ab"]*(newTestingAb_sc[, t])) + 
-        (costflow_Neg[[1]][,"ctau_ab"]*(
-          (oldPop[, "s"] + oldPop[, "a_cured"])*(
-            tau_ab_dt[, "f0", t] - tau_ab_sc_dt[, "f0", t]))) + 
-        (costflow_Neg[[2]][,"ctau_ab"]*(
-          (oldPop[, "s"] + oldPop[, "a_cured"])*(tau_ab_sc_dt[, "f0", t])))
+        (costflow_Neg[[1]][,"ctau_ab"]*(newTestingAb_neg[,t] - newTestingAb_sc_neg[,t])) + 
+        (costflow_Neg[[2]][,"ctau_ab"]*newTestingAb_sc_neg[,t])
       
       costTestingAg[, t] <- (costflow[[1]][,"ctau_ag"]*(newTestingAg[, t] - newTestingAg_sc[, t])) + 
         (costflow[[2]][,"ctau_ag"]*(newTestingAg_sc[, t])) + 
-        costflow_Neg[[1]][,"ctau_ag"]*(
-          (S[,] - oldPop[,"s"] - oldPop[, "a_cured"])*(
-            tau_RNA_dt[, "f0", t] - tau_RNA_sc_dt[, "f0", t])) +  # all those cured from HCV (except for a_cured) had same probability to receive RNA testing 
-        costflow_Neg[[2]][,"ctau_ag"]*(
-          (S[,] - oldPop[,"s"] - oldPop[, "a_cured"])*(tau_RNA_sc_dt[, "f0", t]))
+        (costflow_Neg[[1]][,"ctau_ag"]*(newTestingAg_neg[, t] - newTestingAg_sc_neg[, t])) +  # all those cured from HCV (except for a_cured) had same probability to receive RNA testing 
+        costflow_Neg[[2]][,"ctau_ag"]*(newTestingAg_sc_neg[, t])
       
       
       costTestingPOCT[, t] <- costflow[[1]][,"ctau_poct"]*(newTestingPOCT[, t] - newTestingPOCT_sc[, t]) + 
         costflow[[2]][,"ctau_poct"]*(newTestingPOCT_sc[, t]) + 
-        (costflow_Neg[[1]][,"ctau_poct"]*S[,]*(tau_poct_dt[, "f0", t] - tau_poct_sc_dt[, "f0", t])) + 
-        (costflow_Neg[[2]][,"ctau_poct"]*S[,]*(tau_poct_sc_dt[, "f0", t]))
+        (costflow_Neg[[1]][,"ctau_poct"]*(newTestingPOCT_neg[, t] - newTestingPOCT_sc_neg[, t])) + 
+        (costflow_Neg[[2]][,"ctau_poct"]*(newTestingPOCT_sc_neg[, t]))
       
       costTreatment[, t] <- newTreatment[, t]*costflow[[1]][,"ceta"]
       
@@ -2042,13 +2102,32 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
       
       QALYPops[, , t] <- allPops[, , t]*cost$QALY[,]
       
+      
+      costTestingAb_sc[, t] <- 
+        (costflow[[2]][,"ctau_ab"]*(newTestingAb_sc[, t])) + 
+        (costflow_Neg[[2]][,"ctau_ab"]*newTestingAb_sc_neg[,t])
+      
+      costTestingAg_sc[, t] <- 
+        (costflow[[2]][,"ctau_ag"]*(newTestingAg_sc[, t])) + 
+        costflow_Neg[[2]][,"ctau_ag"]*(newTestingAg_sc_neg[, t])
+      
+      
+      costTestingPOCT_sc[, t] <- 
+        costflow[[2]][,"ctau_poct"]*(newTestingPOCT_sc[, t]) + 
+        (costflow_Neg[[2]][,"ctau_poct"]*(newTestingPOCT_sc_neg[, t]))
+      
+      costTreatment_sc[, t] <- newTreatment_sc[, t]*costflow[[1]][,"ceta"]
+      
+      
+      
+      
     }
     
   }
   
   #------------------------- results output ---------------------------------#
   
-  if (!is.null(cost)){
+  if (!is.null(cost) & proj == "POC_AU"){
     results <- list(allPops = allPops,
                     newS = newS,
                     newEntry = newEntry,
@@ -2064,6 +2143,57 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                     newTestingAb_sc = newTestingAb_sc,
                     newTestingAg_sc = newTestingAg_sc,
                     newTestingPOCT_sc = newTestingPOCT_sc,
+                    newTreatment_sc = newTreatment_sc, 
+                    newTestingAb_neg = newTestingAb_neg, 
+                    newTestingAg_neg = newTestingAg_neg,
+                    newTestingPOCT_neg = newTestingPOCT_neg,
+                    newTestingAb_sc_neg = newTestingAb_sc_neg,
+                    newTestingAg_sc_neg = newTestingAg_sc_neg,
+                    newTestingPOCT_sc_neg = newTestingPOCT_sc_neg,
+                    newCured = newCured,
+                    newreinfection = newreinfection,
+                    newpop_tran = newarray,
+                    newpop_tranState = newarray_state,
+                    inflow = inflow,
+                    outflow = outflow,
+                    death_hcv = death_hcv,
+                    HCVdeathState = HCVdeathState,
+                    newDeathState = newDeathState,
+                    costPops = costPops,
+                    QALYPops = QALYPops,
+                    costTestingAb = costTestingAb,
+                    costTestingAg = costTestingAg,
+                    costTestingPOCT = costTestingPOCT,
+                    costTreatment = costTreatment,
+                    costCured = costCured,
+                    costRetreat = costRetreat,
+                    costTestingAb_sc = costTestingAb_sc,
+                    costTestingAg_sc = costTestingAg_sc,
+                    costTestingPOCT_sc = costTestingPOCT_sc,
+                    costTreatment_sc = costTreatment_sc)
+  }else if (!is.null(cost) & proj != "POC_AU"){
+    results <- list(allPops = allPops,
+                    newS = newS,
+                    newEntry = newEntry,
+                    newDeath = newDeath,
+                    newLeave = newLeave, 
+                    newInfections = newInfections, 
+                    newHCVdeaths = newHCVdeaths, 
+                    newTreatment = newTreatment, 
+                    newRetreat = newRetreat, 
+                    newTestingAb = newTestingAb, 
+                    newTestingAg = newTestingAg,
+                    newTestingPOCT = newTestingPOCT,
+                    newTestingAb_sc = newTestingAb_sc,
+                    newTestingAg_sc = newTestingAg_sc,
+                    newTestingPOCT_sc = newTestingPOCT_sc,
+                    newTreatment_sc = newTreatment_sc, 
+                    newTestingAb_neg = newTestingAb_neg, 
+                    newTestingAg_neg = newTestingAg_neg,
+                    newTestingPOCT_neg = newTestingPOCT_neg,
+                    newTestingAb_sc_neg = newTestingAb_sc_neg,
+                    newTestingAg_sc_neg = newTestingAg_sc_neg,
+                    newTestingPOCT_sc_neg = newTestingPOCT_sc_neg,
                     newCured = newCured,
                     newreinfection = newreinfection,
                     newpop_tran = newarray,
@@ -2081,7 +2211,9 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                     costTreatment = costTreatment,
                     costCured = costCured,
                     costRetreat = costRetreat)
-  }else{ 
+    
+    
+  }else if (is.null(cost)){ 
     results <- list(allPops = allPops,
                     newS = newS,
                     newEntry = newEntry,
@@ -2096,7 +2228,14 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                     newTestingPOCT = newTestingPOCT,
                     newTestingAb_sc = newTestingAb_sc,
                     newTestingAg_sc = newTestingAg_sc,
-                    newTestingPOCT_sc = newTestingPOCT_sc,
+                    newTestingPOCT_sc = newTestingPOCT_sc, 
+                    newTreatment_sc = newTreatment_sc,
+                    newTestingAb_neg = newTestingAb_neg, 
+                    newTestingAg_neg = newTestingAg_neg,
+                    newTestingPOCT_neg = newTestingPOCT_neg,
+                    newTestingAb_sc_neg = newTestingAb_sc_neg,
+                    newTestingAg_sc_neg = newTestingAg_sc_neg,
+                    newTestingPOCT_sc_neg = newTestingPOCT_sc_neg,
                     newCured = newCured,
                     newreinfection = newreinfection,
                     newpop_tran = newarray,
@@ -2106,9 +2245,9 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                     death_hcv = death_hcv,
                     HCVdeathState = HCVdeathState,
                     newDeathState = newDeathState)
-    
-    
     }
+    
+ 
   
   
   

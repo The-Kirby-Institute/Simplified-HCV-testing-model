@@ -51,6 +51,9 @@ for(i in names(Resflow_dt)){
            Testing_ab_year = cumsum(Testing_ab), 
            Testing_RNA_year = cumsum(Testing_RNA), 
            Testing_POCT_year = cumsum(Testing_POCT), 
+           Testing_ab_neg_year = cumsum(Testing_ab_neg), 
+           Testing_RNA_neg_year = cumsum(Testing_RNA_neg), 
+           Testing_POCT_neg_year = cumsum(Testing_POCT_neg),
            Cured_year = cumsum(Cured))%>%
     # finding the last row in each year and pop
     mutate(index = c(round((timestep%%1)/POC_AU$timestep, digits = 0)))%>%
@@ -61,13 +64,19 @@ for(i in names(Resflow_dt)){
            Testing_ab_ycum = ifelse(index == 11, Testing_ab_year, NA),
            Testing_RNA_ycum = ifelse(index == 11, Testing_RNA_year, NA),
            Testing_POCT_ycum = ifelse(index == 11,  Testing_POCT_year, NA),
+           Testing_ab_neg_ycum = ifelse(index == 11, Testing_ab_neg_year, NA),
+           Testing_RNA_neg_ycum = ifelse(index == 11, Testing_RNA_neg_year, NA),
+           Testing_POCT_neg_ycum = ifelse(index == 11,  Testing_POCT_neg_year, NA),
            Cured_ycum = ifelse(index == 11,  Cured_year, NA),
            )%>%
     select(year, timestep, population, newInfections, newInf_ycum, 
            HCVdeath, HCVdeath_ycum, Treatment, Treatment_ycum, 
            Retreat, Retreat_ycum, Cured, Cured_ycum, 
            Testing_ab, Testing_ab_ycum, Testing_RNA, Testing_RNA_ycum, 
-           Testing_POCT, Testing_POCT_ycum)%>%
+           Testing_POCT, Testing_POCT_ycum,
+           Testing_ab_neg, Testing_ab_neg_ycum, Testing_RNA_neg, Testing_RNA_neg_ycum, 
+           Testing_POCT_neg, Testing_POCT_neg_ycum
+           )%>%
     arrange(timestep)
 
 }
@@ -86,12 +95,74 @@ for(i in names(Resflow_dt)){
       Cured = sum(Cured, na.rm = TRUE),
       Testing_ab = sum(Testing_ab, na.rm = TRUE),
       Testing_RNA = sum(Testing_RNA, na.rm = TRUE), 
-      Testing_POCT = sum(Testing_POCT, na.rm = TRUE))%>%
+      Testing_POCT = sum(Testing_POCT, na.rm = TRUE),
+      Testing_ab_neg = sum(Testing_ab_neg, na.rm = TRUE),
+      Testing_RNA_neg = sum(Testing_RNA_neg, na.rm = TRUE), 
+      Testing_POCT_neg = sum(Testing_POCT_neg, na.rm = TRUE))%>%
     arrange(timestep)%>%
     mutate(year = rep(seq(1, endY - 1, 1),each =(1/POC_AU$timestep)))%>%
-    select(year, timestep, newInfections, HCVdeath, Treatment, Retreat, Cured, Testing_ab, 
-           Testing_RNA, Testing_POCT)
+    select(year, timestep, newInfections, HCVdeath, Treatment, Retreat, Cured, 
+           Testing_ab, Testing_RNA, Testing_POCT,
+           Testing_ab_neg, Testing_RNA_neg, Testing_POCT_neg)
 }
+
+# number in scenarios 
+Resflow_sc_year_pop <- list()
+for(i in names(Resflow_sc_dt)){ 
+  Resflow_sc_year_pop[[i]] <- Resflow_sc_dt[[i]]%>%as_tibble()%>%arrange(population, year)%>%
+    group_by(year, population)%>%
+    mutate(Treatment_sc_year = cumsum(Treatment_sc), 
+           Testing_ab_sc_year = cumsum(Testing_ab_sc), 
+           Testing_RNA_sc_year = cumsum(Testing_RNA_sc), 
+           Testing_POCT_sc_year = cumsum(Testing_POCT_sc),
+           Testing_ab_sc_neg_year = cumsum(Testing_ab_sc_neg), 
+           Testing_RNA_sc_neg_year = cumsum(Testing_RNA_sc_neg), 
+           Testing_POCT_sc_neg_year = cumsum(Testing_POCT_sc_neg)
+           )%>%
+    # finding the last row in each year and pop
+    mutate(index = c(round((timestep%%1)/POC_AU$timestep, digits = 0)))%>%
+    mutate(Treatment_sc_ycum = ifelse(index == 11, Treatment_sc_year, NA),
+           Testing_ab_sc_ycum = ifelse(index == 11, Testing_ab_sc_year, NA),
+           Testing_RNA_sc_ycum = ifelse(index == 11, Testing_RNA_sc_year, NA),
+           Testing_POCT_sc_ycum = ifelse(index == 11,  Testing_POCT_sc_year, NA),
+           Testing_ab_sc_neg_ycum = ifelse(index == 11, Testing_ab_sc_neg_year, NA),
+           Testing_RNA_sc_neg_ycum = ifelse(index == 11, Testing_RNA_sc_neg_year, NA),
+           Testing_POCT_sc_neg_ycum = ifelse(index == 11,  Testing_POCT_sc_neg_year, NA)
+    )%>%
+    select(year, timestep, population, Treatment_sc, Treatment_sc_ycum, 
+           Testing_ab_sc, Testing_ab_sc_ycum, Testing_RNA_sc, Testing_RNA_sc_ycum, 
+           Testing_POCT_sc, Testing_POCT_sc_ycum, 
+           Testing_ab_sc_neg, Testing_ab_sc_neg_ycum, 
+           Testing_RNA_sc_neg, Testing_RNA_sc_neg_ycum, 
+           Testing_POCT_sc_neg, Testing_POCT_sc_neg_ycum)%>%
+    arrange(timestep)
+  
+}
+
+
+Resflow_sc_year_all <- list()
+colnames(Resflow_sc_year_pop[[1]])
+for(i in names(Resflow_sc_dt)){ 
+  Resflow_sc_year_all[[i]] <- Resflow_sc_year_pop[[i]]%>%ungroup()%>%
+    arrange(timestep)%>%group_by(timestep)%>%
+    summarise(
+       
+      Treatment_sc = sum(Treatment_sc, na.rm = TRUE),
+      Testing_ab_sc = sum(Testing_ab_sc, na.rm = TRUE),
+      Testing_RNA_sc = sum(Testing_RNA_sc, na.rm = TRUE), 
+      Testing_POCT_sc = sum(Testing_POCT_sc, na.rm = TRUE),
+      Testing_ab_sc_neg = sum(Testing_ab_sc_neg, na.rm = TRUE),
+      Testing_RNA_sc_neg = sum(Testing_RNA_sc_neg, na.rm = TRUE), 
+      Testing_POCT_sc_neg = sum(Testing_POCT_sc_neg, na.rm = TRUE))%>%
+    arrange(timestep)%>%
+    mutate(year = rep(seq(1, endY - 1, 1),each =(1/POC_AU$timestep)))%>%
+    select(year, timestep, Treatment_sc,  Testing_ab_sc, Testing_RNA_sc, 
+           Testing_POCT_sc, Testing_ab_sc_neg, Testing_RNA_sc_neg, 
+           Testing_POCT_sc_neg)
+}
+
+
+
 
 # separate cost of DAA and other costs related to treatment initiation  
 
@@ -135,6 +206,39 @@ for(i in names(RescostDAA)){
       totalDAA_cost = sum(totalDAA_cost, na.rm = TRUE))%>%ungroup()
 }
 
+
+RescostDAA_sc <- list()
+
+for(i in names(Rescost_dt)){ 
+  Rescost_dt[[i]] <- Rescost_dt[[i]]%>%arrange(timestep)
+  RescostDAA_sc[[i]] <- cbind(year = Resflow_sc_year_pop[[i]]$year, 
+                           timestep = Rescost_dt[[i]]$timestep,
+                           population = Rescost_dt[[i]]$population,
+                           newTreat = Resflow_sc_year_pop[[i]]$Treatment_sc, 
+                           costTreat = Rescost_dt[[i]]$cost_Treatment_sc)%>%
+    as_tibble()%>%
+    mutate(TreatDAA_cost = newTreat*unitC_DAA)%>%
+    mutate(TreatOther_cost = costTreat - TreatDAA_cost)%>%
+    mutate(totalDAA_cost = TreatDAA_cost )%>%
+    ungroup()
+  
+}
+
+RescostDAA_sc_totalpop <- list()
+
+
+for(i in names(RescostDAA)){
+  
+  RescostDAA_sc_totalpop[[i]] <- RescostDAA_sc[[i]]%>%ungroup()%>%
+    arrange(timestep)%>%group_by(timestep)%>%
+    summarise(
+      newTreat = sum(newTreat, na.rm = TRUE), 
+      TreatDAA_cost = sum(TreatDAA_cost, na.rm = TRUE),
+      TreatOther_cost = sum(TreatOther_cost, na.rm = TRUE), 
+      totalDAA_cost = sum(totalDAA_cost, na.rm = TRUE))%>%ungroup()
+}
+
+
 # cost_total DAA, exculdeDAA replaced cost_Treatment & cost_Retreat 
 # valide with cost_total, 
 # calculating total_cost_cap  
@@ -153,6 +257,21 @@ for(i in names(Rescost_dt)){
     cbind(Rescost_DAA_dt[[i]], 
           RescostDAA[[i]][, (names(RescostDAA[[i]]) %in% rep_col)])
 }
+
+rep_col <- c("TreatDAA_cost", "TreatOther_cost", "totalDAA_cost")
+
+Rescost_DAA_sc_dt <- list()
+
+for(i in names(Rescost_dt)){ 
+  Rescost_DAA_sc_dt[[i]] <- Rescost_dt[[i]]%>%
+    select(c("timestep","population" ,"cost_ab_sc", 
+              "cost_RNA_sc", 
+             "cost_POCT_sc"))
+  Rescost_DAA_sc_dt[[i]] <- 
+    cbind(Rescost_DAA_sc_dt[[i]], 
+          RescostDAA_sc[[i]][, (names(RescostDAA_sc[[i]]) %in% rep_col)])
+}
+
 
 # summarize the costs in each years by pops
 Rescost_year <- list()
@@ -203,6 +322,50 @@ for(i in names(Rescost_dt)){
            cost_Cured, cost_Cured_ycum)
 }
 
+Rescost_sc_year <- list()
+
+for(i in names(Rescost_DAA_dt)){ 
+  Rescost_sc_year[[i]] <- Rescost_DAA_sc_dt[[i]]%>%as_tibble()%>%
+    mutate(year = c(rep(seq(1, endY - 2, 1), each = POC_AU$npops*1/POC_AU$timestep),
+                    c(rep(endY - 1, POC_AU$npops*(1/POC_AU$timestep)))))%>%
+    group_by(year, population)%>%
+    mutate(cost_ab_year = cumsum(cost_ab_sc), 
+           cost_RNA_year = cumsum(cost_RNA_sc), 
+           cost_POCT_year = cumsum(cost_POCT_sc),
+           cost_TreatDAA_year = cumsum(TreatDAA_cost), 
+           
+           cost_TreatOther_year = cumsum(TreatOther_cost),
+           
+           cost_totalDAA_year = cumsum(totalDAA_cost)
+           )%>%
+    mutate(index = c(round((timestep%%1)/POC_AU$timestep, digits = 0)))%>%
+    mutate(cost_ab_ycum = ifelse(index == 11, cost_ab_year, NA),
+           cost_RNA_ycum = ifelse(index == 11, cost_RNA_year, NA),
+           cost_POCT_ycum = ifelse(index == 11, cost_POCT_year, NA),
+           cost_TreatDAA_ycum = ifelse(index == 11, cost_TreatDAA_year, NA), 
+          
+           cost_TreatOther_ycum = ifelse(index == 11, cost_TreatOther_year, NA), 
+          
+           cost_totalDAA_ycum = ifelse(index == 11, cost_totalDAA_year, NA),
+          )%>%
+    mutate(cost_ab = cost_ab_sc,
+           cost_RNA = cost_RNA_sc,
+           cost_POCT = cost_POCT_sc,
+           cost_TreatDAA = TreatDAA_cost, 
+          
+           cost_TreatOther = TreatOther_cost, 
+          
+           cost_totalDAA = totalDAA_cost)%>%
+    select(year, timestep, population, 
+           cost_ab, cost_ab_ycum, 
+           cost_RNA, cost_RNA_ycum, cost_POCT, cost_POCT_ycum,
+           cost_TreatDAA, cost_TreatDAA_ycum, 
+          
+           cost_TreatOther, cost_TreatOther_ycum, 
+          
+           cost_totalDAA, cost_totalDAA_ycum,
+          )
+}
 
 # cumulative yearly cost by population  & discount value 
 Rescost_yearcum_pop <- list()
@@ -299,6 +462,79 @@ for(i in names(Rescost_dt)){
            )
   }
 
+Rescost_yearcum_sc_pop <- list()
+
+for(i in names(Rescost_dt)){ 
+  Rescost_yearcum_sc_pop[[i]] <- Rescost_sc_year[[i]]%>%as_tibble()%>%arrange(population)%>%
+    group_by(population)%>%
+    mutate(cost_ab_cum = cumsum(cost_ab), 
+           cost_RNA_cum = cumsum(cost_RNA),
+           cost_POCT_cum = cumsum(cost_POCT),
+           cost_TreatDAA_cum = cumsum(cost_TreatDAA), 
+          
+           cost_TreatOther_cum = cumsum(cost_TreatOther), 
+         
+           cost_totalDAA_cum = cumsum(cost_totalDAA), 
+         )%>%
+    mutate(cost_ab_cum = ifelse(is.na(cost_ab_ycum), NA, cost_ab_cum),
+           cost_RNA_cum = ifelse(is.na(cost_RNA_ycum), NA, cost_RNA_cum),
+           cost_POCT_cum = ifelse(is.na(cost_POCT_ycum), NA, cost_POCT_cum),
+           cost_TreatDAA_cum = ifelse(is.na(cost_TreatDAA_ycum), NA, cost_TreatDAA_cum),
+          
+           cost_TreatOther_cum = ifelse(is.na(cost_TreatOther_ycum), NA, cost_TreatOther_cum),
+           
+           cost_totalDAA_cum = ifelse(is.na(cost_totalDAA_ycum), NA, cost_totalDAA_cum),
+           
+    )%>%
+    # discount index 
+    mutate(year = year + POC_AU$cabY - 1,
+           id = year - POC_AU$simY, 
+           discount = ifelse(id>=0, (1 + AUdiscount)^id, NA))%>%
+    # discount yearly value 
+    mutate(cost_ab_disycum  = ifelse(is.na(cost_ab_ycum)|is.na(discount), 0, cost_ab_ycum/discount),
+           cost_RNA_disycum  = ifelse(is.na(cost_RNA_ycum)|is.na(discount), 0, cost_RNA_ycum/discount),
+           cost_POCT_disycum  = ifelse(is.na(cost_POCT_ycum)|is.na(discount), 0, cost_POCT_ycum/discount),
+           cost_TreatDAA_disycum  = ifelse(is.na(cost_TreatDAA_ycum)|is.na(discount), 0, cost_TreatDAA_ycum/discount), 
+         
+           cost_TreatOther_disycum  = ifelse(is.na(cost_TreatOther_ycum)|is.na(discount), 0, cost_TreatOther_ycum/discount), 
+           
+           cost_totalDAA_disycum  = ifelse(is.na(cost_totalDAA_ycum)|is.na(discount), 0, cost_totalDAA_ycum/discount), 
+          
+    )%>%
+    # discount cumulative value 
+    mutate(cost_ab_discum  = cumsum(cost_ab_disycum), 
+           cost_RNA_discum  = cumsum(cost_RNA_disycum), 
+           cost_POCT_discum  = cumsum(cost_POCT_disycum), 
+           cost_TreatDAA_discum  = cumsum(cost_TreatDAA_disycum), 
+           
+           cost_TreatOther_discum  = cumsum(cost_TreatOther_disycum), 
+           
+           cost_totalDAA_discum  = cumsum(cost_totalDAA_disycum),
+           
+    )%>%
+    select(year, timestep, population,discount, 
+           cost_ab, cost_ab_ycum, cost_ab_cum, cost_ab_disycum, cost_ab_discum, 
+           
+           cost_RNA, cost_RNA_ycum, cost_RNA_cum, cost_RNA_disycum, 
+           cost_RNA_discum, 
+           
+           cost_POCT, cost_POCT_ycum, cost_POCT_cum, cost_POCT_disycum, 
+           cost_POCT_discum, 
+           
+           cost_TreatDAA, cost_TreatDAA_ycum, cost_TreatDAA_cum, 
+           cost_TreatDAA_disycum, cost_TreatDAA_discum,
+           
+        
+           cost_TreatOther, cost_TreatOther_ycum, cost_TreatOther_cum, 
+           cost_TreatOther_disycum, cost_TreatOther_discum,
+           
+           cost_totalDAA, cost_totalDAA_ycum, cost_totalDAA_cum, 
+           cost_totalDAA_disycum, cost_totalDAA_discum
+           
+         
+    )
+}
+
 # summarize the costs in each years overall 
 Rescost_year_all <- list()
 
@@ -360,8 +596,57 @@ for(i in names(Rescost_dt)){
 }
 
 
+Rescost_year_sc_all <- list()
+
+for(i in names(Rescost_dt)){ 
+  Rescost_year_sc_all[[i]] <- Rescost_sc_year[[i]]%>%ungroup()%>%group_by(timestep)%>%
+    summarise(cost_ab = sum(cost_ab), 
+              cost_RNA = sum(cost_RNA), 
+              cost_POCT = sum(cost_POCT), 
+              cost_TreatDAA = sum(cost_TreatDAA),
+             
+              cost_TreatOther = sum(cost_TreatOther),
+             
+              cost_totalDAA = sum(cost_totalDAA),
+             )%>%
+    ungroup()%>%
+    mutate(year = c(rep(seq(1, endY - 2, 1), each = 1/POC_AU$timestep),
+                    c(rep(endY - 1, (1/POC_AU$timestep)))))%>%
+    group_by(year)%>%
+    mutate(cost_ab_year = cumsum(cost_ab), 
+           cost_RNA_year = cumsum(cost_RNA), 
+           cost_POCT_year = cumsum(cost_POCT), 
+           cost_TreatDAA_year = cumsum(cost_TreatDAA), 
+         
+           cost_TreatOther_year = cumsum(cost_TreatOther),
+           
+           cost_totalDAA_year = cumsum(cost_totalDAA),
+          )%>%
+    # finding the last row in each year and pop
+    mutate(index = c(round((timestep%%1)/POC_AU$timestep, digits = 0)))%>%
+    mutate(cost_ab_ycum = ifelse(index == 11, cost_ab_year, NA), 
+           cost_RNA_ycum = ifelse(index == 11, cost_RNA_year, NA), 
+           cost_POCT_ycum = ifelse(index == 11, cost_POCT_year, NA), 
+           cost_TreatDAA_ycum = ifelse(index == 11, cost_TreatDAA_year, NA), 
+          
+           cost_TreatOther_ycum = ifelse(index == 11, cost_TreatOther_year, NA), 
+          
+           cost_totalDAA_ycum = ifelse(index == 11, cost_totalDAA_year, NA),
+          
+    )%>%
+    select(year, timestep, 
+           cost_ab, cost_ab_ycum, 
+           cost_RNA, cost_RNA_ycum, cost_POCT, cost_POCT_ycum, 
+           cost_TreatDAA, cost_TreatDAA_ycum, 
+          
+           cost_TreatOther, cost_TreatOther_ycum, 
+          
+           cost_totalDAA, cost_totalDAA_ycum)
+}
+
 # cumulative cost each year for overall pops
 Rescost_yearcum_all <- list()
+
 
 for(i in names(Rescost_dt)){ 
   Rescost_yearcum_all[[i]] <- Rescost_year_all[[i]]%>%ungroup()%>%
@@ -456,12 +741,87 @@ for(i in names(Rescost_dt)){
 
 }
 
-View(Rescost_yearcum_all$dfList_NP_2024)
+# cumulative cost each year for overall pops
+Rescost_yearcum_sc_all <- list()
+
+for(i in names(Rescost_dt)){ 
+  Rescost_yearcum_sc_all[[i]] <- Rescost_year_sc_all[[i]]%>%ungroup()%>%
+    mutate(cost_ab_cum = cumsum(cost_ab), 
+           cost_RNA_cum = cumsum(cost_RNA), 
+           cost_POCT_cum = cumsum(cost_POCT), 
+           cost_TreatDAA_cum = cumsum(cost_TreatDAA), 
+         
+           cost_TreatOther_cum = cumsum(cost_TreatOther),
+         
+           cost_totalDAA_cum = cumsum(cost_totalDAA) 
+         )%>%
+    mutate(cost_ab_cum = ifelse(is.na(cost_ab_ycum), NA, cost_ab_cum), 
+           cost_RNA_cum = ifelse(is.na(cost_RNA_ycum), NA, cost_RNA_cum), 
+           cost_POCT_cum = ifelse(is.na(cost_POCT_ycum), NA, cost_POCT_cum), 
+           cost_TreatDAA_cum = ifelse(is.na(cost_TreatDAA_ycum), NA, cost_TreatDAA_cum), 
+           
+           cost_TreatOther_cum = ifelse(is.na(cost_TreatOther_ycum), NA, cost_TreatOther_cum), 
+          
+           cost_totalDAA_ycum = ifelse(is.na(cost_totalDAA_ycum), NA, cost_totalDAA_ycum)
+          
+    )%>%
+    # discount index 
+    mutate(year = year + POC_AU$cabY - 1,
+           id = year - POC_AU$simY, 
+           discount = ifelse(id>=0, (1 + AUdiscount)^id, NA))%>%
+    
+    # discount yearly value 
+    mutate(cost_ab_disycum = ifelse(is.na(cost_ab_ycum)|is.na(discount), 0, cost_ab_ycum/discount),
+           cost_RNA_disycum = ifelse(is.na(cost_RNA_ycum)|is.na(discount), 0, cost_RNA_ycum/discount),
+           cost_POCT_disycum = ifelse(is.na(cost_POCT_ycum)|is.na(discount), 0, cost_POCT_ycum/discount),
+           cost_TreatDAA_disycum = ifelse(is.na(cost_TreatDAA_ycum)|is.na(discount), 0, cost_TreatDAA_ycum/discount),
+         
+           cost_TreatOther_disycum = ifelse(is.na(cost_TreatOther_ycum)|is.na(discount), 0, cost_TreatOther_ycum/discount),
+           
+           cost_totalDAA_disycum = ifelse(is.na(cost_totalDAA_ycum)|is.na(discount), 0,  cost_totalDAA_ycum/discount)
+          
+    )%>%
+    # discount cumulative value 
+    mutate(cost_ab_discum = cumsum(cost_ab_disycum),
+           cost_RNA_discum = cumsum(cost_RNA_disycum),
+           cost_POCT_discum = cumsum(cost_POCT_disycum),
+           cost_TreatDAA_discum = cumsum(cost_TreatDAA_disycum),
+         
+           cost_TreatOther_discum = cumsum(cost_TreatOther_disycum),
+          
+           cost_totalDAA_discum = cumsum(cost_totalDAA_disycum)
+          
+    )%>%
+    select(year, timestep, discount, 
+           cost_ab, cost_ab_ycum, cost_ab_cum, cost_ab_disycum, cost_ab_discum, 
+           
+           cost_RNA, cost_RNA_ycum, cost_RNA_cum, cost_RNA_disycum, 
+           cost_RNA_discum, 
+           
+           cost_POCT, cost_POCT_ycum, cost_POCT_cum, cost_POCT_disycum, 
+           cost_POCT_discum, 
+           cost_TreatDAA, cost_TreatDAA_ycum, cost_TreatDAA_cum, 
+           cost_TreatDAA_disycum, cost_TreatDAA_discum, 
+        
+           
+           cost_TreatOther, cost_TreatOther_ycum, cost_TreatOther_cum, 
+           cost_TreatOther_disycum, cost_TreatOther_discum, 
+           
+         
+           cost_totalDAA, cost_totalDAA_ycum, cost_totalDAA_cum, 
+           cost_totalDAA_disycum, cost_totalDAA_discum
+    )
+  
+}
 
 # save rda files 
 save(Resflow_year_pop, Resflow_year_all, 
+     Resflow_sc_year_pop, Resflow_sc_year_all,
      Rescost_yearcum_pop, Rescost_yearcum_all,
      Rescost_DAA_dt,
+   
+     Rescost_yearcum_sc_pop, Rescost_yearcum_sc_all,
+     Rescost_DAA_sc_dt,
      AUdiscount,
      unitC_DAA,
      cap,
@@ -482,13 +842,24 @@ for(i in names(Num_box)){
   
   Resflow_year_all[[i]] <- Resflow_year_all[[i]]%>%
     mutate(year = year + POC_AU$cabY - 1 )
+  
+  Resflow_sc_year_pop[[i]] <- Resflow_sc_year_pop[[i]]%>%
+    mutate(year = year + POC_AU$cabY)
+  
+  Resflow_sc_year_all[[i]] <- Resflow_sc_year_all[[i]]%>%
+    mutate(year = year + POC_AU$cabY - 1 )
 }
 
-write.xlsx(Num_box, file = file.path(OutputFolder, paste0("POC_AU_epi_compartment.xlsx")), 
+ write.xlsx(Num_box, file = file.path(OutputFolder, paste0("POC_AU_epi_compartment.xlsx")), 
            append=TRUE) 
-write.xlsx(Resflow_year_pop, file = file.path(OutputFolder, paste0("POC_AU_epi_flow_pop.xlsx")), 
+ write.xlsx(Resflow_year_pop, file = file.path(OutputFolder, paste0("POC_AU_epi_flow_pop.xlsx")), 
            append=TRUE) 
-write.xlsx(Resflow_year_all, file = file.path(OutputFolder, paste0("POC_AU_epi_flow_all.xlsx")), 
+ write.xlsx(Resflow_year_all, file = file.path(OutputFolder, paste0("POC_AU_epi_flow_all.xlsx")), 
+           append=TRUE) 
+
+ write.xlsx(Resflow_sc_year_pop, file = file.path(OutputFolder, paste0("POC_AU_epi_flow_pop_NP.xlsx")), 
+           append=TRUE) 
+ write.xlsx(Resflow_sc_year_all, file = file.path(OutputFolder, paste0("POC_AU_epi_flow_all_NP.xlsx")), 
            append=TRUE) 
 
 epicost_pop <- list()
@@ -531,12 +902,13 @@ for(i in names(Rescost_yearcum_pop)){
            )
   
 }
-write.xlsx(epicost_pop, file = file.path(OutputFolder, paste0("POC_AU_epicost_pop.xlsx")), 
+
+ write.xlsx(epicost_pop, file = file.path(OutputFolder, paste0("POC_AU_epicost_pop.xlsx")), 
            append=TRUE) 
 
-write.xlsx(Rescost_yearcum_pop, file = file.path(OutputFolder, paste0("POC_AU_cost_pop.xlsx")), 
+ write.xlsx(Rescost_yearcum_pop, file = file.path(OutputFolder, paste0("POC_AU_cost_pop.xlsx")), 
            append=TRUE)
 
-write.xlsx(Rescost_yearcum_all, file = file.path(OutputFolder, paste0("POC_AU_cost_all.xlsx")), 
+ write.xlsx(Rescost_yearcum_all, file = file.path(OutputFolder, paste0("POC_AU_cost_all.xlsx")), 
            append=TRUE)
 
