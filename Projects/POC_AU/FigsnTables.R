@@ -31,6 +31,7 @@ library("pacman")
 library("doMC")
 library("ggplot2")
 library("viridis") 
+library("openxlsx")
 Rcode <- file.path(codefun_path, "03. Code")
 
 DataFolder <- file.path(data_path, "01. DATA/model input" )
@@ -43,7 +44,7 @@ load(file.path(OutputFolder, paste0(project_name,"epiRes_timestep.rda")))
 source(file.path(Rcode, "/Functions/plotManuscript.R"))
 source(file.path(Rcode, "/Functions/plotFunctions.R")) 
 endY <- 100
-year_obs <- c(POC_AU$simY  +5 , POC_AU$simY + 10, POC_AU$simY + 20)
+year_obs <- c(POC_AU$simY  +5 - 1  , POC_AU$simY + 10 - 1, POC_AU$simY + 20 - 1)
 
 #### cumulative: number of infections: overall in 5, 10, 20y ####
 # starting at year of 2022
@@ -59,7 +60,9 @@ for(i in names(Resflow_year_all)){
     summarise_at(col_lst, "sum")%>%ungroup()%>%
     mutate(across(col_lst, list(cum=cumsum), .names = "{fn}_{col}"))
 
-  }
+}
+
+
 # avert number of transitions 
 Resflow_cum_all_avert <- list()
 col_lst <- colnames(Resflow_cum_all$`Status quo`)[-c(1)]
@@ -69,8 +72,42 @@ for(i in names(Resflow_cum_all)){
     data.frame(Resflow_cum_all[[1]][, col_lst] - Resflow_cum_all[[i]][, col_lst]))%>%
     rename_at(vars(col_lst), ~ paste0("avert_", col_lst))
   
-  }
-Resflow_cum_all$`Status quo`
+}
+
+Resflow_sc_cum_all <- list()
+
+col_lst <- colnames(Resflow_sc_year_all$`Status quo`)[-c(1,2)]
+for(i in names(Resflow_year_all)){ 
+  Resflow_sc_cum_all[[i]] <- Resflow_sc_year_all[[i]]%>%
+    mutate(year = year + POC_AU$cabY - 1)%>%
+    filter(year>= POC_AU$simY)%>%
+    group_by(year)%>%
+    summarise_at(col_lst, "sum")%>%ungroup()%>%
+    mutate(across(col_lst, list(cum=cumsum), .names = "{fn}_{col}"))
+  
+}
+# avert number of transitions 
+Resflow_sc_cum_all_avert <- list()
+col_lst <- colnames(Resflow_sc_cum_all$`Status quo`)[-c(1)]
+for(i in names(Resflow_sc_cum_all)){ 
+  Resflow_sc_cum_all_avert[[i]] <- cbind(
+    year = Resflow_sc_cum_all[[i]]$year, 
+    data.frame(Resflow_sc_cum_all[[1]][, col_lst] - Resflow_sc_cum_all[[i]][, col_lst]))%>%
+    rename_at(vars(col_lst), ~ paste0("avert_", col_lst))
+  
+}
+
+# output to spreadsheets 
+write.xlsx(Resflow_cum_all, file = file.path(OutputFolder, paste0("POC_AU_epiy.xlsx")), 
+           append=TRUE) 
+write.xlsx(Resflow_cum_all_avert, file = file.path(OutputFolder, paste0("POC_AU_epiy_avert.xlsx")), 
+           append=TRUE)
+write.xlsx(Resflow_sc_cum_all, file = file.path(OutputFolder, paste0("POC_AU_epiy_sc.xlsx")), 
+           append=TRUE) 
+write.xlsx(Resflow_sc_cum_all_avert, file = file.path(OutputFolder, paste0("POC_AU_epiy_sc_avert.xlsx")), 
+           append=TRUE)
+
+
 #### plot for number of averted/cumulative infections by 5, 10, 15 years ####
 # ceiling and floor function 
 
@@ -96,7 +133,7 @@ plot_pocau <- function(pj,dt,indicator, type, year_obs){
      ggplot(data =. , aes(x = as.character(year), y = best, fill = scenario)) + 
      geom_bar(stat = "identity", position = "dodge") + 
      labs(x = "", y = indicator) + 
-     scale_x_discrete(labels = c(paste0((year_obs - pj$simY), "-Year", sep = ""))) + 
+     scale_x_discrete(labels = c(paste0((year_obs - pj$simY + 1), "-Year", sep = ""))) + 
      scale_fill_viridis(discrete = TRUE,option = "D") + 
      theme_linedraw() +
      ggtitle("Cumulative number")
@@ -109,7 +146,7 @@ plot_pocau <- function(pj,dt,indicator, type, year_obs){
       ggplot(data =. , aes(x = as.character(year), y = best, fill = scenario)) + 
       geom_bar(stat = "identity", position = "dodge") + 
       labs(x = "", y = indicator) + 
-      scale_x_discrete(labels = c(paste0((year_obs - pj$simY), "-Year", sep = ""))) + 
+      scale_x_discrete(labels = c(paste0((year_obs - pj$simY + 1), "-Year", sep = ""))) + 
       scale_fill_viridis(discrete = TRUE,option = "D") + 
       theme_linedraw() +
       ggtitle("Number averted (cumulative)")
@@ -217,7 +254,7 @@ for(i in col_cum_avert){
 
 # ggarrange plot 
 plot_flow_arrange <- list()
-
+plot_flow_arrange$Treatment_sc
 for(i in 1: length(plot_flow_year)){ 
   plot_flow_arrange[[i]] <- ggpubr::ggarrange(
     plotlist = list(plot_flow_year[[i]], 
@@ -337,6 +374,10 @@ for(i in names(long.num.ad)){
 
   
 } 
+
+p_num_adliver$`Decompensated cirrhosis`[["avert_cumulative"]] + 
+  scale_y_continuous(limits = c(0, 80), breaks = seq(0, 80, 10))
+
 plot_num_arrange <- list()
 
 for(i in names(p_num_adliver)){ 
@@ -346,7 +387,6 @@ for(i in names(p_num_adliver)){
   
 }
 
-View(Rescost_yearcum_all$`Status quo`)
 
 #####################################
 # cost data plot 
@@ -372,6 +412,7 @@ for(i in names(Rescost_yearcum_all)){
     filter(year>= POC_AU$simY)
 
 }
+
 col_lst <- colnames(cost_year_all[[1]])[-c(1,2)]
 cost_cum_all <- list()
 cost_cumavert_all <- list()
@@ -386,7 +427,7 @@ for(i in names(cost_year_all)){
                                             cost_cum_all[[i]][, col_lst]))%>%
   rename_at(vars(col_lst), ~ paste0("avert_", col_lst))
 }
-  
+
 cost_cum_all_bind <- dplyr::bind_rows(cost_cum_all, .id ='scenario')%>%
   mutate(scenario = factor(scenario, levels = c(names(cost_cum_all))))
 
@@ -439,10 +480,30 @@ for(i in col_cum){
 
 plot_cost_cum$cost_total_ycum
 
-  col_cum_avert <- c(paste0("avert_", col_cum))
+col_cum_avert <- c(paste0("avert_", col_cum))
 floor_avert <- list()
 plot_cost_cumavert <- list() 
-long.cost_cumavert_all_bind <- long.cost_cumavert_all_bind%>%mutate(best = best)
+
+col_lst <- colnames(cost_year_all[[1]])[-c(1,2)]
+cost_cum_all_year_obs <- list()
+cost_cumavert_all <- list()
+for(i in names(cost_cum_all)){
+  
+  cost_cum_all_year_obs[[i]] <- cost_cum_all[[i]]%>%filter(year %in% year_obs)
+  cost_cumavert_all[[i]] <- cbind(year = cost_cum_all_year_obs[[i]]$year, 
+                                  discount = cost_cum_all_year_obs[[i]]$discount, 
+                                  data.frame(cost_cum_all_year_obs[[1]][, col_lst] - 
+                                               cost_cum_all_year_obs[[i]][, col_lst]))%>%
+    rename_at(vars(col_lst), ~ paste0("avert_", col_lst))
+  
+  
+}
+
+cost_cumavert_all_bind <- dplyr::bind_rows(cost_cumavert_all, .id ='scenario')%>%
+  mutate(scenario = factor(scenario, levels = c(names(cost_cum_all))))
+
+long.cost_cumavert_all_bind <- gather(cost_cumavert_all_bind, index, best, 
+                                      -c(scenario, year, discount))
 for(i in col_cum_avert){ 
   
   ceil_avert[[i]] <- long.cost_cumavert_all_bind%>%filter(index == i & year%in% year_obs)%>%
@@ -452,10 +513,10 @@ for(i in col_cum_avert){
     select(best)%>%c()%>%unlist()%>%min()%>%ceiling_dec(.,-2)
   
   if(floor_avert[[i]]>0){
-    plot_cost_cumavert[[i]] <- plot_pocau(POC_AU, llong.cost_cumavert_all_bind, 
+    plot_cost_cumavert[[i]] <- plot_pocau(POC_AU, long.cost_cumavert_all_bind, 
                                           type = "avert", 
                                           indicator = i, year_obs = year_obs) + 
-      labs(y = paste0(i, "(billions)")) + 
+      labs(y = i) + 
       ggtitle("Cost saving") +  
       scale_y_continuous(limits = c(0, ceil_avert[[i]]), breaks = seq(0, ceil_avert[[i]], 
                                                                       ceil_avert[[i]]/10))
@@ -494,13 +555,16 @@ for(i in names(cost_cum_all)){
 }
 
 cost_stagesave <- list()
+
+cost_stagesave_year_obs <- list()
 col_lst <- c("diagnosis_ycum", "management_ycum", 
              "treatment_ycum","diagnosis_disycum", "management_disycum", 
              "treatment_disycum" )
 for(i in names(cost_stage)){ 
-  cost_stagesave[[i]] <- cbind(year = cost_stage[[i]]$year, 
-                               data.frame(cost_stage[[1]][, col_lst] - 
-                                            cost_stage[[i]][, col_lst]))
+  cost_stagesave_year_obs[[i]] <- cost_stage[[i]]%>%filter(year%in% year_obs)
+  cost_stagesave[[i]] <- cbind(year = cost_stagesave_year_obs[[i]]$year, 
+                               data.frame(cost_stagesave_year_obs[[1]][, col_lst] - 
+                                            cost_stagesave_year_obs[[i]][, col_lst]))
   
 }
 
@@ -537,11 +601,13 @@ p_cost_stage[["cumulative"]]  <- p_cost_stage[["cumulative"]] + facet_custom (~i
                 scale_overrides = 
                   list(
                     scale_new(1,
-                              scale_y_continuous(limits = c(0, 2000))),
+                              scale_y_continuous(limits = c(0,5))),
                     scale_new(2,
                               scale_y_continuous(limits = c(0, 5))),
                     scale_new(3,
-                          scale_y_continuous(limits = c(0, 5)))))
+                          scale_y_continuous(limits = c(0, 5))))) + 
+  scale_x_discrete(labels = c(paste0((year_obs - 
+                                        POC_AU$simY + 1), "-Year", sep = "")))
 
 
 p_cost_stage[["discount cumulative"]]  <- p_cost_stage[["discount cumulative"]] + 
@@ -550,11 +616,13 @@ p_cost_stage[["discount cumulative"]]  <- p_cost_stage[["discount cumulative"]] 
                 scale_overrides = 
                   list(
                     scale_new(1,
-                              scale_y_continuous(limits = c(0, 1200))),
+                              scale_y_continuous(limits = c(0, 3))),
                     scale_new(2,
-                              scale_y_continuous(limits = c(0, 5))),
+                              scale_y_continuous(limits = c(0, 3))),
                     scale_new(3,
-                              scale_y_continuous(limits = c(0, 5))))) 
+                              scale_y_continuous(limits = c(0, 3))))) +
+  scale_x_discrete(labels = c(paste0((year_obs - 
+                                        POC_AU$simY + 1), "-Year", sep = "")))
 
 for(i in names(p_cost_stage)){ 
   ggsave(file=file.path(OutputFig, paste0("plot_cost_stage_",i,".png")), p_cost_stage[[i]], 
@@ -563,25 +631,32 @@ for(i in names(p_cost_stage)){
 
 # saving 
 p_cost_stagesave <- list()
-p_cost_stagesave[["cumulative"]] <-  cost_stagesave_bind%>%filter(year%in% year_obs & index %in% 
-                                                            c("diagnosis_ycum", "management_ycum", 
+p_cost_stagesave[["cumulative"]] <-  
+  cost_stagesave_bind%>%
+  filter(year%in% year_obs & index %in% c("diagnosis_ycum", "management_ycum", 
                                                               "treatment_ycum"))%>%
-  ggplot(., aes(x = as.character(year), y = best/1000000000, fill = scenario)) + 
+  ggplot(., aes(x = as.character(year), y = best/1000000, fill = scenario)) + 
   geom_bar(stat = "identity", position = "dodge") + 
   
   scale_fill_viridis(discrete = TRUE, option = "D") + 
   theme_linedraw() +
-  labs(x = "Year", y = "Cost, billions")
+  labs(x = "Year", y = "Cost, billions") + 
+  scale_x_discrete(labels = c(paste0((year_obs - 
+                                        POC_AU$simY + 1), "-Year", sep = "")))
+
 p_cost_stagesave[["discount cumulative"]] + facet_wrap(~index, scale = "free")
+
 p_cost_stagesave[["discount cumulative"]] <-  cost_stagesave_bind%>%
   filter(year%in% year_obs & index %in% c("diagnosis_disycum", "management_disycum", 
                                           "treatment_disycum"))%>%
-  ggplot(., aes(x = as.character(year), y = best/1000000000, fill = scenario)) + 
+  ggplot(., aes(x = as.character(year), y = best/1000000, fill = scenario)) + 
   geom_bar(stat = "identity", position = "dodge") + 
   
   scale_fill_viridis(discrete = TRUE, option = "D") + 
   theme_linedraw() +
-  labs(x = "Year", y = "Cost, billions")
+  labs(x = "Year", y = "Cost, millions") + 
+  scale_x_discrete(labels = c(paste0((year_obs - 
+                                        POC_AU$simY + 1), "-Year", sep = "")))
 
 p_cost_stagesave[["cumulative"]]  <- p_cost_stagesave[["cumulative"]] + 
   facet_custom (~index,
@@ -589,11 +664,15 @@ p_cost_stagesave[["cumulative"]]  <- p_cost_stagesave[["cumulative"]] +
                 scale_overrides = 
                   list(
                     scale_new(1,
-                              scale_y_continuous(limits = c(-2000, 0))),
+                              scale_y_continuous(limits = c(-25, 0), 
+                              breaks = seq(-25, 0, 5))),
                     scale_new(2,
-                              scale_y_continuous(limits = c(-0.001, 0.02))),
+                              scale_y_continuous(limits = c(0, 100), 
+                              breaks = seq(0, 100, 10))),
                     scale_new(3,
-                              scale_y_continuous(limits = c(-0.04, 0.04)))))
+                              scale_y_continuous(limits = c(-200, 200), 
+                                                 breaks = seq(-200, 200, 10))))) + 
+  labs(x = "Year", y = "Cost, millions")
 
 
 p_cost_stagesave[["discount cumulative"]]  <- p_cost_stagesave[["discount cumulative"]] + 
@@ -602,22 +681,27 @@ p_cost_stagesave[["discount cumulative"]]  <- p_cost_stagesave[["discount cumula
                 scale_overrides = 
                   list(
                     scale_new(1,
-                              scale_y_continuous(limits = c(-1200, 0))),
+                              scale_y_continuous(limits = c(-20, 0), 
+                                                 breaks = seq(-20, 0, 5))),
                     scale_new(2,
-                              scale_y_continuous(limits = c(-0.01, 0.01))),
+                              scale_y_continuous(limits = c(0, 60), 
+                                                 breaks = seq(0, 60, 10))),
                     scale_new(3,
-                              scale_y_continuous(limits = c(-0.04, 0.01))))) 
+                              scale_y_continuous(limits = c(-200, 10), 
+                                                 breaks = seq(-200, 10, 10)))))
 
 for(i in names(p_cost_stage)){ 
-  ggsave(file=file.path(OutputFig, paste0("plot_cost_stage_",i,".png")), p_cost_stage[[i]], 
+  ggsave(file=file.path(OutputFig, paste0("plot_cost_stage_",i,".png")), 
+         p_cost_stage[[i]], 
          width = 10 , height = 6, bg = "white")
   
-  ggsave(file=file.path(OutputFig, paste0("plot_cost_stagesave_",i,".png")), p_cost_stagesave[[i]], 
+  ggsave(file=file.path(OutputFig, paste0("plot_cost_stagesave_",i,".png")), 
+         p_cost_stagesave[[i]], 
          width = 10 , height = 6, bg = "white")
 }
 
-plot_cost_cum$cost_total_disycum
 plot_cost_arrange <- list()
+
 ylab <- c("Total", "Management at eahc state", "Antibody testing", "RNA testing", 
           "Immediate RNA testing", "Treat_DAA", "Retreat_DAA", 
           "Other costs related to treatment", "Other costs related to Retreat", 
@@ -638,217 +722,243 @@ for(i in 1: length(names(plot_cost_cum))){
   plot_cost_cum[[i]] <- plot_cost_cum[[i]] + 
     labs(y = ylab_billion[i]) 
   
-  plot_cost_cumavert[[i]] <- plot_cost_cumavert[[i]] +
+  plot_cost_cumavert[[i]] <- plot_cost_cumavert[[i]] + 
     labs(y = ylab[i])
   
-  }
-plot_cost_cum[[2]] <- plot_cost_cum[[2]] + 
-  scale_y_continuous(limits = c(0, 5))
-plot_cost_cum[[3]] <- plot_cost_cum[[3]] + 
-  scale_y_continuous(limits = c(0, 0.25))
+}
 
+
+
+plot_cost_cum[[1]] <- plot_cost_cum[[1]] + 
+  scale_y_continuous(limits = c(0, 6))
+plot_cost_cum[[2]] <- plot_cost_cum[[2]] + 
+  scale_y_continuous(limits = c(0, 3))
+plot_cost_cum[[3]] <- plot_cost_cum[[3]] + 
+  scale_y_continuous(limits = c(0, 0.15))
 
 plot_cost_cum[[4]] <- plot_cost_cum[[4]] + 
   scale_y_continuous(limits = c(0, 0.5))
+
+plot_cost_cum[[5]] <- plot_cost_cum[[5]] + 
+  scale_y_continuous(limits = c(0, 0.01), breaks = seq(0, 0.01, 0.001), 
+                     labels = seq(0, 0.01, 0.001)) 
+
 plot_cost_cum[[6]] <- plot_cost_cum[[6]] + 
-  scale_y_continuous(limits = c(0, 5))
+  scale_y_continuous(limits = c(0, 3))
 plot_cost_cum[[7]] <- plot_cost_cum[[7]] + 
-  scale_y_continuous(limits = c(0, 0.05))
+  scale_y_continuous(limits = c(0, 0.03))
 
 plot_cost_cum[[8]] <- plot_cost_cum[[8]] + 
-  scale_y_continuous(limits = c(0, 0.1))
+  scale_y_continuous(limits = c(0, 0.1), breaks = seq(0, 0.1, 0.01), 
+                     labels = seq(0, 0.1, 0.01)) 
 
-plot_cost_cum[[9]] <- plot_cost_cum[[9]] + 
-  scale_y_continuous(limits = c(0, 0.003))
+plot_cost_cum[[9]] <- plot_cost_cum[[9]] +  
+  scale_y_continuous(limits = c(0, 0.0015), breaks = seq(0, 0.0015, 0.0005), 
+                     labels = seq(0, 0.0015, 0.0005)) 
 
 plot_cost_cum[[10]] <- plot_cost_cum[[10]] + 
-  scale_y_continuous(limits = c(0, 5))
+  scale_y_continuous(limits = c(0, 3))
 
 plot_cost_cum[[11]] <- plot_cost_cum[[11]] + 
-  scale_y_continuous(limits = c(0, 0.05))
+  scale_y_continuous(limits = c(0, 0.04), breaks = seq(0, 0.04, 0.01), 
+                     labels = seq(0, 0.04, 0.01))
 
 plot_cost_cum[[12]] <- plot_cost_cum[[12]] + 
-  scale_y_continuous(limits = c(0, 5))
-
+  scale_y_continuous(limits = c(0, 3))
+plot_cost_cum[[13]] <- plot_cost_cum[[13]] + 
+  scale_y_continuous(limits = c(0, 6))
+plot_cost_cum[[14]] <- plot_cost_cum[[14]] + 
+  scale_y_continuous(limits = c(0, 6))
 plot_cost_cum[[15]] <- plot_cost_cum[[15]] + 
-  scale_y_continuous(limits = c(0, 5))
+  scale_y_continuous(limits = c(0, 2))
+
+plot_cost_cum[[16]] <- plot_cost_cum[[16]] + 
+  scale_y_continuous(limits = c(0, 4))
+
 
 plot_cost_cum[[17]] <- plot_cost_cum[[17]] + 
-  scale_y_continuous(limits = c(0, 5))
+  scale_y_continuous(limits = c(0, 2))
 
 plot_cost_cum[[18]] <- plot_cost_cum[[18]] + 
-  scale_y_continuous(limits = c(0, 0.25))
+  scale_y_continuous(limits = c(0, 0.25)) 
 plot_cost_cum[[19]] <- plot_cost_cum[[19]] + 
   scale_y_continuous(limits = c(0, 0.5))
+
+plot_cost_cum[[20]] <- plot_cost_cum[[20]] + 
+  scale_y_continuous(limits = c(0, 0.007), breaks = seq(0, 0.007, 0.001), 
+                     labels = seq(0, 0.007, 0.001)) 
 plot_cost_cum[[21]] <- plot_cost_cum[[21]] + 
-  scale_y_continuous(limits = c(0, 5))
+  scale_y_continuous(limits = c(0, 3))
+
 plot_cost_cum[[22]] <- plot_cost_cum[[22]] + 
-  scale_y_continuous(limits = c(0, 0.05))
+  scale_y_continuous(limits = c(0, 0.02), breaks = seq(0, 0.02, 0.01), 
+                     labels = seq(0, 0.02, 0.01)) 
 
 plot_cost_cum[[23]] <- plot_cost_cum[[23]] + 
   scale_y_continuous(limits = c(0, 0.1))
 
 plot_cost_cum[[24]] <- plot_cost_cum[[24]] + 
-  scale_y_continuous(limits = c(0, 0.003))
+  scale_y_continuous(limits = c(0, 0.001))
 
 plot_cost_cum[[25]] <- plot_cost_cum[[25]] + 
-  scale_y_continuous(limits = c(0, 5))
+  scale_y_continuous(limits = c(0, 2))
 
 plot_cost_cum[[26]] <- plot_cost_cum[[26]] + 
-  scale_y_continuous(limits = c(0, 0.05))
+  scale_y_continuous(limits = c(0, 0.03))
 
 plot_cost_cumavert[[1]] <- plot_cost_cumavert[[1]] + 
-  scale_y_continuous(limits = c(-1500000000000,0), 
-                     breaks = seq(-1500000000000,0, 100000000000),
-                     labels = seq(-1500000000000,0, 100000000000)/1000000000) + 
-  labs(y = "Total cost (billion)"))
+  scale_y_continuous(limits = c(-90000000,100000000), 
+                     breaks = seq(-90000000,100000000, 10000000),
+                     labels = seq(-90000000,100000000, 10000000)/1000000) + 
+  labs(y = "Total cost (million)")
+
 plot_cost_cumavert[[2]] <- plot_cost_cumavert[[2]] + 
-  scale_y_continuous(limits = c(0,16000000), 
-                     breaks = seq(0,16000000, 1000000),
-                     labels = seq(0,16000000, 1000000)/1000000) + 
+  scale_y_continuous(limits = c(0,50000000), 
+                     breaks = seq(0,50000000, 5000000),
+                     labels = seq(0,50000000, 5000000)/1000000) + 
   labs(y = paste0(ylab [2], "(million)"))
 
 plot_cost_cumavert[[3]] <- plot_cost_cumavert[[3]] + 
-  scale_y_continuous(limits = c(-400000,0), 
-                     breaks = seq(-400000,0, 50000),
-                     labels = seq(-400000,0, 50000)/1000000) +
-  labs(y = paste0(ylab [3], "(million)"))
-
-plot_cost_cumavert[[4]] <- plot_cost_cumavert[[4]] + 
   scale_y_continuous(limits = c(-4000000,0), 
                      breaks = seq(-4000000,0, 500000),
                      labels = seq(-4000000,0, 500000)/1000000) +
+  labs(y = paste0(ylab [3], "(million)"))
+
+plot_cost_cumavert[[4]] <- plot_cost_cumavert[[4]] + 
+  scale_y_continuous(limits = c(-20000000,0), 
+                     breaks = seq(-20000000,0, 1000000),
+                     labels = seq(-20000000,0, 1000000)/1000000) +
   labs(y = paste0(ylab [4], "(million)"))
 
 plot_cost_cumavert[[5]] <- plot_cost_cumavert[[5]] + 
-  scale_y_continuous(limits = c(-1500000000000,0), 
-                     breaks = seq(-1500000000000,0, 100000000000),
-                     labels = seq(-1500000000000,0, 100000000000)/1000000000) +
-  labs(y = paste0(ylab [5], "(billion)"))
+  scale_y_continuous(limits = c(-9000000,0), 
+                     breaks = seq(-9000000,0, 1000000),
+                     labels = seq(-9000000,0, 1000000)/1000000) +
+  labs(y = paste0(ylab [5], "(million)"))
 
 plot_cost_cumavert[[6]] <- plot_cost_cumavert[[6]] + 
-  scale_y_continuous(limits = c(-40000000,30000000), 
-                     breaks = seq(-40000000,30000000, 5000000),
-                     labels = seq(-40000000,30000000, 5000000)/1000000) +
+  scale_y_continuous(limits = c(-80000000,80000000), 
+                     breaks = seq(-80000000,80000000, 5000000),
+                     labels = seq(-80000000,80000000, 5000000)/1000000) +
   labs(y = paste0(ylab [6], "(million)"))
 
 
 plot_cost_cumavert[[7]] <- plot_cost_cumavert[[7]] + 
-  scale_y_continuous(limits = c(-200000,250000), 
-                     breaks = seq(-200000,250000, 50000),
-                     labels = seq(-200000,250000, 50000)/1000000) +
+  scale_y_continuous(limits = c(-1000000,500000), 
+                     breaks = seq(-1000000,500000, 100000),
+                     labels = seq(-1000000,500000, 100000)/1000000) +
   labs(y = paste0(ylab [7], "(million)"))
 
 plot_cost_cumavert[[8]] <- plot_cost_cumavert[[8]] + 
-  scale_y_continuous(limits = c(-2000000,2000000), 
-                     breaks = seq(-2000000,2000000, 500000),
-                     labels = seq(-2000000,2000000, 500000)/1000000) +
+  scale_y_continuous(limits = c(-4000000,3000000), 
+                     breaks = seq(-4000000,3000000, 500000),
+                     labels = seq(-4000000,3000000, 500000)/1000000) +
   labs(y = paste0(ylab [8], "(million)"))
 
 plot_cost_cumavert[[9]] <- plot_cost_cumavert[[9]] + 
-  scale_y_continuous(limits = c(-10000,10000), 
-                     breaks = seq(-10000,10000, 1000)) +
+  scale_y_continuous(limits = c(-40000,20000), 
+                     breaks = seq(-40000,20000, 5000)) +
   labs(y = paste0(ylab [9]))
 
 plot_cost_cumavert[[10]] <- plot_cost_cumavert[[10]] + 
-  scale_y_continuous(limits = c(-40000000,30000000), 
-                     breaks = seq(-40000000,30000000, 5000000),
-                     labels = seq(-40000000,30000000, 5000000)/1000000) +
+  scale_y_continuous(limits = c(-80000000,60000000), 
+                     breaks = seq(-80000000,60000000, 5000000),
+                     labels = seq(-80000000,60000000, 5000000)/1000000) +
   labs(y = paste0(ylab [10], "(million)"))
 
 plot_cost_cumavert[[11]] <- plot_cost_cumavert[[11]] + 
-  scale_y_continuous(limits = c(-500000,400000), 
-                     breaks = seq(-500000,400000, 50000),
-                     labels = seq(-500000,400000, 50000)/1000000) +
+  scale_y_continuous(limits = c(-1000000,800000), 
+                     breaks = seq(-1000000,800000, 100000),
+                     labels = seq(-1000000,800000, 100000)/1000000) +
   labs(y = paste0(ylab [11], "(million)"))
 
 plot_cost_cumavert[[12]] <- plot_cost_cumavert[[12]] + 
-  scale_y_continuous(limits = c(-40000000,30000000), 
-                     breaks = seq(-40000000,30000000, 5000000),
-                     labels = seq(-40000000,30000000, 5000000)/1000000) +
+  scale_y_continuous(limits = c(-70000000,60000000), 
+                     breaks = seq(-70000000,60000000, 5000000),
+                     labels = seq(-70000000,60000000, 5000000)/1000000) +
   labs(y = paste0(ylab [12], "(million)"))
 
 plot_cost_cumavert[[13]] <- plot_cost_cumavert[[13]] + 
-  scale_y_continuous(limits = c(-1500000000000,0), 
-                     breaks = seq(-1500000000000,0, 100000000000),
-                     labels = seq(-1500000000000,0, 100000000000)/1000000000) +
-  labs(y = paste0(ylab [13], "(billion)"))
+  scale_y_continuous(limits = c(-90000000,90000000), 
+                     breaks = seq(-90000000,90000000, 10000000),
+                     labels = seq(-90000000,90000000, 10000000)/1000000) +
+  labs(y = paste0(ylab [13], "(million)"))
 
 plot_cost_cumavert[[14]] <- plot_cost_cumavert[[14]] + 
-  scale_y_continuous(limits = c(-1500000000000,0), 
-                     breaks = seq(-1500000000000,0, 100000000000),
-                     labels = seq(-1500000000000,0, 100000000000)/1000000000) +
-  labs(y = paste0(ylab [14], "(billion)"))
+  scale_y_continuous(limits = c(-80000000,10000000), 
+                     breaks = seq(-80000000,10000000, 10000000),
+                     labels = seq(-80000000,10000000, 10000000)/1000000) +
+  labs(y = paste0(ylab [14], "(million)"))
 
 plot_cost_cumavert[[15]] <- plot_cost_cumavert[[15]] + 
-  scale_y_continuous(limits = c(-35000000,10000000), 
-                     breaks = seq(-35000000,10000000, 5000000),
-                     labels = seq(-35000000,10000000, 5000000)/1000000) +
+  scale_y_continuous(limits = c(-60000000,10000000), 
+                     breaks = seq(-60000000,10000000, 5000000),
+                     labels = seq(-60000000,10000000, 5000000)/1000000) +
   labs(y = paste0(ylab [15], "(million)"))
 
 plot_cost_cumavert[[16]] <- plot_cost_cumavert[[16]] + 
-  scale_y_continuous(limits = c(-1500000000000,0), 
-                     breaks = seq(-1500000000000,0, 100000000000),
-                     labels = seq(-1500000000000,0, 100000000000)/1000000000) +
-  labs(y = paste0(ylab [16], "(billion)"))
+  scale_y_continuous(limits = c(-80000000,10000000), 
+                     breaks = seq(-80000000,10000000, 10000000),
+                     labels = seq(-80000000,10000000, 10000000)/1000000) +
+  labs(y = paste0(ylab [16], "(million)"))
 
 plot_cost_cumavert[[17]] <- plot_cost_cumavert[[17]] + 
-  scale_y_continuous(limits = c(0,9000000), 
-                     breaks = seq(0,9000000, 1000000),
-                     labels = seq(0,9000000, 1000000)/1000000) +
+  scale_y_continuous(limits = c(0,30000000), 
+                     breaks = seq(0,30000000, 5000000),
+                     labels = seq(0,30000000, 5000000)/1000000) +
   labs(y = paste0(ylab [17], "(million)"))
 
 plot_cost_cumavert[[18]] <- plot_cost_cumavert[[18]] + 
-  scale_y_continuous(limits = c(-300000,0), 
-                     breaks = seq(-300000,0, 50000),
-                     labels = seq(-300000,0, 50000)/1000000) +
-  labs(y = paste0(ylab [18], "(million)"))
-
-plot_cost_cumavert[[19]] <- plot_cost_cumavert[[19]] + 
   scale_y_continuous(limits = c(-3000000,0), 
                      breaks = seq(-3000000,0, 500000),
                      labels = seq(-3000000,0, 500000)/1000000) +
+  labs(y = paste0(ylab [18], "(million)"))
+
+plot_cost_cumavert[[19]] <- plot_cost_cumavert[[19]] + 
+  scale_y_continuous(limits = c(-12000000,0), 
+                     breaks = seq(-12000000,0, 1000000),
+                     labels = seq(-12000000,0, 1000000)/1000000) +
   labs(y = paste0(ylab [19], "(million)"))
 
 plot_cost_cumavert[[20]] <- plot_cost_cumavert[[20]] + 
-  scale_y_continuous(limits = c(-1500000000000,0), 
-                     breaks = seq(-1500000000000,0, 100000000000),
-                     labels = seq(-1500000000000,0, 100000000000)/1000000000) +
-  labs(y = paste0(ylab [20], "(billion)"))
+  scale_y_continuous(limits = c(-8000000,0), 
+                     breaks = seq(-8000000,0, 1000000),
+                     labels = seq(-8000000,0, 1000000)/1000000) +
+  labs(y = paste0(ylab [20], "(million)"))
 
 plot_cost_cumavert[[21]] <- plot_cost_cumavert[[21]] + 
-  scale_y_continuous(limits = c(-35000000,6000000), 
-                     breaks = seq(-35000000,6000000, 1000000),
-                     labels = seq(-35000000,6000000, 1000000)/1000000) +
+  scale_y_continuous(limits = c(-65000000,6000000), 
+                     breaks = seq(-65000000,6000000, 5000000),
+                     labels = seq(-65000000,6000000, 5000000)/1000000) +
   labs(y = paste0(ylab [21], "(million)"))
 
 plot_cost_cumavert[[22]] <- plot_cost_cumavert[[22]] + 
-  scale_y_continuous(limits = c(-200000,50000), 
-                     breaks = c(seq(-200000,0, 50000), 50000),
-                     labels = c(seq(-200000,0, 50000), 50000)/1000000) +
+  scale_y_continuous(limits = c(-600000,50000), 
+                     breaks = c(seq(-600000,0, 50000), 50000),
+                     labels = c(seq(-600000,0, 50000), 50000)/1000000) +
   labs(y = paste0(ylab [22], "(million)"))
 
 plot_cost_cumavert[[23]] <- plot_cost_cumavert[[23]] + 
-  scale_y_continuous(limits = c(-1500000,300000), 
-                     breaks = seq(-1500000,300000, 100000),
-                     labels = seq(-1500000,300000, 100000)/1000000) +
+  scale_y_continuous(limits = c(-3000000,300000), 
+                     breaks = seq(-3000000,300000, 200000),
+                     labels = seq(-3000000,300000, 200000)/1000000) +
   labs(y = paste0(ylab [23], "(million)"))
 
 plot_cost_cumavert[[24]] <- plot_cost_cumavert[[24]] + 
-  scale_y_continuous(limits = c(-10000,2000), 
-                     breaks = seq(-10000,2000, 1000)) +
+  scale_y_continuous(limits = c(-30000,5000), 
+                     breaks = seq(-30000,5000, 5000)) +
   labs(y = paste0(ylab [24]))
 
 plot_cost_cumavert[[25]] <- plot_cost_cumavert[[25]] + 
-  scale_y_continuous(limits = c(-35000000,5500000), 
-                     breaks = seq(-35000000,5500000, 5000000),
-                     labels = seq(-35000000,5500000, 5000000)/1000000) +
+  scale_y_continuous(limits = c(-65000000,5500000), 
+                     breaks = seq(-65000000,5500000, 5000000),
+                     labels = seq(-65000000,5500000, 5000000)/1000000) +
   labs(y = paste0(ylab [25], "(million)"))
 
 plot_cost_cumavert[[26]] <- plot_cost_cumavert[[26]] + 
-  scale_y_continuous(limits = c(-400000,100000), 
-                     breaks = seq(-400000,100000, 50000),
-                     labels = seq(-400000,100000, 50000)/1000000) +
+  scale_y_continuous(limits = c(-900000,100000), 
+                     breaks = seq(-900000,100000, 50000),
+                     labels = seq(-900000,100000, 50000)/1000000) +
   labs(y = paste0(ylab [26], "(million)"))
 
 
@@ -867,7 +977,6 @@ for(i in 1:length(names(plot_cost_cum))){
   
   }
 
-plot_cost_cum$cost_total_ycum
 # combine plot together 
 # plot_cost_cum, plot_cost_cumavert
 # p_cost_stage
@@ -877,8 +986,8 @@ t <- str_match(t_string, "cost_\\s*(.*?)\\s*_ycum")
 t <- t[c(1:13) ,]
 t
 t_discum <- str_match(t_string, "cost_\\s*(.*?)\\s*_disycum")
-plot_cost_cum
-plot_cost_cumavert$avert_cost_total_ycum
+
+
 
 
 
@@ -890,3 +999,7 @@ write.xlsx(cost_year_all, file = file.path(OutputFolder, paste0("POC_AU_cost_y.x
 append=TRUE) 
 write.xlsx(cost_cum_all, file = file.path(OutputFolder, paste0("POC_AU_costcum_y.xlsx")), 
            append=TRUE) 
+
+
+
+

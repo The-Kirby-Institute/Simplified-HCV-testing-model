@@ -80,13 +80,13 @@ pop_array  <- array(matrix(xx_array[ , ,1]),
 
 best_estimates$beta1 <- 0.19
 
-best_estimates$beta2 <- 0.08
-best_estimates$beta3 <- 1.2
-best_estimates$beta4 <- 0.35
+best_estimates$beta2 <- 0.05
+best_estimates$beta3 <- 1.5
+best_estimates$beta4 <- 0.5
 best_estimates$beta5 <- 0.08
 best_estimates$HCVP1 <- 0.5
-best_estimates$HCVP2 <- 0.25
-best_estimates$HCVP3 <- 0.8
+best_estimates$HCVP2 <- 0.2
+best_estimates$HCVP3 <- 0.5
 best_estimates$HCVP4 <- 0.3
 best_estimates$HCVP5 <- 0.003
 
@@ -230,7 +230,7 @@ best_estimates$beta4 <-
     rep(bvalue[4], POC_AU$npts - varyingYpoint_end))
 
 TreatInit <- c(0.4,
-               0.4,
+               0.45,
                0.999999,
                0.999999,
                0.999999)
@@ -282,50 +282,83 @@ varyingYpoint_end <- (varying_Yend - calibration_Y)/POC_AU$timestep + 1
 for ( i in 2:dim(dfList$eta)[[2]]){  
   dfList$eta[3, i, c(varyingYpoint_int:POC_AU$npts)] <- 
     c(seq(as.numeric(intVal[3]), 0.6, length = (varyingYpoint_fir)),
-      seq(0.6, as.numeric(TreatInit[3]), length = (varyingYpoint_mid - varyingYpoint_fir)),
-      seq(as.numeric(TreatInit[3]), as.numeric(TreatInit[3]), length = (varyingYpoint_end - varyingYpoint_mid)),
-      rep(as.numeric(TreatInit[3]), POC_AU$npts - varyingYpoint_end))
+      seq(0.6, 0.999, length = (varyingYpoint_mid - varyingYpoint_fir)),
+      rep(0.999, POC_AU$npts - varyingYpoint_mid))
   
   dfList$eta[4, i, c(varyingYpoint_int:POC_AU$npts)] <- 
     c(seq(as.numeric(intVal[4]), 0.6, length = (varyingYpoint_fir)),
-      seq(0.6, as.numeric(TreatInit[4]), length = (varyingYpoint_mid - varyingYpoint_fir)),
-      seq(as.numeric(TreatInit[4]), as.numeric(TreatInit[4]), length = (varyingYpoint_end - varyingYpoint_mid)),
-      rep(as.numeric(TreatInit[4]), POC_AU$npts - varyingYpoint_end))
+      seq(0.6, 0.999, length = (varyingYpoint_mid - varyingYpoint_fir)),
+      rep(0.999, POC_AU$npts - varyingYpoint_mid))
   
   
   
   dfList$eta[5, i, c(varyingYpoint_int:POC_AU$npts)] <- 
     c(seq(as.numeric(intVal[5]), 0.6, length = (varyingYpoint_fir)),
-      seq(0.6, as.numeric(TreatInit[5]), length = (varyingYpoint_mid - varyingYpoint_fir)),
-      seq(as.numeric(TreatInit[5]), as.numeric(TreatInit[5]), length = (varyingYpoint_end - varyingYpoint_mid)),
-      rep(as.numeric(TreatInit[5]), POC_AU$npts - varyingYpoint_end))
+      seq(0.6, 0.999, length = (varyingYpoint_mid - varyingYpoint_fir)),
+      rep(0.999, POC_AU$npts - varyingYpoint_mid))
   
   
   dfList$rho[3, i, c(varyingYpoint_int:POC_AU$npts)] <- 
     c(seq(as.numeric(intVal_rho[3]), 0.6, length = (varyingYpoint_fir)),
-      seq(0.6, as.numeric(Retreat[3]), length = (varyingYpoint_mid - varyingYpoint_fir)),
-      seq(as.numeric(Retreat[3]), as.numeric(Retreat[3]), length = (varyingYpoint_end - varyingYpoint_mid)),
-      rep(as.numeric(Retreat[3]), POC_AU$npts - varyingYpoint_end))
+      seq(0.6, 0.999, length = (varyingYpoint_mid - varyingYpoint_fir)),
+      rep(0.999, POC_AU$npts - varyingYpoint_mid))
   
   dfList$rho[4, i, c(varyingYpoint_int:POC_AU$npts)] <- 
     c(seq(as.numeric(intVal_rho[4]), 0.6, length = (varyingYpoint_fir)),
-      seq(0.6, as.numeric(Retreat[4]), length = (varyingYpoint_mid - varyingYpoint_fir)),
-      seq(as.numeric(Retreat[4]), as.numeric(Retreat[4]), length = (varyingYpoint_end - varyingYpoint_mid)),
-      rep(as.numeric(Retreat[4]), POC_AU$npts - varyingYpoint_end))
+      seq(0.6, 0.999, length = (varyingYpoint_mid - varyingYpoint_fir)),
+      rep(0.999, POC_AU$npts - varyingYpoint_mid))
   
   
   
   dfList$rho[5, i, c(varyingYpoint_int:POC_AU$npts)] <- 
     c(seq(as.numeric(intVal_rho[5]), 0.6, length = (varyingYpoint_fir)),
-      seq(0.6, as.numeric(Retreat[5]), length = (varyingYpoint_mid - varyingYpoint_fir)),
-      seq(as.numeric(Retreat[5]), as.numeric(Retreat[5]), length = (varyingYpoint_end - varyingYpoint_mid)),
-      rep(as.numeric(Retreat[5]), POC_AU$npts - varyingYpoint_end))
+      seq(0.6, 0.999, length = (varyingYpoint_mid - varyingYpoint_fir)),
+      rep(0.999, POC_AU$npts - varyingYpoint_mid))
   
 }
+intVal <- dfList$cured[, 3, 1] 
+varying_Yfir <- 2016
+
+calibration_Y <- 2015
+
+varyingYpoint_fir <- 2*(varying_Yfir - calibration_Y)/POC_AU$timestep
 
 
+for ( i in 1:dim(dfList$cured)[[1]]){  
+  dfList$cured[i, "f0", c(1:POC_AU$npts)] <- 
+    c(seq(as.numeric(intVal[i]), 0.95, length = (varyingYpoint_fir)),
+      rep(0.95, POC_AU$npts - varyingYpoint_fir))
 
-
+  dfList$cured[i, "f1", c(1:POC_AU$npts)] <- 
+    c(seq(as.numeric(intVal[i]), 0.95, length = (varyingYpoint_fir)),
+      rep(0.95, POC_AU$npts - varyingYpoint_fir))
+  
+  dfList$cured[i,"f2", c(1:POC_AU$npts)] <- 
+    c(seq(as.numeric(intVal[i]), 0.95, length = (varyingYpoint_fir)),
+      rep(0.95, POC_AU$npts - varyingYpoint_fir))
+  
+  dfList$cured[i, "f3", c(1:POC_AU$npts)] <- 
+    c(seq(as.numeric(intVal[i]), 0.95, length = (varyingYpoint_fir)),
+      rep(0.95, POC_AU$npts - varyingYpoint_fir))
+  
+  dfList$cured[i,"f4", c(1:POC_AU$npts)] <- 
+    c(seq(as.numeric(intVal[i]), 0.90, length = (varyingYpoint_fir)),
+      rep(0.90, POC_AU$npts - varyingYpoint_fir))
+  
+  dfList$cured[i,"dc", c(1:POC_AU$npts)] <- 
+    c(seq(as.numeric(intVal[i]), 0.90, length = (varyingYpoint_fir)),
+      rep(0.90, POC_AU$npts - varyingYpoint_fir))
+  dfList$cured[i,"hcc", c(1:POC_AU$npts)] <- 
+    c(seq(as.numeric(intVal[i]), 0.90, length = (varyingYpoint_fir)),
+      rep(0.90, POC_AU$npts - varyingYpoint_fir))
+  dfList$cured[i,"lt", c(1:POC_AU$npts)] <- 
+    c(seq(as.numeric(intVal[i]), 0.90, length = (varyingYpoint_fir)),
+      rep(0.90, POC_AU$npts - varyingYpoint_fir))
+  dfList$cured[i,"plt", c(1:POC_AU$npts)] <- 
+    c(seq(as.numeric(intVal[i]), 0.90, length = (varyingYpoint_fir)),
+      rep(0.90, POC_AU$npts - varyingYpoint_fir))
+}
+dfList$cured[, ,11]
 tic <- proc.time()
 endY <- 100
 calibrateInit <- HCVMSM(POC_AU, best_estimates, best_est_pop,
@@ -453,7 +486,8 @@ N_treatment <- cbind(year = rep(seq(POC_AU$startYear , endY-1 ,1),
                                 each = 2),
                      population = flow_setting$newTreatment[ ,3],
                      as.data.frame(flow_setting$newTreatment[, -c(1,3)] + 
-                                     flow_setting$newRetreat[, -c(1,3)] ))%>%
+                                     flow_setting$newRetreat[, -c(1,3)] + 
+                                     flow_setting$newTreatment_sc[, -c(1,3)]))%>%
   tibble::as_tibble()%>%
   mutate(population = factor(population, 
                              levels = c("commu", "prisons"), 
@@ -500,3 +534,71 @@ N_treatment_setting_p
 popPrevRNAPlot
 
 View(N_treatment)
+reinf_N <- ggplot(flow_sub$newreinfection%>%mutate(year = year + POC_AU$cabY - 1), aes(x = year, y = best)) + 
+  geom_line() + 
+  facet_wrap(.~ population, scale = "free") + 
+  scale_x_continuous(limits = c(2015, 2030)) + 
+  theme_bw() + labs(y = "Number of reinfection") 
+reinf_N <- reinf_N +  facet_custom (~population,
+                                    scales = "free", ncol = 2,
+                                    scale_overrides = 
+                                      list(
+                                        scale_new(1,
+                                                  scale_y_continuous(limits = 
+                                                                       c(0, 2000))),
+                                        scale_new(2,
+                                                  scale_y_continuous(limits = 
+                                                                       c(0, 2000))),
+                                        scale_new(3,
+                                                  scale_y_continuous(limits = 
+                                                                       c(0, 2000))),
+                                        scale_new(4,
+                                                  scale_y_continuous(limits = 
+                                                                       c(0, 2000))),
+                                        scale_new(5,
+                                                  scale_y_continuous(limits = 
+                                                                       c(0, 10)))
+                                        
+                                        ))
+
+# definition of reinfection in SToP-C: including people spontaneous clearance   
+# Incident HCV re-infection was defined as a positive HCV RNA test in participants with a negative HCV RNA test result at the previous visit
+
+Inf_N <- ggplot(flow_sub$newInfections%>%mutate(year = year + POC_AU$cabY - 1), aes(x = year, y = best)) + 
+  geom_line() + 
+  facet_wrap(.~ population, scale = "free") + 
+  scale_x_continuous(limits = c(2015, 2030)) + 
+  theme_bw() + labs(y = "Number of infections") 
+Inf_N <- Inf_N + facet_custom (~population,
+              scales = "free", ncol = 2,
+              scale_overrides = 
+                list(
+                  scale_new(1,
+                            scale_y_continuous(limits = 
+                                                 c(0, 5000))),
+                  scale_new(2,
+                            scale_y_continuous(limits = 
+                                                 c(0, 5000))),
+                  scale_new(3,
+                            scale_y_continuous(limits = 
+                                                 c(0, 6000))),
+                  scale_new(4,
+                            scale_y_continuous(limits = 
+                                                 c(0, 6000))),
+                  scale_new(5,
+                            scale_y_continuous(limits = 
+                                                 c(0, 10)))
+                  
+                ))
+N_state <- popResults_MidYear(POC_AU, calibrateInit,
+                   Population = POC_AU$popNames,
+                   Disease_prog = POC_AU$progress_name, 
+                   Cascade = POC_AU$cascade_name, param = NULL, 
+                   endYear = endY)%>%ungroup()%>%
+  filter(!cascade%in%c("s", "cured "))%>%group_by(year, population)%>%
+  summarise(best = sum(best))
+
+
+ggplot(N_state%>%mutate( year = year + 2014), aes(x = year, y= best)) + 
+  geom_line() + 
+  facet_wrap(.~ population, scale = "free")

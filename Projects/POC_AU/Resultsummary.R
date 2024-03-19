@@ -395,7 +395,7 @@ for(i in names(cost_box)){
                            cost_POCT = Sce_flow[[i]]$costTestingPOCT$best,
                            cost_Treatment = Sce_flow[[i]]$costTreatment$best,
                            cost_Retreat = Sce_flow[[i]]$costRetreat$best,
-                           cost_Cured = Sce_flow[[i]]$costCured$best, 
+                           cost_Cured = Sce_flow[[i]]$costCured$best,
                            cost_ab_sc = Sce_flow[[i]]$costTestingAb_sc$best, 
                            cost_RNA_sc = Sce_flow[[i]]$costTestingAg_sc$best,
                            cost_POCT_sc = Sce_flow[[i]]$costTestingPOCT_sc$best,
@@ -403,8 +403,9 @@ for(i in names(cost_box)){
   
   Rescost_dt[[i]] <- Rescost_dt[[i]]%>%
     mutate(cost_compartment = best,
-           cost_total = cost_compartment + cost_ab + cost_RNA + cost_POCT +
-                            cost_Treatment + cost_Retreat + cost_Cured)%>%
+           cost_total = cost_compartment + cost_ab +  
+             cost_RNA +  cost_POCT + 
+             cost_Treatment +  cost_Retreat + cost_Cured)%>%
     select(timestep, population, cost_total, cost_compartment, 
            cost_ab, cost_RNA, cost_POCT, 
            cost_Treatment, cost_Retreat, cost_Cured, 
@@ -426,7 +427,14 @@ for(i in names(cost_box)){
                            Testing_ab_neg = Sce_flow[[i]]$newTestingAb_neg$best,
                            Testing_RNA_neg = Sce_flow[[i]]$newTestingAg_neg$best,
                            Testing_POCT_neg = Sce_flow[[i]]$newTestingPOCT_neg$best,
-                           Cured = Sce_flow[[i]]$newCured$best)
+                           Cured = Sce_flow[[i]]$newCured$best, 
+                           Treatment_sc = Sce_flow[[i]]$newTreatment_sc$best,
+                           Testing_ab_sc = Sce_flow[[i]]$newTestingAb_sc$best,
+                           Testing_RNA_sc = Sce_flow[[i]]$newTestingAg_sc$best,
+                           Testing_POCT_sc = Sce_flow[[i]]$newTestingPOCT_sc$best, 
+                           Testing_ab_sc_neg = Sce_flow[[i]]$newTestingAb_sc_neg$best,
+                           Testing_RNA_sc_neg = Sce_flow[[i]]$newTestingAg_sc_neg$best,
+                           Testing_POCT_sc_neg = Sce_flow[[i]]$newTestingPOCT_sc_neg$best)
 
 }
 
@@ -449,9 +457,7 @@ for(i in names(cost_box)){
   
 }
 
-
 save(Num_box, Resflow_dt, Resflow_sc_dt, Rescost_dt, 
      file = file.path(OutputFolder,
                       paste0(project_name,"Res_dt" ,".rda")))
-
 
