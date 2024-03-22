@@ -404,7 +404,11 @@ for(i in names(Resflow_cum_all)){
     mutate(NP_cost = cost_ab_sc + cost_RNA_sc + cost_POCT_sc + cost_TreatOther_sc)%>%
     select(year, NP_cost, num_ab_sc, cost_ab_sc, num_RNA_sc, cost_RNA_sc, num_POCT_sc, 
            cost_POCT_sc, num_Treat_sc, cost_TreatOther_sc)
-    
   
 }
+
+write.xlsx(Res_cost_sc, file = file.path(OutputFolder, paste0("POC_AU_Res_cost_NP.xlsx")), 
+           append=TRUE) 
+write.xlsx(Res_cost_all, file = file.path(OutputFolder, paste0("POC_AU_Res_cost_total.xlsx")), 
+           append=TRUE)
 
