@@ -27,9 +27,10 @@ OutputFolder <- file.path(data_path, "02. Output")
 OutputFig <- file.path(OutputFolder, "Figs")
 
 load(file.path(OutputFolder, paste0(project_name, ".rda")))
-load(file.path(OutputFolder, paste0(project_name, "cali.rda")))
-load(file.path(OutputFolder, paste0(project_name, "cali_timev.rda")))
+
 load(file.path(OutputFolder, paste0(project_name, "param.rda")))
+load(file.path(OutputFolder, paste0(project_name, "paramDflist.rda")))
+load(file.path(OutputFolder, paste0(project_name, "param_cost.rda")))
 source(file.path(Rcode, "/Functions/HCV_model.R"))
 
 source(file.path(Rcode, "/Functions/plotManuscript.R"))
@@ -46,67 +47,36 @@ saveAsBase <- TRUE  # if TRUE doesn't append time to results and overwrites
 # a base file. Useful for storing main results or
 # testing
 number_samples <- 1000
-start_lower <- 0.75
-start_upper <- 1.25
-end_lower <- 0.75
-end_upper <- 1.25
-
 
 POC_AU$numberSamples <- number_samples
 
-
-# cost dt
-files <- list.files(path = paste0(DataFolder, 
-                                  "/cost/", sep =  ""), pattern = '*.csv')
-
-
-costdfList <- lapply(files, function(f) {
-  
-  df <- read.csv(file.path(paste0(DataFolder, "/cost/", f, sep = "")), header = TRUE)
-  
-  df <- df[, -1]
-  
-  df <- df%>%as_tibble()
-  
-  df <- as.matrix(df, nrow = npops, ncol = length(.) + 1)
-  
-})
-
-names(costdfList) <- c(gsub("^|.csv", "", files)) # ^: from beginning, \ end before .csv
-
-
-cost_state <- costdfList$state
-costflow <- list()
-costflow[[1]] <- costdfList$costFlow
-costflow[[2]] <- costdfList$costFlow_POCRNA
-
-costflow_Neg <- list()
-costflow_Neg[[1]] <- costdfList$costFlow_NEG
-costflow_Neg[[2]] <- costdfList$`costFlow_POCRNA _NEG`
 
 
 
 
 param_sq <- list()
-param_dfList <- lapply(dfList, function(x) x*0)
-names(param_dfList) <- names(dfList)
+param_dfList <- lapply(paramDflist[[1]], function(x) x*0)
 
-fc <- matrix(0, ncol = dim(dfList$eta)[3], nrow = POC_AU$npops)
+names(param_dfList) <- names(paramDflist[[1]])
+
+fc <- matrix(0, ncol = dim(paramDflist[[1]]$eta)[3], nrow = POC_AU$npops)
 endY <- 100
 tic <- proc.time()
 trim_pt <- 100*(1/POC_AU$timestep)
-Param_estimates <- lapply(Param_estimates, function(x) x[c(1:trim_pt),])
+Param_estimates <- lapply(Param_estimates, function(x) x[c(1:trim_pt),]%>%as.data.frame)
 param_poparray <- lapply(param_poparray , function(x) x[, , c(1:trim_pt)])
+
 paramDflist <- lapply(paramDflist, function(x) lapply(x, function(y) y[, , c(1:trim_pt)]))
 gc()
-for(i in 1:1000){
-  param_sq[[i]] <- HCVMSM(POC_AU, Param_estimates[[i]], best_est_pop,
-                          Param_disease_progress[[i]], param_poparray[[i]],
-                          paramDflist[[i]], param_cascade_sc = param_dfList , 
-                          fib = Param_fib[[i]], 
+
+for(x in 1:1000){
+  param_sq[[x]] <- HCVMSM(POC_AU, Param_estimates[[x]], Param_Pops[[x]],
+                          Param_disease_progress[[x]], param_poparray[[x]],
+                          paramDflist[[x]], param_cascade_sc = param_dfList, 
+                          fib = Param_fib[[x]], 
                           modelrun="UN", proj = "POC_AU", end_Y = endY, 
-                          cost = costdfList, costflow = costflow, 
-                          costflow_Neg = costflow_Neg, fc_sc = fc,
+                          cost = param_cost[[x]], costflow = param_cost_flow[[x]], 
+                          costflow_Neg = param_costflow_Neg[[x]], fc_sc = fc,
                           fp = NULL)
   
 
@@ -120,4 +90,46 @@ save(param_sq,
      file = file.path(OutputFolder,
                       paste0(project_name, "param_simulation", ".rda")))
 
+rm(param_sq) 
+
+##### scenarios ##### 
+load(file.path(OutputFolder, paste0(project_name, "scenario_cascade.rda")))
+
+sce_name <- names(scenario_cascade)
+
+rm(scenario_cascade)
+
+param_dfList <- list()
+
+param_scenario <- list()
+
+for(n in sce_name){ 
+  load(file.path(OutputFolder, paste0(project_name,"param_scenario_",n, ".rda"))) 
+  
+  trim_pt <- 100*(1/POC_AU$timestep)
+  scenario_p <- lapply(scenario_p, function(x) lapply(x, function(y)y[, , c(1:trim_pt)]))
+  gc()
+  tic <- proc.time()
+  
+  for(x in 1:1000){
+    param_scenario[[x]] <- HCVMSM(POC_AU, Param_estimates[[x]], Param_Pops[[x]],
+                                  Param_disease_progress[[x]], param_poparray[[x]],
+                                  paramDflist[[x]], param_cascade_sc = scenario_p[[x]], 
+                                  fib = Param_fib[[x]], 
+                                  modelrun="UN", proj = "POC_AU", end_Y = endY, 
+                                  cost = param_cost[[x]], costflow = param_cost_flow[[x]], 
+                                  costflow_Neg = param_costflow_Neg[[x]], fc_sc = scenario_fc[[n]],
+                                  fp = NULL)
+    
+  }
+  
+  toc <- proc.time() - tic
+  
+  save(param_scenario,
+       file = file.path(OutputFolder,
+                        paste0(project_name, "param_sc_", n, ".rda")))
+  
+  rm(scenario_p)
+  gc()
+  }
 

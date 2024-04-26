@@ -31,6 +31,7 @@ OutputFolder <- file.path(data_path, "02. Output")
 load(file.path(OutputFolder, paste0(project_name, ".rda")))
 load(file.path(OutputFolder, paste0(project_name, "cali.rda")))
 load(file.path(OutputFolder, paste0(project_name, "cali_timev.rda")))
+load(file.path(OutputFolder, paste0(project_name, "scenario_cascade.rda")))
 source(file.path(Rcode, "/Functions/HCV_model.R"))
 
 source(file.path(Rcode, "/Functions/plotManuscript.R"))
@@ -743,6 +744,12 @@ scenario_fc <- list("dfList_NP_2023" = fs[["2023"]],
                     "dfList_NPexp_C" = fs$dfList_NPexp_C, 
                     "dfList_NPexp_D" = fs$dfList_NPexp_D)
 
+
+
+save(scenario_cascade,
+     scenario_fc,
+     file = file.path(OutputFolder,
+                      paste0(project_name, "scenario_cascade", ".rda")))
 
 tic <- proc.time()
 endY <- 100
