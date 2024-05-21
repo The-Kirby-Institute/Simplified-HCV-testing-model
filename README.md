@@ -3,7 +3,7 @@
 This project contains the code for a model of HCV transmission that can be used to investigate the impact of point-of-care testing and other simplified HCV diagnosis strategies on HCV epidemiology. 
 
 
-Submitted paper results produced using [v1.0.1](https://github.com/The-Kirby-Institute/Simplified-HCV-testing-model/tree/v1.0.1)
+
 [![DOI](https://zenodo.org/badge/612906740.svg)](https://zenodo.org/badge/latestdoi/612906740) 
 
 Model developer, coder and maintainer of this repository: [Joyce Huei-Jiuan Wu](https://github.com/ninowwss)
@@ -126,8 +126,10 @@ Once a user finish calibration, can further produce parameter sets of uncertaint
 
 Note as these are scripts, not functions, care should be taken to ensure the project specifications are correct before running a script especially after updates have been pulled from the repository.
 
+# Publications 
 
-
+- **Wu HJ**, Shih ST, Applegate TL, Kwon JA, Cunningham EB, Grebely J, Gray RT. Impact of simplified HCV diagnostic strategies on the HCV epidemic among men who have sex with men in the era of HIV oral pre-exposure prophylaxis in Taiwan: a modelling study. J Int AIDS Soc. 2024 May;27(5):e26251. doi: 10.1002/jia2.26251.
+    - Published results produced using [v1.0.1](https://github.com/The-Kirby-Institute/Simplified-HCV-testing-model/tree/v1.0.1) [![DOI](https://zenodo.org/badge/612906740.svg)](https://zenodo.org/badge/latestdoi/612906740) 
 # Disclaimer
 The model has been made publicly available for transparency and replication purposes and in the hope it will be useful. We take no responsibility for results generated with the model and their interpretation but are happy to assist with its use and application."
 
