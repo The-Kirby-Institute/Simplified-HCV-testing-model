@@ -78,7 +78,7 @@ pop_array  <- array(matrix(xx_array[ , ,1]),
                     c(POC_AU$npops, POC_AU$npops,POC_AU$npts))
 
 
-best_estimates$beta1 <- 0.19
+best_estimates$beta1 <- 0.16
 
 best_estimates$beta2 <- 0.05
 best_estimates$beta3 <- 1.5
@@ -98,13 +98,14 @@ best_estimates$HCVP5 <- 0.003
 #     file = file.path(OutputFolder , paste0(project_name,"temp_best" ,".rda")))
 dfList_sc <- lapply(dfList, function(x) x*0)
 names(dfList_sc) <- names(dfList)
-
+fc <- matrix(0, ncol = dim(dfList$eta)[3], nrow = POC_AU$npops)
 tic <- proc.time()
 
 steady <- HCVMSM(POC_AU, best_estimates, best_initial_pop,
                  disease_progress, pop_array,
                  dfList, param_cascade_sc = dfList_sc , fib, end_Y = 1000, 
-                 modelrun = "steady", proj = "POC_AU")
+                 modelrun = "steady", proj = "POC_AU", fc_sc = fc,
+                 fp = NULL)
 
 toc <- proc.time() - tic 
 
@@ -270,9 +271,9 @@ for ( i in 2:dim(dfList$eta)[[2]]){
       rep(0.2, POC_AU$npts - varyingYpoint_end))
 }
 varying_Yint <- 2015
-varying_Yfir <- 2019
-varying_Ymid <- 2020
-varying_Yend <- 2021
+varying_Yfir <- 2018
+varying_Ymid <- 2019
+varying_Yend <- 2020
 calibration_Y <- 2015
 varyingYpoint_int <- (varying_Yint - calibration_Y)/POC_AU$timestep + 1
 varyingYpoint_fir <- (varying_Yfir - calibration_Y)/POC_AU$timestep + 1
@@ -283,37 +284,37 @@ for ( i in 2:dim(dfList$eta)[[2]]){
   dfList$eta[3, i, c(varyingYpoint_int:POC_AU$npts)] <- 
     c(seq(as.numeric(intVal[3]), 0.6, length = (varyingYpoint_fir)),
       seq(0.6, 0.999, length = (varyingYpoint_mid - varyingYpoint_fir)),
-      rep(0.999, POC_AU$npts - varyingYpoint_mid))
+      rep(0.9999, POC_AU$npts - varyingYpoint_mid))
   
   dfList$eta[4, i, c(varyingYpoint_int:POC_AU$npts)] <- 
     c(seq(as.numeric(intVal[4]), 0.6, length = (varyingYpoint_fir)),
       seq(0.6, 0.999, length = (varyingYpoint_mid - varyingYpoint_fir)),
-      rep(0.999, POC_AU$npts - varyingYpoint_mid))
+      rep(0.9999, POC_AU$npts - varyingYpoint_mid))
   
   
   
   dfList$eta[5, i, c(varyingYpoint_int:POC_AU$npts)] <- 
     c(seq(as.numeric(intVal[5]), 0.6, length = (varyingYpoint_fir)),
       seq(0.6, 0.999, length = (varyingYpoint_mid - varyingYpoint_fir)),
-      rep(0.999, POC_AU$npts - varyingYpoint_mid))
+      rep(0.9999, POC_AU$npts - varyingYpoint_mid))
   
   
   dfList$rho[3, i, c(varyingYpoint_int:POC_AU$npts)] <- 
     c(seq(as.numeric(intVal_rho[3]), 0.6, length = (varyingYpoint_fir)),
       seq(0.6, 0.999, length = (varyingYpoint_mid - varyingYpoint_fir)),
-      rep(0.999, POC_AU$npts - varyingYpoint_mid))
+      rep(0.9999, POC_AU$npts - varyingYpoint_mid))
   
   dfList$rho[4, i, c(varyingYpoint_int:POC_AU$npts)] <- 
     c(seq(as.numeric(intVal_rho[4]), 0.6, length = (varyingYpoint_fir)),
       seq(0.6, 0.999, length = (varyingYpoint_mid - varyingYpoint_fir)),
-      rep(0.999, POC_AU$npts - varyingYpoint_mid))
+      rep(0.9999, POC_AU$npts - varyingYpoint_mid))
   
   
   
   dfList$rho[5, i, c(varyingYpoint_int:POC_AU$npts)] <- 
     c(seq(as.numeric(intVal_rho[5]), 0.6, length = (varyingYpoint_fir)),
       seq(0.6, 0.999, length = (varyingYpoint_mid - varyingYpoint_fir)),
-      rep(0.999, POC_AU$npts - varyingYpoint_mid))
+      rep(0.9999, POC_AU$npts - varyingYpoint_mid))
   
 }
 intVal <- dfList$cured[, 3, 1] 
@@ -364,7 +365,9 @@ endY <- 100
 calibrateInit <- HCVMSM(POC_AU, best_estimates, best_est_pop,
                         disease_progress,pop_array,
                         dfList,dfList_sc ,fib, 
-                        modelrun="UN", proj = "POC_AU", end_Y = endY)
+                        modelrun="UN", proj = "POC_AU", end_Y = endY, 
+                        fc_sc = fc,
+                        fp = NULL)
 
 
 toc <- proc.time() - tic 
