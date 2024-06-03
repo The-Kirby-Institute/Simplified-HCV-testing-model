@@ -31,7 +31,7 @@ OutputFolder <- file.path(data_path, "02. Output")
 load(file.path(OutputFolder, paste0(project_name, ".rda")))
 load(file.path(OutputFolder, paste0(project_name, "cali.rda")))
 load(file.path(OutputFolder, paste0(project_name, "cali_timev.rda")))
-load(file.path(OutputFolder, paste0(project_name, "scenario_cascade.rda")))
+
 source(file.path(Rcode, "/Functions/HCV_model.R"))
 
 source(file.path(Rcode, "/Functions/plotManuscript.R"))
@@ -135,7 +135,7 @@ for(i in c(2022, 2023)){
                     "P" = current_data(Num_test_person_NP, y = i, 
                                        s = "prison", index = "coverage")) 
 }
-
+Ccal[[2022]]
 n_ab <- read_excel(paste0(data_path, "/01. DATA/n_ab.xlsx"))
 
 # efficacy of national program 
@@ -160,7 +160,7 @@ NP_tauRNAonly_P <- unlist(as.numeric(np_effect[3,3]))
 
 # NP_eta_P <- 0.89 for 1 month 
 # turn it back to annual probability
-NP_eta_P <- 1- (1-unlist(as.numeric(np_effect[4,3])))^(1/POC_AU$timestep)
+NP_eta_P <- 1- (1-unlist(as.numeric(np_effect[4,3])))^(1/POC_AU$timestep/1)
 NPlst <- list("C" = list("tau_ab" = NP_tauab_C,
                          "tau_RNA" = NP_tauRNA_C, 
                          "tau_poct" = NP_tauRNAonly_C,
@@ -328,7 +328,7 @@ fs_estimate <- function(num_ab, cov_np, frac_ab,fp, year, coverage, modsim, endY
     
     endY <- 100}
   t_init <- (year - POC_AU$cabY)/POC_AU$timestep + 1
-  t_end <- (year - POC_AU$cabY + 1)/POC_AU$timestep
+  t_end <- (year + 1 - POC_AU$cabY)/POC_AU$timestep
   undiag <- modres.t(POC_AU, modsim, endYear = endY, allp = NULL)%>%
     filter(cascade == "undiag" & disease_prog != "a")%>%
     mutate(setting = ifelse(population %in% c("C_PWID", "C_fPWID"), "C", "P"))%>%
@@ -397,10 +397,11 @@ frac_ab[["2024"]] <- c(0.6, 0.2)
 fm <- list()
 fm[["2022"]] <- c(1.3, 1.3, 8, 8, 1.5)
 fm[["2023"]] <- c(0.7, 0.6, 10, 10, 1.5)
-fm[["2024"]] <- c(0.6, 0.6, 10, 10, 1.5)
-fm[["2025"]] <- c(0.6, 0.6, 5, 5, 1)
-fm[["2026"]] <- c(0.6, 0.6, 5, 5, 1)
-fm[["2027"]] <- c(0.6, 0.6, 5, 5, 1)
+fm[["2024"]] <- c(0.53, 0.53, 9, 9, 1)
+fm[["2025"]] <- c(0.53, 0.53, 5, 5, 1)
+fm[["2026"]] <- c(0.53, 0.53, 5, 5, 1)
+fm[["2027"]] <- c(0.53, 0.53, 5, 5, 1)
+
 coverage_np <- list()
 coverage_np[["2022"]] <- c(Ccal[[2022]]$C, Ccal[[2022]]$P)
 coverage_np[["2023"]] <- c(Ccal[[2023]]$C, Ccal[[2023]]$P)
@@ -775,7 +776,7 @@ save(Sce_sq,Sce_np,
 
 
 test <- list()
-cl_ext <- names(Sce_np$dfList_NPexp_D)[c(13:16, 20:22)]
+cl_ext <- names(Sce_np$dfList_NPexp_D)[c(10:22)]
 for(i in cl_ext){
   
   test[[i]] <- modres.flow.t(POC_AU, Sce_np$dfList_NPexp_D, endYear = 100, 
@@ -786,21 +787,54 @@ for(i in cl_ext){
   
   
 }
+test_sq <- list()
+for(i in cl_ext){
+  
+  test_sq[[i]] <- modres.flow.t(POC_AU, Sce_sq, endYear = 100, 
+                             allp = i)%>%filter(year %in% seq(7, 15, 1))%>%
+    ungroup()%>%
+    group_by(year, population)%>%
+    summarise(best = sum(best))
+  
+  
+}
 
 test$newTestingPOCT_sc
 test <- dplyr::bind_rows(test, .id = 'index')%>%group_by(year, population)%>%spread(index, best)
+test_sq <- dplyr::bind_rows(test_sq, .id = 'index')%>%group_by(year, population)%>%spread(index, best)
 
 
-test_fscal <- test%>%mutate(Ab = newTestingAb_sc + newTestingAb_sc_neg, 
+test_fscal <- test%>%mutate(Ab = newTestingAb_sc + newTestingAb_sc_neg + newTestingAb + newTestingAb_neg, 
                             RNA = (newTestingAg_sc+ newTestingAg_sc_neg + newTestingPOCT_sc + 
-                                     newTestingPOCT_sc_neg),
-                            treatment = newTreatment_sc)%>%select(year, population, Ab, 
-                                                                  RNA, treatment)%>%
+                                     newTestingPOCT_sc_neg + 
+                                     newTestingAg+ newTestingAg_neg + newTestingPOCT + 
+                                     newTestingPOCT_neg))%>%select(year, population, Ab, 
+                                                                  RNA)%>%
   mutate(setting = ifelse(population %in% c("C_PWID", "C_fPWID"), "C", "P"))%>%
   ungroup()%>%
   select(-c(population))%>%
   gather(index, value, -c(year, setting))%>%
   group_by(year, setting, index)%>%summarise(value = sum(value))%>%
-  filter(year%in% c(9,10,11,12))
-test_fscal%>%filter(index != "treatment")%>%group_by(year)%>%summarise(value = sum(value))
+  mutate(scenario = "exp_D")
+
+test_fscal_sq <- test_sq%>%mutate(Ab = newTestingAb_sc + newTestingAb_sc_neg + newTestingAb + newTestingAb_neg, 
+                            RNA = (newTestingAg_sc+ newTestingAg_sc_neg + newTestingPOCT_sc + 
+                                     newTestingPOCT_sc_neg + 
+                                     newTestingAg+ newTestingAg_neg + newTestingPOCT + 
+                                     newTestingPOCT_neg))%>%select(year, population, Ab, 
+                                                                   RNA)%>%
+  mutate(setting = ifelse(population %in% c("C_PWID", "C_fPWID"), "C", "P"))%>%
+  ungroup()%>%
+  select(-c(population))%>%
+  gather(index, value, -c(year, setting))%>%
+  group_by(year, setting, index)%>%summarise(value = sum(value))%>%
+  mutate(scenario = "sq")
+
+
 View(test_fscal)
+
+x <- rbind(test_fscal_sq, test_fscal)
+
+ggplot(data = x%>%filter(index == "Ab"), aes(x = year, y = value)) + 
+  geom_line(aes(colour = scenario)) + 
+  facet_wrap(~setting)
