@@ -102,7 +102,7 @@ rm(scenario_cascade)
 param_dfList <- list()
 
 param_scenario <- list()
-
+trim_pt <- 100*(1/POC_AU$timestep)
 for(n in sce_name){ 
   load(file.path(OutputFolder, paste0(project_name,"param_scenario_",n, ".rda"))) 
   
@@ -110,7 +110,7 @@ for(n in sce_name){
   scenario_p <- lapply(scenario_p, function(x) lapply(x, function(y)y[, , c(1:trim_pt)]))
   gc()
   tic <- proc.time()
-  
+  param_scenario <- list()
   for(x in 1:1000){
     param_scenario[[x]] <- HCVMSM(POC_AU, Param_estimates[[x]], Param_Pops[[x]],
                                   Param_disease_progress[[x]], param_poparray[[x]],
@@ -129,7 +129,7 @@ for(n in sce_name){
        file = file.path(OutputFolder,
                         paste0(project_name, "param_sc_", n, ".rda")))
   
-  rm(scenario_p)
+  rm(scenario_p, param_scenario)
   gc()
   }
 

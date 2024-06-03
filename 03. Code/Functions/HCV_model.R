@@ -294,7 +294,7 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
 
   
   for(i in 1:npops){
-    morb[i, ] <- parama[ , paste0("morb", i)]
+    morb[i, ] <- parama[, paste0("morb", i)]
     
     mordc[i, ] <- parama[ , paste0("mordc", i)]
     
