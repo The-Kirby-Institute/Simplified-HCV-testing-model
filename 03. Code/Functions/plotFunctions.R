@@ -628,18 +628,10 @@ popResults_range <- function(pg, data, Population = NULL,
     
     # update the number of first timepoint as the average number in the year
     
-    result_list[[indicator]] <- result_list[[indicator]]%>%filter(timestep != 1)
-    
-    
     # ready for appending parameter set 
     indicatorEstimate <- result_list[[indicator]]%>%
       relocate(.,population, timestep, total_pop)%>%
-      arrange(population, timestep)%>%
-      dplyr::mutate(year = c(rep(c(rep(seq(1, endYear -2, 1), 
-                                       each = (1/pg$timestep)),
-                                   rep(endYear -1, 
-                                       each = (1/pg$timestep - 1))), pg$npops))
-      )
+      mutate(year = timestep%/%1)
     
     
     if (length(populations) == 1 && populations == "all") {
@@ -982,8 +974,7 @@ plotOpts <- theme_bw() + theme(plot.title = element_text(face = "bold",
                                                          hjust = 0.5),
                                text = element_text(face = "bold",size=14,
                                                    colour="black"),
-                               axis.text.x = element_text(face = "bold", 
-                                                          angle = 90,
+                               axis.text.x = element_text(face = "bold",
                                                           size=14,
                                                           colour="black", 
                                                           hjust = 0, vjust = 0.5),
@@ -1022,7 +1013,7 @@ theme_Publication <- function(base_size=14) {
             axis.title = element_text(face = "bold",size = rel(1)),
             axis.title.y = element_text(angle=90,vjust =2),
             axis.title.x = element_text(vjust = -0.2),
-            axis.text.x = element_text(angle=90, vjust = 0.5,hjust = -1,
+            axis.text.x = element_text(vjust = 0.5,hjust = 0.5,
                                        face = "bold",size = rel(1)), 
             axis.text.y = element_text(
               face = "bold",size = rel(1)),
@@ -1060,7 +1051,7 @@ theme_Publication_facet <- function(base_size=14) {
             axis.title = element_text(face = "bold",size = rel(1)),
             axis.title.y = element_text(angle=90,vjust =2),
             axis.title.x = element_text(vjust = -0.2),
-            axis.text.x = element_text(angle=90, vjust = 0.5,hjust = -1,
+            axis.text.x = element_text(angle=90, vjust = 0.5,hjust = 0.5,
                                        face = "bold",size = rel(1)), 
             axis.text.y = element_text(
               face = "bold",size = rel(1)),
@@ -1146,14 +1137,14 @@ indicatorPlot <- function(pg, data,  ylabel = NULL,
         plot <- ggplot(data = data, aes_string(x = "year", 
                                                group = groupPlot)) +
           
-          geom_line(aes(y = best, colour = groupPlot), size = 1) +
+          geom_line(aes_string(y = "best", colour = groupPlot), size = 1) +
           #geom_line(aes(y =Med),  colour = "red", size = 1) + 
           #geom_line(aes_string(y = "q5"),linetype ="dashed") +
           #geom_line(aes_string(y = "q95"),linetype ="dashed") +
           #geom_line(aes_string(y = "val", group = "sim"),  
           #          colour = "gray48", alpha = 0.4) +
           
-          geom_ribbon(aes(ymin = q5, ymax = q95, 
+          geom_ribbon(aes_string(ymin = "q5", ymax = "q95", 
                                  fill = groupPlot), alpha = 0.4) +
           xlab("Year") + ylab(ylabel) + 
           plotOpts + 
