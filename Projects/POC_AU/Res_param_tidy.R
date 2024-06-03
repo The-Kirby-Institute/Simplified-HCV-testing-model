@@ -29,7 +29,7 @@ OutputFolder <- file.path(data_path, "02. Output")
 load(file.path(OutputFolder, paste0(project_name, ".rda")))
 load(file.path(OutputFolder, paste0(project_name, "cali.rda")))
 load(file.path(OutputFolder, paste0(project_name, "cali_timev", ".rda")))
-load(file.path(OutputFolder, paste0(project_name, "param_sc_dfList_NP_2023", ".rda")))
+load(file.path(OutputFolder, paste0(project_name, "param_simulation", ".rda")))
 source(file.path(Rcode, "/Functions/plotFunctions.R")) 
 
 # setting end Year 
@@ -42,7 +42,7 @@ datapoint[["N"]] <-
   cbind.data.frame(year = rep(POC_AU$simY, length(POC_AU$popNames) +3), 
                    indicator = c(POC_AU$popNames, "Community", "Prison", "Total"), 
                    realpop = c(80000, 400000, 6993, 12696, 20311, 480000, 40000, 520000),
-                   low= c(60000, 30000, 6163, 11819, 19332, 360000, 37314, 397314),
+                   low= c(60000, 300000, 6163, 11819, 19332, 360000, 37314, 397314),
                    up = c(100000, 600000, 7869, 13525, 21292, 700000, 42686, 742686))
 
 datapoint[["frac"]] <- 
@@ -71,7 +71,7 @@ subpop_N <- lapply(POC_AU$popNames, function(x){
   a <- popResults_MidYear(POC_AU, calibrateInit,
                           Population = x,
                           Disease_prog = NULL, 
-                          Cascade = NULL, param = param_scenario, 
+                          Cascade = NULL, param = param_sq, 
                           endYear = endY)%>%ungroup() 
   
   a <- popResults_range(POC_AU, a, Population = x,
@@ -122,13 +122,13 @@ prison_profP <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
 
 #### number of annual leaving in each subpop ####
 # this is for getting annual number of released in non-PWID in prison 
-rel <- indicatorResults(POC_AU, calibrateInit, "newLeave", paramR = param_scenario,
+rel <- indicatorResults(POC_AU, calibrateInit, "newLeave", paramR = param_sq,
                         pop = POC_AU$popNames, endY= endY)%>%
   mutate(year = year + POC_AU$cabY - 1)
 
 #### number of annual entry model in each subpop ####
 # to get the annual number of incarceration in non-PWID in prison 
-entry <- indicatorResults(POC_AU, calibrateInit, "newEntry", paramR = param_scenario,
+entry <- indicatorResults(POC_AU, calibrateInit, "newEntry", paramR = param_sq,
                           pop = POC_AU$popNames, endY= endY)%>%
   mutate(year = year + POC_AU$cabY - 1)
 
@@ -137,7 +137,7 @@ pop_tran[["best"]] <- calibrateInit$newpop_tran
 parset_name <- c(paste0("set", seq(1,1000,1)))
 for(i in 1: 1000){ 
   
-  pop_tran[[parset_name[i]]] <- param_scenario[[i]]$newpop_tran
+  pop_tran[[parset_name[i]]] <- param_sq[[i]]$newpop_tran
   
   
 }
@@ -325,7 +325,7 @@ release_inc_bind <- dplyr::bind_rows(release_inc, .id = 'population')%>%
 pop_state <- popResults_MidYear(POC_AU, calibrateInit,
                                 Population = POC_AU$popNames,
                                 Disease_prog = POC_AU$progress_name, 
-                                Cascade = POC_AU$cascade_name, param = param_scenario, 
+                                Cascade = POC_AU$cascade_name, param = param_sq, 
                                 endYear = endY)%>%ungroup()%>%
   as_tibble()
 
@@ -478,7 +478,7 @@ tempPrevRNA_setting[["prisonsPWID"]] <- cbind(year = seq(POC_AU$startYear , endY
 ##### HCV incidence ##### 
 HCVInfect_subpop <- indicatorResults(POC_AU, calibrateInit, "newInfections", 
                                      pop=POC_AU$popNames,
-                                     paramR = param_scenario, range = NULL,
+                                     paramR = param_sq, range = NULL,
                                      endY = endY)
 
 HCVInfect_subpop_P <- HCVInfect_subpop%>%
@@ -547,7 +547,7 @@ pop_cured_P <- Cured%>%filter(!population %in% c("C_PWID", "C_fPWID"))
 
 HCVInfectRE_subpop <- indicatorResults(POC_AU, calibrateInit, "newreinfection", 
                                        pop=POC_AU$popNames,
-                                       paramR = param_scenario, range = NULL,
+                                       paramR = param_sq, range = NULL,
                                        endY = endY)
 HCVInfectRE_subpop_C <- HCVInfectRE_subpop%>%filter(population %in% c("C_PWID", "C_fPWID"))
 HCVInfectRE_subpop_P <- HCVInfectRE_subpop%>%filter(!population %in% c("C_PWID", "C_fPWID")) 
@@ -596,7 +596,7 @@ pop_labname <- c("PWID in community",  "Former PWID in community",
 
 HCVdeath <- indicatorResults(POC_AU, calibrateInit, "newHCVdeaths", 
                              pop=POC_AU$popNames,
-                             paramR = param_scenario, range = NULL,
+                             paramR = param_sq, range = NULL,
                              endY = endY)%>%
   mutate(population = factor(population, 
                              levels = POC_AU$popNames, 
@@ -604,7 +604,7 @@ HCVdeath <- indicatorResults(POC_AU, calibrateInit, "newHCVdeaths",
 
 death <- indicatorResults(POC_AU, calibrateInit, "newDeath", 
                           pop=POC_AU$popNames,
-                          paramR = param_scenario, range = NULL,
+                          paramR = param_sq, range = NULL,
                           endY = endY)%>%
   mutate(population = factor(population, 
                              levels = POC_AU$popNames, 
@@ -615,7 +615,7 @@ death <- indicatorResults(POC_AU, calibrateInit, "newDeath",
 pop_state <- popResults_MidYear(POC_AU, calibrateInit,
                                 Population = POC_AU$popNames,
                                 Disease_prog = POC_AU$progress_name, 
-                                Cascade = POC_AU$cascade_name, param = param_scenario, 
+                                Cascade = POC_AU$cascade_name, param = param_sq, 
                                 endYear = endY)%>%ungroup()
 
 pop_stateAll <- pop_state%>%group_by(year, state)%>%
@@ -656,7 +656,7 @@ flow_all <- list()
 flow_sub <- lapply(names(calibrateFlow), function(x){ 
   a <- indicatorResults(POC_AU, calibrateFlow, x, 
                         pop=POC_AU$popNames,
-                        paramR = param_scenario, range = NULL,
+                        paramR = param_sq, range = NULL,
                         endY = endY)
 })
 
@@ -1170,7 +1170,7 @@ Inc_relapinj_plot <-  indicatorPlot(POC_AU, inj_relap_inc_bind_range,
                                     xlimits = c(POC_AU$cabY,
                                                 POC_AU$cabY+30, 5),
                                     calibration_Y = POC_AU$cabY,
-                                    rangeu = NULL,
+                                    rangeu = "y",
                                     groupPlot = NULL,
                                     facetPlot = population,
                                     observationData = NULL, 
@@ -1196,7 +1196,12 @@ HCVPrev <-read.csv(file.path(paste0(DataFolder%>%dirname(), "/HCVPrev_POC_AU.csv
 
 tempPrev_subpop_range <- popResults_range(POC_AU, tempPrev_subpop, 
                                              Population = POC_AU$popNames,
-                                             Disease_prog = NULL, Cascade = NULL, end_Y = endY-1)
+                                             Disease_prog = NULL, Cascade = NULL, 
+                                          end_Y = endY-1)%>%
+  mutate(population = factor(population, 
+                             levels = POC_AU$popNames, 
+                             labels = pop_labname ))
+  
 
 
 tempPrev_subpop_range%>%filter(population == "nonPWID in prisons")%>%select(q5, q95)
@@ -1515,13 +1520,13 @@ popIncpPlot <- popIncpPlot +
                     
                     scale_new(3,
                               scale_y_continuous(limits = 
-                                                   c(0, 75))),
+                                                   c(0, 80))),
                     scale_new(4,
                               scale_y_continuous(limits = 
                                                    c(0, 50))),
                     scale_new(5,
                               scale_y_continuous(limits = 
-                                                   c(0, 10)))
+                                                   c(0, 5)))
                   )) + theme_bw()
 
 popIncrePlot <- indicatorPlot(POC_AU, HCVIncre_subpop_range, 
@@ -1543,20 +1548,20 @@ popIncrePlot <- popIncrePlot +
                   list(
                     scale_new(1,
                               scale_y_continuous(limits = 
-                                                   c(0, 10))),
+                                                   c(0, 20))),
                     scale_new(2,
                               scale_y_continuous(limits = 
-                                                   c(0, 10))),
+                                                   c(0, 5))),
                     
                     scale_new(3,
                               scale_y_continuous(limits = 
-                                                   c(0, 70))),
+                                                   c(0, 80))),
                     scale_new(4,
                               scale_y_continuous(limits = 
-                                                   c(0, 50))),
+                                                   c(0, 20))),
                     scale_new(5,
                               scale_y_continuous(limits = 
-                                                   c(0, 100)))
+                                                   c(0, 80)))
                   )) + theme_bw()
 
 # setting 
@@ -1809,17 +1814,17 @@ treatrecentPrev_p  <- treatrecentPrev_p  +
                                                    c(0, 20))),
                     scale_new(2,
                               scale_y_continuous(limits = 
-                                                   c(0, 10))),
+                                                   c(0, 20))),
                     
                     scale_new(3,
                               scale_y_continuous(limits = 
-                                                   c(0, 30))),
+                                                   c(0, 50))),
                     scale_new(4,
                               scale_y_continuous(limits = 
                                                    c(0, 30))),
                     scale_new(5,
                               scale_y_continuous(limits = 
-                                                   c(0, 10)))
+                                                   c(0, 1)))
                   )) + theme_bw()
 treatrecentPrev_p 
 
@@ -1862,6 +1867,58 @@ N_treatment_setting_p <- N_treatment_setting_p +
                     scale_new(2,
                               scale_y_continuous(limits = 
                                                    c(0, 5000)))))
-N_treatment_setting_p 
+
+
+subpop_N_plot[[1]] <- subpop_N_plot[[1]] + theme_Publication()
+subpop_N_plot[[2]] <- subpop_N_plot[[2]] + theme_Publication()
+subpop_N_plot[[3]] <- subpop_N_plot[[3]] + theme_Publication()
+subpop_N_plot[[4]] <- subpop_N_plot[[4]] + theme_Publication()
+subpop_N_plot[[5]] <- subpop_N_plot[[5]] + theme_Publication()
+
+popPrevPlot <- popPrevPlot + theme_Publication_facet() 
+popPrevRNAPlot <- popPrevRNAPlot + theme_Publication_facet() 
+settingPrevPlot <- settingPrevPlot + theme_Publication_facet() 
+settingPrevRNAPlot <- settingPrevRNAPlot + theme_Publication_facet()
+
+popIncPlot <- popIncPlot + theme_Publication_facet()
+settingIncPlot <- settingIncPlot + theme_Publication_facet() 
+popIncpPlot <- popIncpPlot + theme_Publication_facet()
+popIncrePlot <- popIncrePlot + theme_Publication_facet()
+N_treatment_setting_p <- N_treatment_setting_p + theme_Publication_facet() + 
+  ggtitle("Number of treatment initiation") + labs( y = "Numbers")
+treatrecentPrev_p <- treatrecentPrev_p + theme_Publication_facet()
+
+totalPop_plot <- totalPop_plot + theme_Publication()
+commuPop_plot <- commuPop_plot + theme_Publication() + ggtitle("Community")
+prisonPop_plot <- prisonPop_plot +theme_Publication() + ggtitle("Prisons")
+frac_PPWID_plot <- frac_PPWID_plot + theme_Publication()
+frac_PfPWID_plot <- frac_PfPWID_plot + theme_Publication()
+frac_CPWID_plot <- frac_CPWID_plot + theme_Publication()
+New_incar_plot <- New_incar_plot + theme_Publication()
+New_release_plot <- New_release_plot + theme_Publication()
+New_stopinj_plot <- New_stopinj_plot + theme_Publication_facet()
+New_relapinj_plot <- New_relapinj_plot + theme_Publication_facet()
+Inc_incar_plot <- Inc_incar_plot + theme_Publication_facet()
+Inc_release_plot <- Inc_release_plot + theme_Publication_facet()
+
+Inc_stopinj_plot_c <- Inc_stopinj_plot[["community"]] + theme_Publication() + 
+  ggtitle("Incidence of stopping injection")
+Inc_stopinj_plot_p <- Inc_stopinj_plot[["prison"]] + theme_Publication() + 
+  ggtitle("Incidence of stopping injection")
+Inc_relapinj_plot <- Inc_relapinj_plot + theme_Publication_facet()
+
+Inc_stopinj_plot <- Inc_stopinj_plot + theme_Publication_facet()
+
+save(subpop_N_plot, popPrevPlot, popPrevRNAPlot, settingPrevPlot, settingPrevRNAPlot, 
+     popIncPlot, settingIncPlot, popIncpPlot, popIncrePlot, 
+     N_treatment_setting_p, treatrecentPrev_p, 
+     
+     totalPop_plot, commuPop_plot, prisonPop_plot, frac_PPWID_plot, 
+     frac_PfPWID_plot, frac_CPWID_plot, New_incar_plot, 
+     New_release_plot, New_stopinj_plot, New_relapinj_plot, Inc_incar_plot, 
+     Inc_release_plot, Inc_stopinj_plot_c, Inc_stopinj_plot_p, Inc_relapinj_plot,
+     
+     file = file.path(OutputFolder,
+                      paste0(project_name, "calibra_plot_param.rda")))
 
 
