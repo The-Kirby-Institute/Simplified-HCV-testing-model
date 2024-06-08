@@ -402,8 +402,11 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   lota <- array(0, c(npops, nprogress, npts +1), dimnames = dimN)
   lota <- param_cascade$lota
   lota_dt <- 1-(1-lota)^dt
-  lota_dt[, c("f0", "f1", "f2", "f3"), ] <- lota_dt[, c("f0", "f1", "f2", "f3"), ]*(1-parama$SVR)
-  lota_dt[, c("f4", "dc", "hcc", "lt", "plt"), ] <- lota_dt[, c("f4", "dc", "hcc", "lt", "plt"), ]*(1-parama$SVRf4)
+
+  lota_dt[, c("f0", "f1", "f2", "f3"), ] <- lota_dt[, c("f0", "f1", "f2", "f3"), ]*(1-parama$SVR[1])
+  lota_dt[, c("f4", "dc", "hcc", "lt", "plt"), ] <- lota_dt[, c("f4", "dc", "hcc", "lt", "plt"), ]*(1-parama$SVRf4[1])
+
+  
   ####re-treated####
   rho <- array(0, c(npops, nprogress, npts +1), dimnames = dimN)
   rho <- param_cascade$rho
@@ -413,8 +416,8 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   cure <- array(0, c(npops, nprogress, npts +1), dimnames = dimN)
   cure <- param_cascade$cured
   cure_dt <- 1-(1-cure)^dt
-  cure_dt[, c("f0", "f1", "f2", "f3"), ] <- cure_dt[, c("f0", "f1", "f2", "f3"), ]*parama$SVR
-  cure_dt[, c("f4", "dc", "hcc", "lt", "plt"), ] <- cure_dt[, c("f4", "dc", "hcc", "lt", "plt"), ]*parama$SVRf4
+  cure_dt[, c("f0", "f1", "f2", "f3"), ] <- cure_dt[, c("f0", "f1", "f2", "f3"), ]*parama$SVR[1]
+  cure_dt[, c("f4", "dc", "hcc", "lt", "plt"), ] <- cure_dt[, c("f4", "dc", "hcc", "lt", "plt"), ]*parama$SVRf4[1]
   
   # intervention 
   ####testing rate#### 

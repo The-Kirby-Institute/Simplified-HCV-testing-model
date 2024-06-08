@@ -87,15 +87,12 @@ Sce_sq <- HCVMSM(POC_AU, best_estimates, best_est_pop,
 tic <- proc.time()
 
 
-
-
 # import the number of test 
 
 Num_test_person_NP <- read_excel(paste0(data_path, "/01. DATA/Num_test_person_NP.xlsx"))
 # assuming actively C_PWID and C_fPWID roughly equals to the pop size of CPWID
 # We accounted the transition in prison setting regarding its high dynamic nature 
-Num_test_person_NP <- Num_test_person_NP%>%
-  mutate(num_pop = c(80000, 80000, 80000, 80000))
+Num_test_person_NP <- Num_test_person_NP%>%mutate(num_pop = c(80000, 80000, 80000, 80000))
 
 Num_test_person_NP <- Num_test_person_NP%>%
   mutate(coverage = num_person/num_pop, 
@@ -395,12 +392,12 @@ frac_ab[["2024"]] <- c(0.6, 0.2)
 
 # calibrating the fm value 
 fm <- list()
-fm[["2022"]] <- c(1.3, 1.3, 8, 8, 1.5)
-fm[["2023"]] <- c(0.7, 0.6, 10, 10, 1.5)
-fm[["2024"]] <- c(0.53, 0.53, 9, 9, 1)
-fm[["2025"]] <- c(0.53, 0.53, 5, 5, 1)
-fm[["2026"]] <- c(0.53, 0.53, 5, 5, 1)
-fm[["2027"]] <- c(0.53, 0.53, 5, 5, 1)
+fm[["2022"]] <- c(0.7, 0.7, 2, 2, 1.5)
+fm[["2023"]] <- c(0.7, 0.7, 2, 2, 1.5)
+fm[["2024"]] <- c(0.4, 0.4, 1, 1, 1)
+fm[["2025"]] <- c(0.4, 0.4, 1, 1, 1)
+fm[["2026"]] <- c(0.8, 0.8, 2, 2, 1)
+fm[["2027"]] <- c(1, 1, 2, 2, 1)
 
 coverage_np <- list()
 coverage_np[["2022"]] <- c(Ccal[[2022]]$C, Ccal[[2022]]$P)
@@ -569,7 +566,7 @@ fs[["dfList_NPexp_A"]][, ini_dt:end_dt] <- fs[["dfList_NPexp_A"]][, ini_dt - 1]
 
 ####NP expand_B ####
 odd_num_test <- 30000/20000
-Ccal[[2025]] <- lapply(Ccal[[2024]],function(x) x*odd_num_test)
+Ccal[[2025]] <- lapply(Ccal[[2024]],function(x) x*odd_num_test*1.3)
 
 frac_test[[2025]] <- frac_test[[2024]]
 frac_test[[2025]]$P$reflex <- 0.25
@@ -674,7 +671,7 @@ fs[["dfList_NPexp_C"]][, ini_dt:end_dt] <- fs[["dfList_NPexp_C"]][, ini_dt - 1]
 
 ####NP expand_D ####
 odd_num_test <- 50000/40000
-Ccal[[2027]] <- lapply(Ccal[[2026]],function(x) x*1.1)
+Ccal[[2027]] <- lapply(Ccal[[2026]],function(x) x)
 
 frac_test[[2027]] <- frac_test[[2025]]
 frac_test[[2027]]$P$reflex <- 0.5
@@ -701,8 +698,8 @@ for(i in param_var){
   dfList_NPexp_D[[i]][, , b_pt: dim_length] <- dfList_NP[[i]][, , b_pt: dim_length]
 } 
 
-n_ab_np[["2027"]] <- n_ab_np[["2026"]]*1.1
-coverage_np[["2027"]] <- coverage_np[["2026"]]*1.1
+n_ab_np[["2027"]] <- n_ab_np[["2026"]]
+coverage_np[["2027"]] <- coverage_np[["2026"]]
 
 xfs[["2027"]] <- fs_estimate(num_ab = n_ab_np[["2027"]], 
                              cov_np = coverage_np[["2027"]], 
@@ -780,7 +777,7 @@ cl_ext <- names(Sce_np$dfList_NPexp_D)[c(10:22)]
 for(i in cl_ext){
   
   test[[i]] <- modres.flow.t(POC_AU, Sce_np$dfList_NPexp_D, endYear = 100, 
-                             allp = i)%>%filter(year %in% seq(7, 15, 1))%>%
+                             allp = i)%>%
     ungroup()%>%
     group_by(year, population)%>%
     summarise(best = sum(best))
@@ -791,7 +788,7 @@ test_sq <- list()
 for(i in cl_ext){
   
   test_sq[[i]] <- modres.flow.t(POC_AU, Sce_sq, endYear = 100, 
-                             allp = i)%>%filter(year %in% seq(7, 15, 1))%>%
+                             allp = i)%>%
     ungroup()%>%
     group_by(year, population)%>%
     summarise(best = sum(best))
@@ -804,11 +801,9 @@ test <- dplyr::bind_rows(test, .id = 'index')%>%group_by(year, population)%>%spr
 test_sq <- dplyr::bind_rows(test_sq, .id = 'index')%>%group_by(year, population)%>%spread(index, best)
 
 
-test_fscal <- test%>%mutate(Ab = newTestingAb_sc + newTestingAb_sc_neg + newTestingAb + newTestingAb_neg, 
+test_fscal <- test%>%mutate(Ab = newTestingAb_sc + newTestingAb_sc_neg, 
                             RNA = (newTestingAg_sc+ newTestingAg_sc_neg + newTestingPOCT_sc + 
-                                     newTestingPOCT_sc_neg + 
-                                     newTestingAg+ newTestingAg_neg + newTestingPOCT + 
-                                     newTestingPOCT_neg))%>%select(year, population, Ab, 
+                                     newTestingPOCT_sc_neg ))%>%select(year, population, Ab, 
                                                                   RNA)%>%
   mutate(setting = ifelse(population %in% c("C_PWID", "C_fPWID"), "C", "P"))%>%
   ungroup()%>%
@@ -816,7 +811,7 @@ test_fscal <- test%>%mutate(Ab = newTestingAb_sc + newTestingAb_sc_neg + newTest
   gather(index, value, -c(year, setting))%>%
   group_by(year, setting, index)%>%summarise(value = sum(value))%>%
   mutate(scenario = "exp_D")
-
+test_fscal%>%filter(year%in% c(10,11,12))
 test_fscal_sq <- test_sq%>%mutate(Ab = newTestingAb_sc + newTestingAb_sc_neg + newTestingAb + newTestingAb_neg, 
                             RNA = (newTestingAg_sc+ newTestingAg_sc_neg + newTestingPOCT_sc + 
                                      newTestingPOCT_sc_neg + 
@@ -831,7 +826,7 @@ test_fscal_sq <- test_sq%>%mutate(Ab = newTestingAb_sc + newTestingAb_sc_neg + n
   mutate(scenario = "sq")
 
 
-View(test_fscal)
+View(test_fscal%>%group_by(year)%>%summarise(best = sum(value)))
 
 x <- rbind(test_fscal_sq, test_fscal)
 

@@ -230,10 +230,10 @@ rm(Param_estimates, Param_disease_progress, param_poparray,
    Param_fib)
 
 gc()
-
+# cured and lota using the duration of treatment, don't random sampling 
 for(i in 1:POC_AU$numberSamples){
-  paramDflist[[i]][["cured"]] <- lhs_samples[i,"poparray"]*(dflist_UU[["cured"]] - dflist_LL[["cured"]]) + dflist_LL[["cured"]]
-  paramDflist[[i]][["cured"]][paramDflist[[i]][["cured"]]>1] <- 1 
+  paramDflist[[i]][["cured"]] <- dfList$cured
+
 }
 for(i in 1:POC_AU$numberSamples){
   paramDflist[[i]][["eta"]] <- lhs_samples[i,"poparray"]*(dflist_UU[["eta"]] - dflist_LL[["eta"]]) + dflist_LL[["eta"]] 
@@ -241,8 +241,8 @@ for(i in 1:POC_AU$numberSamples){
 } 
 
 for(i in 1:POC_AU$numberSamples){
-  paramDflist[[i]][["lota"]] <- lhs_samples[i,"poparray"]*(dflist_UU[["lota"]] - dflist_LL[["lota"]]) + dflist_LL[["lota"]] 
-  paramDflist[[i]][["lota"]][paramDflist[[i]][["lota"]]>1] <- 1  
+  paramDflist[[i]][["lota"]] <- dfList$lota 
+
 }
 for(i in 1:POC_AU$numberSamples){
   paramDflist[[i]][["rho"]] <- lhs_samples[i,"poparray"]*(dflist_UU[["rho"]] - dflist_LL[["rho"]]) + dflist_LL[["rho"]] 

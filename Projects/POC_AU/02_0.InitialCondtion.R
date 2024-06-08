@@ -456,6 +456,7 @@ save(calibrateInit, bvalue, TreatInit,best_estimates, dfList,
 
 # quick check out the key indicators 
 endY_plot <- 2030- POC_AU$cabY
+
 subpop_N <- lapply(POC_AU$popNames, function(x){ 
   
   a <- popResults_MidYear(POC_AU, calibrateInit,
@@ -606,11 +607,6 @@ N_treatment_setting_p <- N_treatment_setting_p +
                     scale_new(2,
                               scale_y_continuous(limits = 
                                                    c(0, 5000)))))
-N_treatment_setting_p
 
-
-popPrevRNAPlot
-
-View(N_treatment)
 
 

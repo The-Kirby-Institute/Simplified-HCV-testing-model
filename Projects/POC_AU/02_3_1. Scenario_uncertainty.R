@@ -44,10 +44,11 @@ gc()
 
 
 # function to generate parameters set for HCV cascade in scenarios 
+# lota and cured did not involve in sampling, the effect will sampling around SVR
 paramset_scenario <- function(paramDflist, lhs, dflist_LL, dflist_UU){ 
   for(i in 1:POC_AU$numberSamples){
-    paramDflist[[i]][["cured"]] <- lhs[i,"poparray"]*(dflist_UU[["cured"]] - dflist_LL[["cured"]]) + dflist_LL[["cured"]]
-    paramDflist[[i]][["cured"]][paramDflist[[i]][["cured"]]>1] <- 1 
+    paramDflist[[i]][["cured"]] <- (dflist_LL[["cured"]] + dflist_UU[["cured"]])/2
+  
   }
   for(i in 1:POC_AU$numberSamples){
     paramDflist[[i]][["eta"]] <- lhs[i,"poparray"]*(dflist_UU[["eta"]] - dflist_LL[["eta"]]) + dflist_LL[["eta"]] 
@@ -55,8 +56,7 @@ paramset_scenario <- function(paramDflist, lhs, dflist_LL, dflist_UU){
   } 
   
   for(i in 1:POC_AU$numberSamples){
-    paramDflist[[i]][["lota"]] <- lhs[i,"poparray"]*(dflist_UU[["lota"]] - dflist_LL[["lota"]]) + dflist_LL[["lota"]] 
-    paramDflist[[i]][["lota"]][paramDflist[[i]][["lota"]]>1] <- 1  
+    paramDflist[[i]][["lota"]] <- (dflist_LL[["lota"]] + dflist_UU[["lota"]])/2
   }
   for(i in 1:POC_AU$numberSamples){
     paramDflist[[i]][["rho"]] <- lhs[i,"poparray"]*(dflist_UU[["rho"]] - dflist_LL[["rho"]]) + dflist_LL[["rho"]] 
