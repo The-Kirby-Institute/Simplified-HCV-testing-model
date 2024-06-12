@@ -392,12 +392,12 @@ frac_ab[["2024"]] <- c(0.6, 0.2)
 
 # calibrating the fm value 
 fm <- list()
-fm[["2022"]] <- c(0.7, 0.7, 2, 2, 1.5)
-fm[["2023"]] <- c(0.7, 0.7, 2, 2, 1.5)
-fm[["2024"]] <- c(0.4, 0.4, 1, 1, 1)
-fm[["2025"]] <- c(0.4, 0.4, 1, 1, 1)
-fm[["2026"]] <- c(0.8, 0.8, 2, 2, 1)
-fm[["2027"]] <- c(1, 1, 2, 2, 1)
+fm[["2022"]] <- c(1, 1, 12, 12, 1)
+fm[["2023"]] <- c(1, 1, 14, 14, 1)
+fm[["2024"]] <- c(1, 1, 12, 12, 1)
+fm[["2025"]] <- c(0.9, 0.9, 6, 6, 1)
+fm[["2026"]] <- c(0.9, 0.9, 6, 6, 1)
+fm[["2027"]] <- c(0.9, 0.9, 5.6, 5.6, 1)
 
 coverage_np <- list()
 coverage_np[["2022"]] <- c(Ccal[[2022]]$C, Ccal[[2022]]$P)
@@ -420,9 +420,9 @@ fs[["2022"]][1,] <-   xfs[["2022"]][[1]][1, ]/fm[["2022"]][1]
 fs[["2022"]][2,] <-   xfs[["2022"]][[1]][2, ]/fm[["2022"]][2]
 fs[["2022"]][3,] <-   xfs[["2022"]][[1]][3, ]/fm[["2022"]][3]
 fs[["2022"]][4,] <-   xfs[["2022"]][[1]][4, ]/fm[["2022"]][4]
-fs[["2022"]][5,] <-   xfs[["2022"]][[1]][5, ]/fm[["2022"]][5]
+fs[["2022"]][5,] <-   xfs[["2022"]][[1]][5, ]/xfs[["2022"]][[1]][5, ]
 
-
+fs[["2022"]][5,91]
 
 dfList_NP <- lapply(dfList, function(x) x*0)
 
@@ -482,9 +482,9 @@ fs[["2023"]][1, ini_dt:end_dt ] <-   xfs[["2023"]][[1]][1, ini_dt:end_dt ]/fm[["
 fs[["2023"]][2, ini_dt:end_dt ] <-   xfs[["2023"]][[1]][2, ini_dt:end_dt ]/fm[["2023"]][2]
 fs[["2023"]][3, ini_dt:end_dt ] <-   xfs[["2023"]][[1]][3, ini_dt:end_dt ]/fm[["2023"]][3]
 fs[["2023"]][4, ini_dt:end_dt ] <-   xfs[["2023"]][[1]][4, ini_dt:end_dt ]/fm[["2023"]][4]
-fs[["2023"]][5, ini_dt:end_dt ] <-   xfs[["2023"]][[1]][5, ini_dt:end_dt ]/fm[["2023"]][5] 
+fs[["2023"]][5, ini_dt:end_dt ] <-   xfs[["2023"]][[1]][5, ini_dt:end_dt ]/xfs[["2023"]][[1]][5, ini_dt:end_dt ] 
 
-
+fm[["2022"]]
 dfList_NP_2024 <- dfList_NP_2023 
 Ccal[[2024]] <- lapply(Ccal[[2023]], function(x) x*2)
 
@@ -532,7 +532,7 @@ fs[["2024"]][1, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][1, ini_dt:end_dt ]/fm[["
 fs[["2024"]][2, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][2, ini_dt:end_dt ]/fm[["2024"]][2]
 fs[["2024"]][3, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][3, ini_dt:end_dt ]/fm[["2024"]][3]
 fs[["2024"]][4, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][4, ini_dt:end_dt ]/fm[["2024"]][4]
-fs[["2024"]][5, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][5, ini_dt:end_dt ]/fm[["2024"]][5] 
+fs[["2024"]][5, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][5, ini_dt:end_dt ]/xfs[["2024"]][[1]][5, ini_dt:end_dt ] 
 
 
 ####NP expand_A ####
@@ -566,7 +566,7 @@ fs[["dfList_NPexp_A"]][, ini_dt:end_dt] <- fs[["dfList_NPexp_A"]][, ini_dt - 1]
 
 ####NP expand_B ####
 odd_num_test <- 30000/20000
-Ccal[[2025]] <- lapply(Ccal[[2024]],function(x) x*odd_num_test*1.3)
+Ccal[[2025]] <- lapply(Ccal[[2024]],function(x) x*odd_num_test)
 
 frac_test[[2025]] <- frac_test[[2024]]
 frac_test[[2025]]$P$reflex <- 0.25
@@ -611,7 +611,7 @@ fs[["dfList_NPexp_B"]][1, ini_dt:end_dt ] <-   xfs[["2025"]][[1]][1, ini_dt:end_
 fs[["dfList_NPexp_B"]][2, ini_dt:end_dt ] <-   xfs[["2025"]][[1]][2, ini_dt:end_dt ]/fm[["2025"]][2]
 fs[["dfList_NPexp_B"]][3, ini_dt:end_dt ] <-   xfs[["2025"]][[1]][3, ini_dt:end_dt ]/fm[["2025"]][3]
 fs[["dfList_NPexp_B"]][4, ini_dt:end_dt ] <-   xfs[["2025"]][[1]][4, ini_dt:end_dt ]/fm[["2025"]][4]
-fs[["dfList_NPexp_B"]][5, ini_dt:end_dt ] <-   xfs[["2025"]][[1]][5, ini_dt:end_dt ]/fm[["2025"]][5] 
+fs[["dfList_NPexp_B"]][5, ini_dt:end_dt ] <-   xfs[["2025"]][[1]][5, ini_dt:end_dt ]/xfs[["2025"]][[1]][5, ini_dt:end_dt ] 
 
 ini_dt <- (2026 - POC_AU$cabY)/POC_AU$timestep + 1 
 end_dt <- ((2027 + 1 ) - POC_AU$cabY)/POC_AU$timestep
@@ -661,12 +661,11 @@ fs[["dfList_NPexp_C"]][1, ini_dt:end_dt ] <-   xfs[["2026"]][[1]][1, ini_dt:end_
 fs[["dfList_NPexp_C"]][2, ini_dt:end_dt ] <-   xfs[["2026"]][[1]][2, ini_dt:end_dt ]/fm[["2026"]][2]
 fs[["dfList_NPexp_C"]][3, ini_dt:end_dt ] <-   xfs[["2026"]][[1]][3, ini_dt:end_dt ]/fm[["2026"]][3]
 fs[["dfList_NPexp_C"]][4, ini_dt:end_dt ] <-   xfs[["2026"]][[1]][4, ini_dt:end_dt ]/fm[["2026"]][4]
-fs[["dfList_NPexp_C"]][5, ini_dt:end_dt ] <-   xfs[["2026"]][[1]][5, ini_dt:end_dt ]/fm[["2026"]][5] 
+fs[["dfList_NPexp_C"]][5, ini_dt:end_dt ] <-   xfs[["2026"]][[1]][5, ini_dt:end_dt ]/xfs[["2026"]][[1]][5, ini_dt:end_dt ] 
 
 ini_dt <- (2027 - POC_AU$cabY)/POC_AU$timestep + 1 
 end_dt <- ((2027 + 1 ) - POC_AU$cabY)/POC_AU$timestep
 fs[["dfList_NPexp_C"]][, ini_dt:end_dt] <- fs[["dfList_NPexp_C"]][, ini_dt - 1]
-
 
 
 ####NP expand_D ####
@@ -714,7 +713,7 @@ fs[["dfList_NPexp_D"]][1, ini_dt:end_dt ] <-   xfs[["2027"]][[1]][1, ini_dt:end_
 fs[["dfList_NPexp_D"]][2, ini_dt:end_dt ] <-   xfs[["2027"]][[1]][2, ini_dt:end_dt ]/fm[["2027"]][2]
 fs[["dfList_NPexp_D"]][3, ini_dt:end_dt ] <-   xfs[["2027"]][[1]][3, ini_dt:end_dt ]/fm[["2027"]][3]
 fs[["dfList_NPexp_D"]][4, ini_dt:end_dt ] <-   xfs[["2027"]][[1]][4, ini_dt:end_dt ]/fm[["2027"]][4]
-fs[["dfList_NPexp_D"]][5, ini_dt:end_dt ] <-   xfs[["2027"]][[1]][5, ini_dt:end_dt ]/fm[["2027"]][5] 
+fs[["dfList_NPexp_D"]][5, ini_dt:end_dt ] <-   xfs[["2027"]][[1]][5, ini_dt:end_dt ]/xfs[["2027"]][[1]][5, ini_dt:end_dt ] 
 
 
 endY <- 20
@@ -811,7 +810,20 @@ test_fscal <- test%>%mutate(Ab = newTestingAb_sc + newTestingAb_sc_neg,
   gather(index, value, -c(year, setting))%>%
   group_by(year, setting, index)%>%summarise(value = sum(value))%>%
   mutate(scenario = "exp_D")
-test_fscal%>%filter(year%in% c(10,11,12))
+dtp <- c(6615, 11276, 19480, 30000, 40000, 50000)
+View(test_fscal%>%filter(year%in% c(7,8,9,10,11,12))
+              )
+View(test_fscal%>%filter(year%in% c(7,8,9,10,11,12))%>%group_by(year)%>%
+       summarise(tot_NP_test = sum(value))%>%
+       mutate(year = year + 2015, 
+              data_point = unlist(dtp))%>%
+       mutate(diff = data_point- tot_NP_test))
+test%>%mutate(setting = ifelse(population %in% POC_AU$popNames[3:5], "P", "C"))%>%
+  group_by(setting, year)%>%summarise(best = sum(newTreatment_sc))%>%
+  filter(year%in% c(7:12))
+
+test_fscal
+
 test_fscal_sq <- test_sq%>%mutate(Ab = newTestingAb_sc + newTestingAb_sc_neg + newTestingAb + newTestingAb_neg, 
                             RNA = (newTestingAg_sc+ newTestingAg_sc_neg + newTestingPOCT_sc + 
                                      newTestingPOCT_sc_neg + 
@@ -832,4 +844,8 @@ x <- rbind(test_fscal_sq, test_fscal)
 
 ggplot(data = x%>%filter(index == "Ab"), aes(x = year, y = value)) + 
   geom_line(aes(colour = scenario)) + 
-  facet_wrap(~setting)
+  facet_wrap(~setting) 
+
+
+#################################################################################
+

@@ -736,7 +736,7 @@ for(i in names(Sce_np)){
                         paste0(project_name,"PrevInc_", i ,".rda")))
   
   
-  
+ gc() 
   
 }
 
