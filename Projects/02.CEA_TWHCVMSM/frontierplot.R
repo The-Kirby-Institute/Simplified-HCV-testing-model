@@ -148,7 +148,7 @@ icer_hcv$`Entire population of MSM` <- icer_hcv$`Entire population of MSM`%>%
 
 
 
-base <- icer_hcv$`Entire population of MSM`%>%filter(Strategy == "S1_lab-based testing")
+base <- icer_hcv$`Entire population of MSM`%>%filter(Strategy == "S1_Point-of-care antibody testing")
 
 
 icer_hcv$`Entire population of MSM` <- icer_hcv$`Entire population of MSM`%>%
@@ -156,16 +156,16 @@ icer_hcv$`Entire population of MSM` <- icer_hcv$`Entire population of MSM`%>%
          Inc_Effect = Effect - base$Effect)
 
 
-
+dt_tab_all$`Entire population of MSM`
 colpal <- scales::viridis_pal()(4)
 show_col(colpal)
 x <- icer_hcv$`Entire population of MSM`%>%
   ggplot(data = ., 
-         aes(x = Inc_Effect, 
-             y = Inc_Cost, shape = Strategy, colour = Strategy, group = Strategy)) + 
+         aes(x = Effect, 
+             y = Cost, shape = Strategy, colour = Strategy, group = Strategy)) + 
   geom_point(aes(color = Strategy, shape = Strategy), size = 2) + 
   geom_line(data = icer_hcv$`Entire population of MSM`%>%filter(Status == "ND" ),
-            aes(x=Inc_Effect, y = Inc_Cost),color = "black")  +
+            aes(x=Effect, y = Cost),color = "black")  +
   theme_Publication(base_size=14)  +   
   scale_shape_manual(name = "Scenarios",
                      labels = c("S1: Current HCV testing", 
@@ -184,10 +184,10 @@ x <- icer_hcv$`Entire population of MSM`%>%
                                 "S4: Point-of-care antibody testing", 
                                 "S4: Reflex RNA testing",
                                 "S4: Point-of-care RNA testing"),
-                     values=c(15,19,17,18,
-                              15,19,17,18,
-                              15,19,17,18,
-                              15,19,17,18)) + 
+                     values=c(15,15,15,15,
+                              19,19,19,19,
+                              17,17,17,17,
+                              18,18,18,18)) + 
   scale_colour_manual(name = "Scenarios",
                       labels = c("S1: Current HCV testing", 
                                  "S1: Point-of-care antibody testing", 
@@ -205,17 +205,19 @@ x <- icer_hcv$`Entire population of MSM`%>%
                                  "S4: Point-of-care antibody testing", 
                                  "S4: Reflex RNA testing",
                                  "S4: Point-of-care RNA testing"),
-                      values = c("#440154FF","#440154FF", "#440154FF","#440154FF",
-                                 "#31688EFF","#31688EFF","#31688EFF","#31688EFF",
-                                 "#35B779FF","#35B779FF","#35B779FF","#35B779FF",
-                                 "#FDE725FF","#FDE725FF","#FDE725FF","#FDE725FF"
+                      values = c("#440154FF","#31688EFF", "#35B779FF","#FDE725FF",
+                                 "#440154FF","#31688EFF", "#35B779FF","#FDE725FF",
+                                 "#440154FF","#31688EFF", "#35B779FF","#FDE725FF",
+                                 "#440154FF","#31688EFF", "#35B779FF","#FDE725FF"
+                                 
                                  )) +
   guides(fill=guide_legend(nrow=4)) + 
-  theme(legend.text = element_text(size=10))
+  theme(legend.text = element_text(size=14, face ="bold")) + 
+  guides(shape = guide_legend(override.aes = list(size = 4)))
+  
 
 x 
 
-x
 g_legend <- function(a.gplot){ 
   tmp <- ggplot_gtable(ggplot_build(a.gplot)) 
   leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box") 
@@ -223,64 +225,60 @@ g_legend <- function(a.gplot){
   legend
 } 
 xl <- g_legend(x)
-exp_intercept <- c(126269996 - 1730959)/c(10333.847-8307.373)
-endp <- exp_intercept* (6000000- 1730959) + 5864953.8 
-x_main_exp$Inc_Cost <- endp
-x_main_exp$Inc_Effect <- 11000
+
+
 x_main <- icer_hcv$`Entire population of MSM`%>%filter(!`Testing strategy` %in% c("Point-of-care RNA testing"))
 
 x_main <- x_main%>%mutate(ICER = paste("$", round(ICER, digits = 1), "/QALYs"))
 x_main[1, "ICER"] <- "Dominant"
 x_mainp <- ggplot(data = x_main, 
-         aes(x = Inc_Effect, 
-             y = Inc_Cost )) + 
-  geom_point(aes(color = `HIV prevention and care scenarios`, shape = `Testing strategy`), size = 2) + 
+         aes(x = Effect, 
+             y = Cost )) + 
+  geom_point(aes(color = `Testing strategy`, shape = `HIV prevention and care scenarios`), size = 4) + 
   geom_line(data =x_main%>%filter(Status == "ND" ),
-            aes(x=Inc_Effect, y = Inc_Cost),color = "black") + 
+            aes(x=Effect, y = Cost),color = "black") + 
   geom_label_repel(data = x_main%>%filter(Status == "ND" & Inc_Cost!= 0),
-                   aes(label= ICER), 
-                   angle = 45, face = "bold", segment.size=0.5, vjust = 0.5, 
-                   position = position_dodge(0.5))+
+                   aes(label= ICER), force = 80)+
   theme_Publication(base_size=14) + 
-  scale_x_continuous(limits = c(0,  10000), 
-                     breaks = seq(0, 10000, 1000)) + 
-  scale_y_continuous(limits = c(-10000000, 10000000), 
-                     breaks = seq(-10000000, 10000000, 5000000),
-                     labels = seq(-10000000, 10000000, 5000000)/1000000) + 
+  scale_x_continuous(limits = c(5262500,  5280000), 
+                     breaks = seq(5262500,  5280000, 2500)) + 
+  scale_y_continuous(limits = c(30000000, 60000000), 
+                     breaks = seq(30000000, 60000000, 10000000),
+                     labels = seq(30000000, 60000000, 10000000)/1000000) + 
   scale_shape_manual(values=c(15,19,17,18)) + 
-  scale_colour_manual(values=c("#440154FF","#31688EFF", 
-                               "#35B779FF","#FDE725FF")) + 
+  scale_colour_manual(values = c("#440154FF","#31688EFF", "#35B779FF","#FDE725FF"
+                                 
+  )) + 
   theme(legend.position = "") + 
   theme(axis.text.x = element_text(angle = 360, hjust = 0.5)) + 
-  labs(x = "Incremental QALYs", y = "Incremental Cost (millions)") 
-  
+  labs(x = "QALYs", y = "Cost (millions)")  +
+  geom_segment(x = 5271034, y = 44664324, xend = 5273061, yend = 169291939, linetype = "dashed") 
+x_mainp 
 x_POCRNA <- ggplot(data = icer_hcv$`Entire population of MSM`%>%
                      filter(`Testing strategy` == "Point-of-care RNA testing"), 
-                   aes(x = Inc_Effect, 
-                       y = Inc_Cost )) + 
-  geom_point(aes(color = `HIV prevention and care scenarios`, shape = `Testing strategy`), size = 5) + 
+                   aes(x = Effect, 
+                       y = Cost )) + 
+  geom_point(aes(color =`Testing strategy`, shape = `HIV prevention and care scenarios`), size = 5) + 
   geom_line(data = icer_hcv$`Entire population of MSM`%>%filter(Status == "ND" ),
-            aes(x=Inc_Effect, y = Inc_Cost),color = "black") +   
+            aes(x=Effect, y = Cost),color = "black") +   
   theme_Publication(base_size=14) + 
-  scale_x_continuous(limits = c(4000,  11000), 
-                     breaks = seq(4000, 11000, 1000)) + 
-  scale_y_continuous(limits = c(5000000, 160000000), 
-                     breaks = seq(5000000, 160000000, 20000000),
-                     labels = seq(5000000, 160000000, 20000000)/1000000) + 
-  scale_shape_manual(values=c(18)) + 
-  scale_colour_manual(values=c("#440154FF","#31688EFF", 
-                               "#35B779FF","#FDE725FF")) + 
+  scale_x_continuous(limits = c(5265000,  5280000), 
+                     breaks = seq(5265000,  5280000, 2500)) + 
+  scale_y_continuous(limits = c(110000000, 180000000), 
+                     breaks = seq(110000000, 180000000, 10000000),
+                     labels = seq(110000000, 180000000, 10000000)/1000000) + 
+  scale_shape_manual(values=c(15,19,17,18)) + 
+  scale_colour_manual(values=c("#FDE725FF","#FDE725FF", 
+                               "#FDE725FF","#FDE725FF")) + 
   theme(legend.position = "") + 
   theme(axis.text.x = element_text(angle = 360, hjust = 0.5)) + 
   labs(x = "Incremental QALYs", y = "") + 
-  geom_segment(x = 9000, y = 44297061, xend = 10333.847, yend = 126269996, 
-               linetype = 2)
+  geom_segment(x = 5273061, y = 169291939 , xend =  5271034, yend = 44664324, linetype = "dashed") 
 
 
 x_POCRNA 
 ggsave(path = outputfig, file="frontierplot_POCRNA.png", x_POCRNA , 
-       height = 3
-       , width = 6, dpi = 300)
+       height = 9, width = 16, unit = "cm", dpi = 600)
 # combine main plot and legend
 lay <- lay <- rbind(c(1,1,1,1,1,1,1,1),
                     c(1,1,1,1,1,1,1,1),
@@ -289,12 +287,12 @@ lay <- lay <- rbind(c(1,1,1,1,1,1,1,1),
                     c(2,2,2,2,2,2,2,2)) 
 frontierplot_main <- grid.arrange(grobs = list(x_mainp, xl), layout_matrix = lay) 
 
-POC_RNA_plot <-readPNG(paste0(outputfig, "/frontierplot_POCRNA.png"))
+POC_RNA_plot <-png::readPNG(paste0(outputfig, "/frontierplot_POCRNA.png"))
 
 frontierplot_main
 
 ggsave(path = outputfig, file="frontierplot_main.png", frontierplot_main, 
-       height = 5, width = 11, dpi = 800)
+       height = 16, width = 40, unit = "cm", dpi = 600)
 
 
 

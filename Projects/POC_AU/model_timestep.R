@@ -30,6 +30,11 @@ modres.t <- function(pg, Best, endYear, allp = NULL) {
     mutate(year = timestep%/%1)
 }
 
+
+
+
+
+
 # for flows 
 modres.flow.t <- function(pg, Best, endYear, allp = NULL) {
   flowpop <- as.data.frame.table(Best[[allp]])
@@ -37,7 +42,8 @@ modres.flow.t <- function(pg, Best, endYear, allp = NULL) {
   flowpop  <- flowpop %>%
     mutate(dt = rep(seq(1.0,(endYear - pg$timestep), pg$timestep), 
                       each=pg$npops))%>%ungroup()%>%
-    mutate(year = dt%/%1 - 1, 
+
+    mutate(year = dt%/%1 - 1 , 
            population = Var1, 
            best = Freq)%>%
     mutate(timestep = dt)%>%
@@ -45,28 +51,41 @@ modres.flow.t <- function(pg, Best, endYear, allp = NULL) {
   return(flowpop)
 
   }
-  
 
 # extract the population-specific resutls 
-N_pop_sum <- function(dt, pop = NULL){ 
+N_pop_sum <- function(dt, pop = NULL, param = NULL, name_parset = NULL){ 
   
-  if(is.null(pop)){ 
+  if(is.null(pop) & is.null(param)){ 
     a <- dt%>%group_by(timestep, population)%>%
       summarise_at("best", sum)%>%arrange(timestep)
   }
-  else{ 
+  else if(is.null(pop) & !is.null(param)){
+    a <- dt%>%group_by(timestep, population)%>%
+      summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%
+      arrange(timestep)
+  }
+  else if(!is.null(pop) & is.null(param)){ 
     a <- dt%>%filter(population %in% pop)%>%
       group_by(timestep)%>%
       summarise_at("best", sum)%>%arrange(timestep)
     
-    }
+  }
+  else if(!is.null(pop) & !is.null(param)){
+    a <- dt%>%filter(population %in% pop)%>%
+      group_by(timestep)%>%
+      summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%
+      arrange(timestep)
+    
+    
+  }
   
   
   return(a)
   }
 
 # extract the population-specific resutls 
-N_pop_casdisprog <- function(dt, pop = NULL, cas = NULL, disprog = NULL){ 
+N_pop_casdisprog <- function(dt, pop = NULL, cas = NULL, disprog = NULL, 
+                             param = NULL, name_parset = NULL){ 
   if(!is.null(disprog)){ 
     x <- dt%>%filter(disease_prog %in% disprog)
     
@@ -78,25 +97,56 @@ N_pop_casdisprog <- function(dt, pop = NULL, cas = NULL, disprog = NULL){
     }
   
   
-  if(is.null(pop) & is.null(cas)){ 
+  if(is.null(pop) & is.null(cas) & is.null(param)){ 
     a <- x%>%group_by(timestep, population)%>%
       summarise_at("best", sum)%>%arrange(timestep, population)
   }
-  else if(!is.null(pop) & is.null(cas)){ 
+  else if(is.null(pop) & is.null(cas) & !is.null(param)){
+    a <- x%>%group_by(timestep, population)%>%
+      summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%
+      arrange(timestep, population)
+    
+  }
+  else if(is.null(pop) & !is.null(cas) & is.null(param)){
+    a <- x%>%filter(cascade %in% cas)%>%
+      group_by(timestep, population)%>%
+      summarise_at("best", sum)%>%arrange(timestep, population)
+    
+  }
+  else if(!is.null(pop) & is.null(cas)& is.null(param)){ 
     a <- x%>%filter(population %in% pop)%>%
       group_by(timestep, cascade)%>%
       summarise_at("best", sum)%>%arrange(timestep)
     
   }
-  else if(is.null(pop) & !is.null(cas)){
-    a <- x%>%filter(cascade %in% cas)%>%
-      group_by(timestep, population)%>%
-      summarise_at("best", sum)%>%arrange(timestep, population)
+  else if(is.null(pop) & !is.null(cas) & !is.null(param)){
+    a <- x%>%filter(cascade %in% cas)%>%group_by(timestep, population)%>%
+      summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%
+      arrange(timestep, population)
     
-  }else if(!is.null(pop) & !is.null(cas)){
+  }
+  
+  else if(!is.null(pop) & is.null(cas)& !is.null(param)){ 
+    a <- x%>%filter(population %in% pop)%>%
+      group_by(timestep, cascade)%>%
+      summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(timestep)
+  }
+  else if(!is.null(pop) & !is.null(cas)& is.null(param)){ 
+    a <- x%>%filter(population %in% pop & cascade %in% cas)%>%
+      group_by(timestep, cascade)%>%
+      summarise_at("best", sum)%>%arrange(timestep)
+  }
+  else if(!is.null(pop) & !is.null(cas)& is.null(param)){ 
+    a <- x%>%filter(population %in% pop & cascade %in% cas)%>%
+      group_by(timestep, cascade)%>%
+      summarise_at("best", sum)%>%arrange(timestep)
+    
+  }
+  else if(!is.null(pop) & !is.null(cas) & !is.null(param) ){
     a <- x%>%filter(cascade %in% cas & population %in% pop)%>%
       group_by(timestep)%>%
-      summarise_at("best", sum)%>%arrange(timestep, population)
+      summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%
+      arrange(timestep, population)
     
   }
   
