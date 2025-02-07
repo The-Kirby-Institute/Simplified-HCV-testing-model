@@ -2,6 +2,7 @@
 rm(list = ls()) 
 # library
 library(readxl)
+library(openxlsx)
 library(dplyr)
 library(here)
 library(doMC)
@@ -39,6 +40,9 @@ Time_Y <- seq(startYear, endYear, by = 1)
 
 # simulation timestep 
 timestep <- 1/12
+
+# state
+AUstate_name <- c("NSW", "QLD", "VIC", "SA", "WA", "NT") 
 
 # population
 
@@ -187,20 +191,31 @@ initial_pop$parameter <- fullInitialNames
 # Write constants to file
 
 
-write.csv(initial_pop, file.path(DataFolder , "initial_populations.csv"))
+state_initial_pop <- lapply(AUstate_name, function(x) x <- initial_pop)
 
-write.csv(constants, file.path(DataFolder , "parameters_constants.csv"))
+names(state_initial_pop) <- AUstate_name 
+
+write.xlsx(state_initial_pop, file.path(DataFolder , "initial_populations.xlsx"))
+
+state_constant <- lapply(AUstate_name, function(x) x <- constants)
+
+names(state_constant) <- AUstate_name 
+
+write.xlsx(state_constant, file.path(DataFolder , "parameters_constants.xlsx"))
 
 
 # disease progress rate file 
-
 
 transition <- as.data.frame(matrix(0, nrow = npops, 
                                    ncol = length(transitionName)))%>%
   setNames(transitionName)
 
+state_transition <- lapply(AUstate_name, function(x) x <- transition)
 
-write.csv(transition, file.path(DataFolder, "diseaseProgress.csv"))
+names(state_transition) <- AUstate_name 
+
+write.xlsx(state_constant, file.path(DataFolder , "diseaseProgress.xlsx"))
+
 
 ## transition parameters part II
 ## these disease progress parameter are constant overtime and populations
@@ -209,7 +224,11 @@ write.csv(transition, file.path(DataFolder, "diseaseProgress.csv"))
 fib <- as.data.frame(matrix(0, nrow = npops, ncol = length(fibName)))%>%
   setNames(fibName)
 
-write.csv(fib, file.path(DataFolder, "curedProgress.csv"))
+state_fib <- lapply(AUstate_name, function(x) x <- fib)
+
+names(state_fib) <- AUstate_name 
+
+write.xlsx(state_fib, file.path(DataFolder, "curedProgress.xlsx"))
 
 
 # parameters that varies over disease stage and populations
@@ -229,9 +248,13 @@ outlist <- append(outlist, rep(list(param_frame),
 
 names(outlist) <- parameter_variedstage_set
 
-# write to seperate csv file 
+# write to seperate xlsx file 
+state_outlist <- list()
 for(i in names(outlist)){
-  write.csv(outlist[[i]], file.path(DataFolder, paste0(i,".csv")))
+  state_outlist[[i]] <- lapply(AUstate_name, function(x) x <- outlist[[i]])
+  names(state_outlist[[i]]) <- AUstate_name
+  
+  write.xlsx(state_outlist[[i]], file.path(DataFolder, paste0(i,".xlsx")))
 }
 
 
@@ -243,8 +266,11 @@ transitions <- as.data.frame(matrix(0, nrow = nyears, ncol = npops*npops ))
 colnames(transitions) <- c(unlist(lapply(as.list(pop_names), 
                                          function(x) paste0(x, pop_names))))
 
+state_transitions <- lapply(AUstate_name, function(x) x <- transitions)
 
-write.csv(transitions, file.path(DataFolder, "population_transitions.csv"))
+names(state_transitions) <- AUstate_name
+
+write.xlsx(state_transitions, file.path(DataFolder, "population_transitions.xlsx"))
 
 
 # Create project specifications list
@@ -286,6 +312,8 @@ POC_state$endYear <- endYear
 POC_state$timestep <- timestep
 POC_state$nyears <- nyears
 POC_state$years <- startYear:endYear
+
+POC_state$AUstatename <- AUstate_name
 
 # Create project .rda files    
 save(POC_state, file = file.path(OutputFolder,
