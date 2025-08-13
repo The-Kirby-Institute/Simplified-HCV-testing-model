@@ -89,7 +89,12 @@ tic <- proc.time()
 
 # import the number of test 
 
-Num_test_person_NP <- read_excel(paste0(data_path, "/01. DATA/Num_test_person_NP.xlsx"))
+Num_test_person_NP <- read_excel(paste0(data_path, "/01. DATA/Num_test_person_NP.xlsx"))%>%
+  select(year, settings, num_ab, num_RNA, num_tests, num_person)%>%
+  mutate(num_RNA = as.numeric(num_RNA), 
+         num_tests = as.numeric(num_tests),
+         num_person = as.numeric(num_person))%>%
+  filter(year%in% c(2022:2023))
 # assuming actively C_PWID and C_fPWID roughly equals to the pop size of CPWID
 # We accounted the transition in prison setting regarding its high dynamic nature 
 Num_test_person_NP <- Num_test_person_NP%>%na.omit()%>%mutate(num_pop = c(80000, 80000, 80000, 80000))
@@ -146,7 +151,12 @@ NP_tauRNA_C <- unlist(as.numeric(np_effect[2,2]))
 NP_tauRNAonly_C <- unlist(as.numeric(np_effect[3,2]))
 
 # the treatment initiation is the % of people tested RNA+ initiated DAA within 120 days 
-NP_eta_C <-  1- (1- unlist(as.numeric(np_effect[4,2])))^(1/POC_AU$timestep/4)
+# old 
+# NP_eta_C <-  1- (1- unlist(as.numeric(np_effect[4,2])))^(1/POC_AU$timestep/4)
+
+# test on new data informed by national program [2025/07/30]
+NP_eta_C <- 0.6
+
 
 NP_tauab_P <- unlist(as.numeric(np_effect[1,3]))
 
@@ -711,6 +721,7 @@ ini_dt <- (2027 - POC_AU$cabY)/POC_AU$timestep + 1
 end_dt <- ((2027 + 1 ) - POC_AU$cabY)/POC_AU$timestep
 fs[["dfList_NPexp_D"]][1, ini_dt:end_dt ] <-   xfs[["2027"]][[1]][1, ini_dt:end_dt ]/fm[["2027"]][1]
 fs[["dfList_NPexp_D"]][2, ini_dt:end_dt ] <-   xfs[["2027"]][[1]][2, ini_dt:end_dt ]/fm[["2027"]][2]
+
 fs[["dfList_NPexp_D"]][3, ini_dt:end_dt ] <-   xfs[["2027"]][[1]][3, ini_dt:end_dt ]/fm[["2027"]][3]
 fs[["dfList_NPexp_D"]][4, ini_dt:end_dt ] <-   xfs[["2027"]][[1]][4, ini_dt:end_dt ]/fm[["2027"]][4]
 fs[["dfList_NPexp_D"]][5, ini_dt:end_dt ] <-   xfs[["2027"]][[1]][5, ini_dt:end_dt ]/xfs[["2027"]][[1]][5, ini_dt:end_dt ] 
