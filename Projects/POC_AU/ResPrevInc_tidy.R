@@ -758,14 +758,16 @@ name_file <- sub("POC_AUPrevInc_", "", files)
 
 names(PrevInc) <- tools::file_path_sans_ext(name_file)
 
-View(PrevInc$dfList_NP_2023$tempPrevRNA_subpop%>%mutate(year = year +2014)%>%filter(year %in% c(2022,2030)))
+View(PrevInc$dfList_NP_2024$tempPrevRNA_subpop%>%mutate(year = year +2014)%>%filter(year %in% c(2022,2030)))
 options(scipen = 999)
 
 #dropping plot_dt file 
 # names(PrevInc)[-7]
 PrevInc_range <- list()
-
-for(i in names(PrevInc)[-7]){
+PrevInc <- PrevInc[!names(PrevInc)%in% c("dfList_NP_2023", "dfList_NPPhaseII_A",
+                                         "dfList_NPPhaseII_B", "plot_dt")]
+names(PrevInc)
+for(i in names(PrevInc)){
   for( n in names(PrevInc[[1]])){ 
     if(n%in% c("tempPrevRNA_setting" ,"tempPrev_setting", "HCVInc_setting")){ 
       PrevInc_range[[i]][[n]] <- 
@@ -786,7 +788,10 @@ for(i in names(PrevInc)[-7]){
       }
   }
 }
-
+names(PrevInc_range)
+PrevInc_range <- PrevInc_range[!names(PrevInc_range)%in% c("dfList_NP_2023", 
+                                                           "dfList_NPPhaseII_A",
+                                                           "dfList_NPPhaseII_B")]
 # turn list inside out 
 PrevInc_range_bind <- PrevInc_range%>%purrr::transpose()%>%
   lapply(., function(x) dplyr::bind_rows(x, .id = 'scenario'))
@@ -798,17 +803,18 @@ pop_labname <- c("PWID in community",  "Former PWID in community",
                  "PWID in prisons",  "Former PWID in prisons", 
                  "nonPWID in prisons")
 
-PrevInc_trajectory <- list()
+PrevInc_trajectory <- list() 
+sce_level <- c("sq", "dfList_NP_2024", "dfList_NPPhaseII", 
+               "dfList_NPPhaseIII_A", "dfList_NPPhaseIII_B")
+sce_label <- c("No national program", "Foundational implementation", 
+               "Program succession", "Program sustained", 
+               "Program accelerated")
+
 # bind
 for(i in names(PrevInc_range_bind)){
   PrevInc_range_bind[[i]] <- PrevInc_range_bind[[i]]%>%
-    mutate(scenario = factor(scenario, levels = c("sq", "dfList_NP_2023", "dfList_NP_2024", 
-                                                  "dfList_NPexp_A", "dfList_NPexp_B", "dfList_NPexp_C",
-                                                  "dfList_NPexp_D"), 
-                             labels = c("Pre national program", "Achievement 2023", 
-                                        "Achievement 2024", "NP expand 2024", 
-                                        "NP expand 2025", "NP expand 2026", 
-                                        "NP expand 2027")))
+    mutate(scenario = factor(scenario, levels = sce_level, 
+                             labels = sce_label))
   if(i %in% c("tempPrevRNA_setting" ,"tempPrev_setting", "HCVInc_setting")){ 
     
     PrevInc_range_bind[[i]] <-  
@@ -826,10 +832,10 @@ for(i in names(PrevInc_range_bind)){
     
     }
   PrevInc_trajectory[[i]] <-  PrevInc_range_bind[[i]]%>%
-    filter(scenario %in% c("Pre national program", "Achievement 2023"))
+    filter(scenario %in% c("No national program", "Foundational implementation"))
   
 }
-PrevInc_trajectory$tempPrevRNA_setting$population
+
 
 # epi data for calibration 
 
@@ -1200,22 +1206,16 @@ for(i in names(PrevInc_p)){
 
 unique(PrevInc_trajectory$HCVInfect_subpop$scenario)
 
+View(PrevInc_trajectory$HCVInfect_subpop)
 
-x <- rbind(PrevInc_trajectory$HCVInfect_subpop%>%mutate(indicator = "Total new infections"), 
-      PrevInc_trajectory$HCVInfectRE_subpop%>%mutate(indicator = "Reinfections"))
-ggplot(data = x%>%filter(scenario == "Achievement 2023")%>%
-         mutate(year = year + POC_AU$cabY - 1), 
-       aes(x = year, y = best, colour = indicator)) + 
-  geom_line() + facet_wrap(.~population, scale = "free") + theme_bw() + 
-  scale_x_continuous(limits = c(2015, 2051), breaks = seq(2015, 2050,5))
 
+PrevInc_range_bind$HCVInfect_subpop$scenario
 
 # other scenarios 
 PrevInc_range_sce <- list()
 PrevInc_sce_p <- list()
 for(i in names(PrevInc_range_bind)){ 
-  PrevInc_range_sce[[i]] <- PrevInc_range_bind[[i]]%>%
-    filter(!scenario %in% c("NP expand 2025", "NP expand 2026"))
+  PrevInc_range_sce[[i]] <- PrevInc_range_bind[[i]]
   
   PrevInc_sce_p[[i]] <- PrevInc_plot(pj = POC_AU, 
                                      dt = PrevInc_range_sce[[i]], 

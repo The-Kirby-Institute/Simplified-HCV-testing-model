@@ -79,8 +79,7 @@ paramset_scenario <- function(paramDflist, lhs, dflist_LL, dflist_UU){
 
 attach(file.path(OutputFolder, paste0(project_name, "scenario_cascade.rda")))
 
-sce_name <- names(scenario_cascade)[!names(scenario_cascade)%in%
-                                      c("dfList_NPexp_B", "dfList_NPexp_C")] 
+sce_name <- names(scenario_cascade)
 
 start_lower <- 0.75
 
@@ -89,11 +88,19 @@ start_upper <- 1.25
 param_scenario <- list()
 scenario_param <- list()
 scenario_p <- list()
+
+
 for(i in sce_name){ 
   param_scenario[[i]] <- scenario_cascade[[i]]
   
-  scenario_dfList_LL <- lapply(param_scenario[[i]], function(x) x*start_lower)
-  scenario_dfList_UU <- lapply(param_scenario[[i]], function(x) x*start_upper)
+  scenario_dfList_LL <- lapply(param_scenario[[i]], function(x) { 
+    a <- ifelse(x*start_lower >=1, 1, x*start_lower)
+    return(a)
+    })
+  scenario_dfList_UU <- lapply(param_scenario[[i]], function(x) { 
+    a <- ifelse(x*start_upper >= 1, 1, x*start_upper)
+    return(a)
+    })
   
   scenario_param <- rep(list(param_scenario[[i]]), POC_AU$numberSamples) 
   
@@ -111,5 +118,6 @@ for(i in sce_name){
   gc()
 
   }
+
 
 

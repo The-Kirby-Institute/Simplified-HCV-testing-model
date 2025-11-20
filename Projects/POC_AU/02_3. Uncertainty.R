@@ -339,3 +339,68 @@ save(param_cost,
                       paste0(project_name, "param_cost", ".rda")))
   
 
+#### sensitivity total cost(including program cost) ####
+files <- list.files(path = paste0(DataFolder, 
+                                  "/cost/sensitivity/", sep =  ""), pattern = '*.csv')
+
+# parameter sets for cost data 
+# +- 10% 
+costdfList <- lapply(files, function(f) {
+  
+  df <- read.csv(file.path(paste0(DataFolder, "/cost/sensitivity/", f, sep = "")), header = TRUE)
+  
+  df <- df[, -1]
+  
+  df <- df%>%as_tibble()
+  
+  df <- as.matrix(df, nrow = npops, ncol = length(.) + 1)
+  
+})
+
+names(costdfList) <- c(gsub("^|.csv", "", files)) # ^: from beginning, \ end before .csv
+
+
+cost_state <- costdfList$state
+costflow <- list()
+costflow[[1]] <- costdfList$costFlow
+costflow[[2]] <- costdfList$costFlow_POCRNA_progcostinclude
+
+costflow_Neg <- list()
+costflow_Neg[[1]] <- costdfList$costFlow_NEG
+costflow_Neg[[2]] <- costdfList$costFlow_POCRNA_NEG_progcost_included
+
+
+
+set.seed(123456) 
+rand_multiply <- runif(number_samples, 0.9, 1.1)
+
+param_cost <- lapply(rand_multiply, function(x) lapply(costdfList, function(y) y*x))
+
+for(i in 1: length(rand_multiply)){ 
+  names(param_cost[[i]]) <- names(costdfList)
+  param_cost[[i]]$QALY <- lhs_samples[i,"poparray"]*(costdfList$QALYPops_UU - costdfList$QALYPops_LL) + costdfList$QALYPops_LL 
+}
+
+param_cost_flow <- list()
+param_costflow_Neg <- list()
+param_QALY <- list()
+for(i in 1: number_samples){ 
+  param_cost_flow[[i]] <- list(param_cost[[i]]$costFlow, 
+                               param_cost[[i]]$costFlow_POCRNA_progcostinclude)
+  
+  param_costflow_Neg[[i]] <- list(param_cost[[i]]$costFlow_NEG,
+                                  param_cost[[i]]$costFlow_POCRNA_NEG_progcost_included)
+  
+  
+  param_QALY[[i]] <-  param_cost[[i]]$QALY  
+  
+} 
+
+
+save(param_cost,
+     param_cost_flow, 
+     param_costflow_Neg, 
+     param_QALY,
+     rand_multiply ,
+     file = file.path(OutputFolder,
+                      paste0(project_name, "param_cost_total", ".rda")))

@@ -47,6 +47,7 @@ Res_dt <- Map(rda2list, file.path(OutputFolder, files))
 name_file <- sub("POC_AURes_dt_", "", files)
 
 names(Res_dt) <- tools::file_path_sans_ext(name_file)
+Res_dt <- Res_dt[!names(Res_dt)%in% c("dfList_NPPhaseII_A", "dfList_NPPhaseII_B")]
 
 source(file.path(Rcode, "/Functions/plotManuscript.R"))
 source(file.path(Rcode, "/Functions/plotFunctions.R")) 
@@ -59,11 +60,12 @@ cap <- 200000000
 endY <- 100
 # summarize the number of flow for each pop in each year 
 par_col <- c("best", paste0("set", seq(1, POC_AU$numberSamples,1)))
-names(Res_dt) <- c(names(Res_dt)[-7], "Status quo")
+names(Res_dt) <- c(names(Res_dt)[-9], "Status quo")
+
 Res_numbox <- list()
 
 for(i in names(Res_dt)){ 
-  Res_numbox[[i]] <- Res_dt[[i]]$Num_box[[i]]
+  Res_numbox[[i]] <- Res_dt[[i]]$Num_box[[1]]
 }
 
 save(Res_numbox,
@@ -71,14 +73,17 @@ save(Res_numbox,
                       paste0(project_name,"Res_numbox" ,".rda"))) 
 
 
-
+##### bug #####
 Resflow_year_pop <- list()
+dtnam <- n_Res_dt
+for(x in 1: length(dtnam)){ 
+  Resflow_year_pop[[x]] <- Res_dt[[x]]$Resflow_dt[[1]]
+  
+  }
 
-for(i in names(Res_dt)){ 
-  Resflow_year_pop[[i]] <- Res_dt[[i]]$Resflow_dt[[i]]
-}
+names(Resflow_year_pop) <- dtnam
 
-for(i in names(Res_dt)){
+for(i in names(Resflow_year_pop)){
   for(indic in names(Resflow_year_pop[[1]])){
     Resflow_year_pop[[i]][[indic]] <- Resflow_year_pop[[i]][[indic]]%>%
       as_tibble()%>%ungroup()%>%arrange(population, year)%>%
@@ -103,11 +108,16 @@ for(i in names(Resflow_year_pop)){
 # scenarios 
 Resflow_sc_year_pop <- list()
 
-for(i in names(Res_dt)){ 
-  Resflow_sc_year_pop[[i]] <- Res_dt[[i]]$Resflow_sc_dt[[i]]
+for(x in 1: length(dtnam)){ 
+  Resflow_sc_year_pop[[x]] <- Res_dt[[x]]$Resflow_sc_dt[[1]]
+  
 }
 
-for(i in names(Res_dt)){
+names(Resflow_sc_year_pop) <- dtnam
+
+
+
+for(i in names(Resflow_sc_year_pop)){
   for(indic in names(Resflow_sc_year_pop[[1]])){
     Resflow_sc_year_pop[[i]][[indic]] <- Resflow_sc_year_pop[[i]][[indic]]%>%
       as_tibble()%>%ungroup()%>%arrange(population, year)%>%
@@ -138,11 +148,10 @@ for(i in names(Resflow_sc_year_pop)){
 # treatment and retreat 
 # data sum in yearly
 RescostDAA <- list()
-for(i in names(Res_dt)){ 
-  RescostDAA[[i]] <- Res_dt[[i]]$Rescost_dt[[i]]
-}
+RescostDAA <- lapply(n_Res_dt, function(x) Res_dt[[x]]$Rescost_dt[[1]])
+names(RescostDAA) <- n_Res_dt
 
-for(i in names(Res_dt)){
+for(i in n_Res_dt){
   for(indic in names(RescostDAA[[i]])){
     RescostDAA[[i]][[indic]] <- RescostDAA[[i]][[indic]]%>%
       as_tibble()%>%ungroup()%>%arrange(timestep,population)%>%

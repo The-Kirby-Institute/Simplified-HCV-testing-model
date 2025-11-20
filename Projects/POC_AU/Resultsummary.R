@@ -29,7 +29,8 @@ Proj_code <- file.path(codefun_path, paste0("projects/", project_name))
 
 load(file.path(OutputFolder, paste0(project_name, ".rda")))
 load(file.path(OutputFolder, paste0(project_name, "param_simulation.rda")))
-load(file.path(OutputFolder, paste0(project_name, "Simulations.rda")))
+# load(file.path(OutputFolder, paste0(project_name, "Simulations.rda")))
+load(file.path(OutputFolder, paste0(project_name, "Simulations_totalcost.rda")))
 
 source(file.path(Rcode, "/Functions/plotManuscript.R"))
 source(file.path(Rcode, "/Functions/plotFunctions.R")) 
@@ -53,6 +54,7 @@ indicator_flow <- Sce_sq[!names(Sce_sq)%in% c("allPops", "newpop_tran",
                                               "costPops", "QALYPops")]
 endY <- 100
 
+par_col <- c("best", paste0("set", seq(1,1000,1)))
 
 Num_box <- list()
 
@@ -85,7 +87,7 @@ prison_N <- list()
 prisonPWID_N <- list()
 
 # total N of all compartments in each timestep 
-par_col <- c("best", paste0("set", seq(1,1000,1)))
+
 
 pop_N[["Status quo"]] <- N_pop_sum(Num_box[["Status quo"]], 
                                    pop = NULL, param = "y", name_parset = par_col)
@@ -396,13 +398,14 @@ save(Num_box, pop_N, commu_N, prison_N, prisonPWID_N,
      tempNOTInfectedRNA_prisonPWID, tempPrevRNA_setting, 
      newInf_commu, newInf_prison, 
      newInf_prisonPWID, HCVInc_setting,
-     file = file.path(OutputFolder,paste0(project_name,"epiRes_timestep_sq" ,".rda"))
+     # file = file.path(OutputFolder,paste0(project_name,"epiRes_timestep_sq" ,".rda"))
+     file = file.path(OutputFolder,paste0(project_name,"epiRes_timestep_sq_totalcost" ,".rda"))
      
      )
 
 #### tidy up cost #### 
 ##### total cost in each time step ##### 
-
+gc()
 # cost attached to each compartment
 cost_box <- list()
 cost_box_sum <- list()
@@ -509,16 +512,25 @@ Resflow_sc_dt[["Status quo"]] <- list(Treatment_sc = Sce_flow[["Status quo"]]$ne
 
 save(Num_box, Resflow_dt, Resflow_sc_dt, 
      Rescost_dt, 
-     file = file.path(OutputFolder,
-                      paste0(project_name,"Res_dt_sq" ,".rda")))
+     #file = file.path(OutputFolder,
+      #                paste0(project_name,"Res_dt_sq" ,".rda"))
+      file = file.path(OutputFolder,
+                      paste0(project_name,"Res_dt_sq_totalcost" ,".rda"))
+    )
 
 
 rm(param_sq, Num_box, Resflow_dt, Resflow_sc_dt, Rescost_dt)
 gc()
 
 ##################################### scenarios ################################
-for(sc_name in names(Sce_np)){ 
-  load(file.path(OutputFolder, paste0(project_name, "param_sc_",sc_name ,".rda")))
+names(Sce_np)
+# name_np <- names(Sce_np)[-1]
+rm(param_sq, Sce_sq)
+name_np <- names(Sce_np)
+gc()
+for(sc_name in name_np[3]){ 
+  # load(file.path(OutputFolder, paste0(project_name, "param_sc_",sc_name,".rda")))
+   load(file.path(OutputFolder, paste0(project_name, "param_sc_",sc_name, "_totalcost" ,".rda")))
   Num_box <- list()
   
   # get number in each component in each timestep 
@@ -865,7 +877,8 @@ for(sc_name in names(Sce_np)){
          newInf_commu, newInf_prison, 
          newInf_prisonPWID, HCVInc_setting, 
          file = file.path(OutputFolder,
-                          paste0(project_name,"epiRes_timestep", sc_name ,".rda")))
+                          paste0(project_name,"epiRes_timestep", sc_name,".rda")))
+         #                 paste0(project_name,"epiRes_timestep", sc_name,"totalcost" ,".rda")))
     
     #### tidy up cost #### 
     ##### total cost in each time step ##### 
@@ -977,7 +990,8 @@ for(sc_name in names(Sce_np)){
     save(Num_box, Resflow_dt, Resflow_sc_dt, 
          Rescost_dt, 
          file = file.path(OutputFolder,
-                          paste0(project_name,"Res_dt_",sc_name ,".rda")))
+          #               paste0(project_name,"Res_dt_",sc_name,".rda")))
+                          paste0(project_name,"Res_dt_",sc_name,"totalcost" ,".rda")))
     
     
     rm(param_scenario, Num_box, Resflow_dt, 

@@ -65,7 +65,7 @@ tic <- proc.time()
 trim_pt <- 100*(1/POC_AU$timestep)
 Param_estimates <- lapply(Param_estimates, function(x) x[c(1:trim_pt),]%>%as.data.frame)
 param_poparray <- lapply(param_poparray , function(x) x[, , c(1:trim_pt)])
-
+gc()
 paramDflist <- lapply(paramDflist, function(x) lapply(x, function(y) y[, , c(1:trim_pt)]))
 gc()
 
@@ -95,15 +95,16 @@ gc()
 ##### scenarios ##### 
 load(file.path(OutputFolder, paste0(project_name, "scenario_cascade.rda")))
 
-sce_name <- names(scenario_cascade)[!names(scenario_cascade)%in%
-                                                             c("dfList_NPexp_B", "dfList_NPexp_C")] 
-
+sce_name <- names(scenario_cascade)
 rm(scenario_cascade)
 
 param_dfList <- list()
 
 param_scenario <- list()
 trim_pt <- 100*(1/POC_AU$timestep)
+
+# check whether any parameter >=1 : which_ones <- which(sapply(1:1000, function(i) any(scenario_p[[i]]$tau_ab >= 1)))
+
 for(n in sce_name){ 
   load(file.path(OutputFolder, paste0(project_name,"param_scenario_",n, ".rda"))) 
   
@@ -133,8 +134,4 @@ for(n in sce_name){
   rm(scenario_p, param_scenario)
   gc()
 }
-
-
-
-
 
