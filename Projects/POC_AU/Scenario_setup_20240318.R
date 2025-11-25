@@ -438,15 +438,18 @@ frac_ab[["2025"]] <- c(frac_test[[2024]]$C$reflex, frac_test[[2024]]$P$reflex )
 
 # calibrating the fm value 
 fm <- list()
-fm[["2022"]] <- c(1.1, 1.1, 1, 1 , 1)
-fm[["2023"]] <- c(0.2, 0.2, 17, 17, 1)
-fm[["2024"]] <- c(0.1, 0.1, 23, 23, 1)
-fm[["2025"]] <- c(0.1, 0.1, 15, 15, 1)
-fm[["2026"]] <- c(0.1, 0.1, 15, 15, 1)
-fm[["2027"]] <- c(0.1, 0.1, 13, 13, 1)
-fm[["2028"]] <- c(0.1, 0.1, 15, 15, 1)
-fm[["2029"]] <- c(0.1, 0.1, 13, 13, 1)
-fm[["2030"]] <- c(0.1, 0.1, 15, 15, 1)
+fm[["2022"]] <- c(1.1,1.1,2.4,2.4 , 0.01)
+fm[["2023"]] <- c(1.1, 1.1, 18.5, 18.5, 1)
+fm[["2024"]] <- c(1.1, 1.1, 18.5, 18.5, 1)
+# fm[["2025"]] <- c(0.1, 0.1, 15, 15, 1)
+fm[["2025"]] <- c(1.1, 1.1, 15, 15, 1)
+fm[["2026"]] <- c(1.1, 1.1, 15, 15, 1)
+#fm[["2026"]] <- c(0.1, 0.1, 15, 15, 1)
+# fm[["2027"]] <- c(0.1, 0.1, 13, 13, 1)
+fm[["2027"]] <- c(0.8, 0.8, 13, 13, 1)
+fm[["2028"]] <- c(0.8, 0.8, 15, 15, 1)
+fm[["2029"]] <- c(0.8, 0.8, 13, 13, 1)
+fm[["2030"]] <- c(0.8, 0.8, 15, 15, 1)
 coverage_np <- list()
 coverage_np[["2022"]] <- c(Ccal[[2022]]$C, Ccal[[2022]]$P)
 coverage_np[["2023"]] <- c(Ccal[[2023]]$C, Ccal[[2023]]$P)
@@ -1155,27 +1158,73 @@ tic <- proc.time()
 endY <- 100
 Sce_np <- list()
 
-for(scenario in names(scenario_cascade)){ 
-  Sce_np[[scenario]] <- HCVMSM(POC_AU, best_estimates, best_est_pop,
-                               disease_progress,pop_array,
-                               dfList,  
-                               param_cascade_sc = scenario_cascade[[scenario]] , fib = fib, 
-                               modelrun="UN", proj = "POC_AU", end_Y = endY, 
-                               cost = costdfList, costflow = costflow, 
-                               costflow_Neg = costflow_Neg, 
-                               fc = scenario_fc[[scenario]])
+cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
+
+for (cost_type in cost_types) {
   
-}
-
-toc <- proc.time() - tic
-toc
- # save(Sce_sq,Sce_np,
-  #   file = file.path(OutputFolder ,
-  #                    paste0(project_name,"Simulations" ,".rda"))) 
-
- save(Sce_sq,Sce_np,
-     file = file.path(OutputFolder ,
-                      paste0(project_name,"Simulations_totalcost" ,".rda"))) 
+  if (cost_type == "fixednvariable") {
+    
+    #### Fixed & Variable cost (from /cost/ folder) ####
+    files <- list.files(path = paste0(DataFolder, "/cost/", sep = ""), pattern = '*.csv')
+    }
+  else if (cost_type == "total") {
+    #### Sensitivity total cost  ####
+      files <- list.files(path = paste0(DataFolder, "/cost/sensitivity_total/", sep = ""), pattern = '*.csv')
+  }
+  else if (cost_type == "DAAcost_reducquarter"){
+    files <- list.files(path = paste0(DataFolder, "/cost/sensitivity_DAAcost_reducquarter/", sep = ""), pattern = '*.csv')
+    
+  } 
+  else if (cost_type == "DAAcost_reduchalf"){
+    files <- list.files(path = paste0(DataFolder, "/cost/sensitivity_DAAcost_reduchalf/", sep = ""), pattern = '*.csv')
+    
+  }
+      
+    costdfList <- lapply(files, function(f) {
+      df <- read.csv(file.path(paste0(DataFolder, "/cost/", f, sep = "")), header = TRUE)
+      df <- df[, -1]
+      df <- df %>% as_tibble()
+      df <- as.matrix(df, nrow = npops, ncol = length(.) + 1)
+    })
+    
+    names(costdfList) <- c(gsub("^|.csv", "", files))
+    
+    cost_state <- costdfList$state
+    costflow <- list()
+    costflow[[1]] <- costdfList$costFlow
+    costflow[[2]] <- costdfList$costFlow_POCRNA
+    costflow_Neg <- list()
+    costflow_Neg[[1]] <- costdfList$costFlow_NEG
+    costflow_Neg[[2]] <- costdfList$`costFlow_POCRNA _NEG`
+    
+ 
+  
+  #### Run simulations ####
+  tic <- proc.time()
+  
+  for (scenario in names(scenario_cascade)) { 
+    Sce_np[[scenario]] <- HCVMSM(POC_AU, best_estimates, best_est_pop,
+                                 disease_progress, pop_array,
+                                 dfList,  
+                                 param_cascade_sc = scenario_cascade[[scenario]], 
+                                 fib = fib, 
+                                 modelrun = "UN", proj = "POC_AU", end_Y = endY, 
+                                 cost = costdfList, costflow = costflow, 
+                                 costflow_Neg = costflow_Neg, 
+                                 fc = scenario_fc[[scenario]])
+  }
+  
+  toc <- proc.time() - tic
+  print(paste0("Completed: ", cost_type, " | Time: "))
+  print(toc)
+  
+  #### Save results based on cost_type ####
+  save(Sce_sq, Sce_np,
+       file = file.path(OutputFolder,
+                        paste0(project_name, "Simulations_", cost_type, ".rda")))
+  
+  print(paste0("Saved: ", cost_type))
+  }
 
 
 test <- list()

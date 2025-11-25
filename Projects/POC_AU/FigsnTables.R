@@ -898,7 +898,7 @@ p_T_num_total_maintext <- Cas_num_plot(POC_AU,total_treatm_lst ,
                               xlimits = c(7, 16, 1), UI = NULL, 
                               population = "n") + 
   labs(x = "Year", y = "Treatment initiations", tag ="B") +
-  theme(legend.position = "",
+  theme(legend.position = "right",
         legend.direction = "vertical") + 
   scale_y_continuous(limits = c(0, 9000), breaks = seq(0, 9000,500))
 
@@ -1249,7 +1249,7 @@ xt_toltest_lst$`Program accelerated` <-
                                 ifelse(year %in% c(14) & NP != "National Program", 35000,
                                        ifelse(year %in% c(15) & NP != "National Program", 40000, NA)))))
 
-
+View(xt_toltest_lst$`Program accelerated`)
 parea_tol <- list()
 ggplot(xt_toltest_lst[[2]]) +
   geom_area(aes(x = year, y = best, fill = NP,colour = scenario), 
@@ -1319,12 +1319,12 @@ Res_Numbox_y <- list()
 Res_Numbox_cum <- list()
 Res_Numbox_avert <- list()
 # output in timestep finding mid-year 
-n_resbox <- names(Res_numbox)[names(Res_numbox)%in% c("dfList_NP_2024totalcost",
+n_resbox <- names(Res_numbox)[!names(Res_numbox)%in% c("dfList_NP_2024totalcost",
                                                       "dfList_NPPhaseIII_Atotalcost",
                                                       "dfList_NPPhaseIII_Btotalcost",
                                                       "dfList_NPPhaseIItotalcost")]
 
-for(i in names(Res_numbox)){ 
+for(i in n_resbox){ 
   Res_Numbox_y[[i]][["DC"]] <- Res_numbox[[i]]%>%filter(disease_prog == "dc")%>%
     group_by(timestep)%>%
     summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))%>%
@@ -1635,7 +1635,7 @@ for(i in names(plot_num_avert)){
   
 }
 
-plot_numavert$`Achievement 2024`
+
 #dir.create(file.path(paste0(OutputFig, "/Reports")))
 for(i in names(plot_flowavert)){ 
   
@@ -1674,7 +1674,7 @@ for(i in names(plot_flowavert)){
 # extract yearly value 
 cap <- 200000000
 cost_year_all <- list()
-load(file.path(OutputFolder, paste0("sensitivity/", project_name, "Res_flowcost.rda")))
+load(file.path(OutputFolder, paste0(project_name, "Res_flowcost.rda")))
 
 cost_y_categories <- list()
 cost_disyear_categories <- list()
@@ -1794,7 +1794,7 @@ ref_sce <- y_cost_disyear_categories%>%filter(scenario == "Status quo")
 y_cost_disyear_categories <- y_cost_disyear_categories%>%mutate(best_turning = best - ref_sce$best)
 y_cost_disyear_categories <- y_cost_disyear_categories%>%select(scenario, year, best_turning,
                                                              par_col)
-View(y_cost_disyear_categories%>%filter(scenario == "dfList_NPPhaseIII_Atotalcost"))
+
 xt <- y_cost_disyear_categories%>%group_by(scenario)%>%
   filter(best_turning <0)%>%slice(1)
 
@@ -1807,17 +1807,19 @@ xt <- y_cost_disyear_categories%>%group_by(scenario)%>%
                                         "dfList_NPPhaseIII_Atotalcost", "dfList_NPPhaseIII_Btotalcost"), 
                              labels = sce_label))
   
- 
-  
+ View(y_cost_disyear_categories_totalcost)
+
 y_cost_disyear_categories <- y_cost_disyear_categories%>%
   filter(scenario%in% c("Status quo", "dfList_NP_2024", "dfList_NPPhaseII",
                         "dfList_NPPhaseIII_A", "dfList_NPPhaseIII_B"))%>%
   mutate(scenario = factor(scenario, 
                            levels = sce_level, 
                            labels = sce_label))
+
+
 # adding dashed line to indicate the turning point of year 
 # change colours for scenarios 
-
+col_pal <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442")
 cost_turning_plot <- function(dt){ 
   col_pal <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442")
   fig <- ggplot(dt, aes(x = year, colour = scenario)) + 
@@ -1855,29 +1857,55 @@ ggsave(file=file.path(OutputFig_y_cum_avert, paste0("p_cost_y_turning",".png")),
        width = 12, height = 8, bg = "white", dpi = 300)
 # plot of cost categories to 2080 
 # undiscount no cap 
-cost_y_categories <- dplyr::bind_rows(cost_y_categories, .id = "scenario")
 
+cost_y_categories <- dplyr::bind_rows(cost_y_categories, .id = "scenario")
+cost_y_categories_totalcost <- cost_y_categories%>%
+  filter(scenario%in% c("Status quo", "dfList_NP_2024totalcost", "dfList_NPPhaseIItotalcost",
+                        "dfList_NPPhaseIII_Atotalcost", "dfList_NPPhaseIII_Btotalcost"))%>%
+  mutate(scenario = factor(scenario, 
+                           levels = c("Status quo", "dfList_NP_2024totalcost", "dfList_NPPhaseIItotalcost",
+                                      "dfList_NPPhaseIII_Atotalcost", "dfList_NPPhaseIII_Btotalcost"), 
+                           labels = sce_label))
 cost_y_categories <- cost_y_categories%>%
+  filter(scenario%in% c("Status quo", "dfList_NP_2024", "dfList_NPPhaseII",
+                        "dfList_NPPhaseIII_A", "dfList_NPPhaseIII_B"))%>%
   mutate(scenario = factor(scenario, 
                            levels = sce_level, 
                            labels = sce_label))
 
-cost_ydaanocap_categories <- cost_y_categories%>%filter(Categories != "Treatment_cap")
 
+
+cost_ydaanocap_categories <- cost_y_categories%>%filter(Categories != "Treatment_cap")
+cost_ydaanocap_categories_totalcost <- cost_y_categories_totalcost%>%filter(Categories != "Treatment_cap")
 
 # undiscount cap 
 
 cost_ydaacap_categories <- cost_y_categories%>%filter(Categories != "Treatment")
-
+cost_ydaacap_categories_totalcost <- cost_y_categories_totalcost%>%filter(Categories != "Treatment")
 # discount no cap 
 cost_disyear_categories <- dplyr::bind_rows(cost_disyear_categories, .id = "scenario")
+cost_disyear_categories_totalcost <- cost_disyear_categories%>%
+  filter(scenario%in% c("Status quo", "dfList_NP_2024totalcost", "dfList_NPPhaseIItotalcost",
+                        "dfList_NPPhaseIII_Atotalcost", "dfList_NPPhaseIII_Btotalcost"))%>%
+  mutate(scenario = factor(scenario, 
+                           levels = c("Status quo", "dfList_NP_2024totalcost", "dfList_NPPhaseIItotalcost",
+                                      "dfList_NPPhaseIII_Atotalcost", "dfList_NPPhaseIII_Btotalcost"), 
+                           labels = sce_label))
+cost_disyear_categories <- cost_disyear_categories%>%
+  filter(scenario%in% c("Status quo", "dfList_NP_2024", "dfList_NPPhaseII",
+                        "dfList_NPPhaseIII_A", "dfList_NPPhaseIII_B"))%>%
+  mutate(scenario = factor(scenario, 
+                           levels = sce_level, 
+                           labels = sce_label))
 
 
-
+View(cost_disydaacap_categories_totalcost)
 cost_disydaanocap_categories <- cost_disyear_categories%>%filter(Categories != "Treatment_cap")
-
+cost_disydaanocap_categories_totalcost <- cost_disyear_categories_totalcost%>%filter(Categories != "Treatment_cap")
 # discount cap 
 cost_disydaacap_categories <- cost_disyear_categories%>%filter(Categories != "Treatment")
+cost_disydaacap_categories_totalcost <- cost_disyear_categories_totalcost%>%filter(Categories != "Treatment")
+
 
 View(cost_disyear_categories)
 
@@ -1895,29 +1923,58 @@ write.xlsx(cost_ydaanocap_categories%>%
              select(scenario, Categories, year, best, min, max, 
                     Med, Mu, q5, q25, q75, q95), file = file.path(OutputFig, paste0("Reports/cost_y_nocap.xlsx")), 
            append=TRUE) 
+
+
+write.xlsx(cost_ydaacap_categories_totalcost%>%
+             select(scenario, Categories, year, best, min, max, 
+                    Med, Mu, q5, q25, q75, q95), file = file.path(OutputFig, paste0("Reports/cost_y_daacap_totalcost.xlsx")), 
+           append=TRUE) 
+write.xlsx(cost_disydaanocap_categories_totalcost%>%
+             select(scenario, Categories, year, best, min, max, 
+                    Med, Mu, q5, q25, q75, q95), file = file.path(OutputFig, paste0("Reports/cost_disy_daacap_totalcost.xlsx")), 
+           append=TRUE) 
+
+write.xlsx(cost_ydaanocap_categories_totalcost%>%
+             select(scenario, Categories, year, best, min, max, 
+                    Med, Mu, q5, q25, q75, q95), file = file.path(OutputFig, paste0("Reports/cost_y_nocap_totalcost.xlsx")), 
+           append=TRUE) 
 # gt_table: 4 tables by categories
 # categories yearly cost and discount yearly cost to 2022- 2080 
 # columns: scenarios 
-4948698700	- 5019337375
+
 # output excel files 
 
 # benefit: Lifetime cost averted = total lifetime cost_ref -  total lifetime cost_program 
 # cost: program cost: 5y
 
 # diagnosis cost 
-x_catcost <- cost_disydaacap_categories%>%
+x_catcost <- list()
+x_catcost <- lapply(list(cost_disydaacap_categories,cost_disydaacap_categories_totalcost), function(x) x%>%
   filter(year>= 2022)%>%
   group_by(scenario, Categories)%>%
   mutate(across(c(par_col, "min", "max", "Med", "Mu", "q5", 
                   "q25", "q75", "q95"), cumsum, .names = "{col}"))%>%ungroup()%>%
   arrange(scenario)%>%
-  select(scenario, Categories, year, best, q5, q95)%>%
-  mutate(scenario = factor(scenario, levels = sce_level, 
-                           labels = sce_label))
+  select(scenario, Categories, year, best, q5, q95))
+
+names(x_catcost) <- c("DirectnFixed", "Total program cost")
+
+x_catcost_nocap <- lapply(list(cost_disydaanocap_categories,cost_disydaanocap_categories_totalcost), function(x) x%>%
+                      filter(year>= 2022)%>%
+                      group_by(scenario, Categories)%>%
+                      mutate(across(c(par_col, "min", "max", "Med", "Mu", "q5", 
+                                      "q25", "q75", "q95"), cumsum, .names = "{col}"))%>%ungroup()%>%
+                      arrange(scenario)%>%
+                      select(scenario, Categories, year, best, q5, q95))
+
+names(x_catcost_nocap) <- c("DirectnFixed", "Total program cost")
+
+
+
 
 # cumulative_cost plots 
 col_pal <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442")
-x_catcost%>%
+x_catcost[[1]]%>%
   ggplot(. , aes(x = year, y = best)) +
   geom_line(aes(colour = scenario)) + 
   scale_colour_manual( values = col_pal) + 
@@ -1947,18 +2004,36 @@ x_catcost%>%
   theme(axis.line = element_line(),
         panel.margin = unit(2, "lines")) + 
   labs(y = "Costs (discounted, millions)") 
-x_totalcost <- x_catcost%>%group_by(scenario, year)%>%
+x_totalcost <- lapply(x_catcost, function(x) x%>%group_by(scenario, year)%>%
   summarise(across(c("best", "q5", "q95"), ~ sum(.x, na.rm = FALSE)))%>%
-  mutate(Categories ="Total")
+  mutate(Categories ="Total"))
+
+x_totalcost_nocap <- lapply(x_catcost_nocap, function(x) x%>%group_by(scenario, year)%>%
+                        summarise(across(c("best", "q5", "q95"), ~ sum(.x, na.rm = FALSE)))%>%
+                        mutate(Categories ="Total"))
+
+names(x_totalcost_nocap) <- names(x_catcost_nocap)
 
 # barchart 
 pcatcost <- list()
+pcatcost_nocap <- list()
 title_name <- c("5-Year: 2022-2026", 
                 "10-Year: 2022-2031",
                 "20-Year: 2022-2041")
+ytitle_lab <- c("Direct variables + operational fixed costs", "Total program cost")
+
+pcatcost <- vector("list", length(year_obs))
+pcatcost_nocap <- vector("list", length(year_obs))
+names(pcatcost) <- paste0("year_", year_obs)  # Optional: name the list elements
+names(pcatcost_nocap) <- paste0("year_", year_obs) 
+# If x_catcost has names, initialize sublists
+for(i in seq_along(year_obs)) {
+  pcatcost[[i]] <- list()
+  pcatcost_nocap[[i]] <- list()
+}
 
 for(i in seq_along(year_obs)){ 
-  pcatcost[[i]]<- x_catcost%>%filter(year == year_obs[i] )%>%arrange(Categories)%>%
+  pcatcost[[i]][[names(x_catcost)[1]]] <- x_catcost[[1]]%>%filter(year == year_obs[i] )%>%arrange(Categories)%>%
     ggplot(., aes(fill = Categories, y = best, x = scenario, 
                   label = round(best/1000000, digits = 1))) + 
     geom_bar(position="stack", stat="identity") + 
@@ -1974,25 +2049,107 @@ for(i in seq_along(year_obs)){
                   label = paste0(format(round(best/1000000, digits = 1), nsmall = 1), "m"), 
                   group = Categories),
               position = position_stack(vjust = 0.5), size = 6) + 
-    ggtitle(title_name[i])
+    ggtitle(paste0(title_name[i],"(",ytitle_lab[1], ")" ))
+
+  pcatcost[[i]][[names(x_catcost)[2]]] <- x_catcost[[2]]%>%filter(year == year_obs[i] )%>%arrange(Categories)%>%
+    ggplot(., aes(fill = Categories, y = best, x = scenario, 
+                  label = round(best/1000000, digits = 1))) + 
+    geom_bar(position="stack", stat="identity") + 
+    theme(panel.spacing = unit(0, 'lines')) +
+    scale_fill_manual(values = c( "grey10", "grey40","grey80")) + 
+    theme_Publication(base_size = 16) + 
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + 
+    scale_y_continuous(limit = c(0, 5000000000), 
+                       breaks = seq(0, 5000000000, 500000000),
+                       labels = seq(0, 5000000000, 500000000)/1000000) + 
+    labs(y = "Cost (discounted, millions)") + 
+    geom_text(aes(x = scenario, y = best + 50000000, 
+                  label = paste0(format(round(best/1000000, digits = 1), nsmall = 1), "m"), 
+                  group = Categories),
+              position = position_stack(vjust = 0.5), size = 6) + 
+    ggtitle(paste0(title_name[i],"(",ytitle_lab[2], ")" ))
+
+  
+  pcatcost_nocap[[i]][[names(x_catcost)[1]]] <- x_catcost_nocap[[1]]%>%filter(year == year_obs[i] )%>%arrange(Categories)%>%
+    ggplot(., aes(fill = Categories, y = best, x = scenario, 
+                  label = round(best/1000000, digits = 1))) + 
+    geom_bar(position="stack", stat="identity") + 
+    theme(panel.spacing = unit(0, 'lines')) +
+    scale_fill_manual(values = c( "grey10", "grey40","grey80")) + 
+    theme_Publication(base_size = 16) + 
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + 
+    scale_y_continuous(limit = c(0, 5000000000), 
+                       breaks = seq(0, 5000000000, 500000000),
+                       labels = seq(0, 5000000000, 500000000)/1000000) + 
+    labs(y = "Cost (discounted, millions)") + 
+    geom_text(aes(x = scenario, y = best + 50000000, 
+                  label = paste0(format(round(best/1000000, digits = 1), nsmall = 1), "m"), 
+                  group = Categories),
+              position = position_stack(vjust = 0.5), size = 6) + 
+    ggtitle(paste0(title_name[i],"(",ytitle_lab[1], ")" ))
+  
+  pcatcost_nocap[[i]][[names(x_catcost)[2]]] <- x_catcost_nocap[[2]]%>%filter(year == year_obs[i] )%>%arrange(Categories)%>%
+    ggplot(., aes(fill = Categories, y = best, x = scenario, 
+                  label = round(best/1000000, digits = 1))) + 
+    geom_bar(position="stack", stat="identity") + 
+    theme(panel.spacing = unit(0, 'lines')) +
+    scale_fill_manual(values = c( "grey10", "grey40","grey80")) + 
+    theme_Publication(base_size = 16) + 
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) + 
+    scale_y_continuous(limit = c(0, 5000000000), 
+                       breaks = seq(0, 5000000000, 500000000),
+                       labels = seq(0, 5000000000, 500000000)/1000000) + 
+    labs(y = "Cost (discounted, millions)") + 
+    geom_text(aes(x = scenario, y = best + 50000000, 
+                  label = paste0(format(round(best/1000000, digits = 1), nsmall = 1), "m"), 
+                  group = Categories),
+              position = position_stack(vjust = 0.5), size = 6) + 
+    ggtitle(paste0(title_name[i],"(",ytitle_lab[2],")" ))
+  
   }
-pcatcost[[3]]
-ggsave(file=file.path(OutputFig, paste0("Reports/cost_catego_20y",".png")), 
-       pcatcost[[3]], 
-       width = 10, height = 8, bg = "white", dpi = 300)  
-pcatcost <- lapply(pcatcost, function(x) x + rremove("ylab") + rremove("xlab"))
 
-pcatcost  <- ggarrange(plotlist = pcatcost , ncol = 3, nrow = 1, 
-                                 common.legend = TRUE)
-# adding common x, y label 
-pcatcost <- annotate_figure(pcatcost, 
-                                       left = textGrob("Cost (discounted, millions)", 
-                                                       rot = 90, vjust = 1, gp = gpar(cex = 1.3)),
-                                       bottom = textGrob("Scenarios", gp = gpar(cex = 1.3)))
 
-ggsave(file=file.path(OutputFig, paste0("Reports/cost_catego",".png")), 
-       pcatcost, 
-       width = 18, height = 10, bg = "white", dpi = 300)  
+lapply(1: length(pcatcost[[3]]), function(x) 
+  ggsave(file=file.path(OutputFig, paste0("Reports/cost_catego_20y_",ytitle_lab[x],".png")), 
+         pcatcost[[3]][[x]],  width = 10, height = 8, bg = "white", dpi = 300)  )
+ 
+
+lapply(1: length(pcatcost_nocap[[3]]), function(x) 
+  ggsave(file=file.path(OutputFig, paste0("Reports/cost_catego_20y_nocap_",ytitle_lab[x],".png")), 
+         pcatcost_nocap[[3]][[x]],  width = 10, height = 8, bg = "white", dpi = 300)  )
+
+
+
+pcatcost <- lapply(pcatcost, function(x) lapply(x, function(y) y + rremove("ylab") + rremove("xlab"))) 
+pcatcost_nocap <- lapply(pcatcost_nocap, function(x) lapply(x, function(y) y + rremove("ylab") + rremove("xlab"))) 
+for(i in 1:length(pcatcost)){ 
+  pcatcost[[i]]  <- ggarrange(plotlist = pcatcost[[i]] , ncol = 2, nrow = 1, 
+                              common.legend = TRUE)
+  # adding common x, y label 
+  pcatcost[[i]] <- annotate_figure(pcatcost[[i]], 
+                              left = textGrob("Cost (discounted, millions)", 
+                                              rot = 90, vjust = 1, gp = gpar(cex = 1.3)),
+                              bottom = textGrob("Scenarios", gp = gpar(cex = 1.3)))
+  
+  ggsave(file=file.path(OutputFig, paste0("Reports/cost_catego",names(pcatcost[i]),".png")), 
+         pcatcost[[i]], 
+         width = 18, height = 10, bg = "white", dpi = 300)  
+  
+  
+  pcatcost_nocap[[i]]  <- ggarrange(plotlist = pcatcost_nocap[[i]] , ncol = 2, nrow = 1, 
+                              common.legend = TRUE)
+  # adding common x, y label 
+  pcatcost_nocap[[i]] <- annotate_figure(pcatcost_nocap[[i]], 
+                                   left = textGrob("Cost (discounted, millions)", 
+                                                   rot = 90, vjust = 1, gp = gpar(cex = 1.3)),
+                                   bottom = textGrob("Scenarios", gp = gpar(cex = 1.3)))
+  
+  ggsave(file=file.path(OutputFig, paste0("Reports/cost_catego_nocap",names(pcatcost_nocap[i]),".png")), 
+         pcatcost_nocap[[i]], 
+         width = 18, height = 10, bg = "white", dpi = 300)  
+  
+  }
+
 
 
 ################################################################################ 
@@ -2035,42 +2192,74 @@ ggsave(file=file.path(OutputFig, paste0("Reports/cost_catego",".png")),
 
 ################################################################################ 
 ######################## incremental line ######################################
-x_total_ref <- cost_disydaacap_categories%>%
+unique(cost_disydaacap_categories$scenario)
+x_total_ref <- lapply(list(cost_disydaacap_categories, cost_disydaacap_categories_totalcost), 
+                      function(x) x%>%
   filter(year>= 2022)%>%
   group_by(scenario, Categories)%>%
   mutate(across(c(par_col, "min", "max", "Med", "Mu", "q5", 
                   "q25", "q75", "q95"), cumsum, .names = "{col}"))%>%ungroup()%>%
   arrange(scenario)%>%group_by(year, scenario)%>%
-  summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))%>%filter(scenario == "Status quo") 
+  summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))%>%filter(scenario == "No national program"))
+names(x_total_ref) <- ytitle_lab
 
-x_catcost_total <- cost_disydaacap_categories%>%
+x_catcost_total <- lapply(list(cost_disydaacap_categories, cost_disydaacap_categories_totalcost), 
+                          function(x) x%>%
   filter(year>= 2022)%>%
   group_by(scenario, Categories)%>%
   mutate(across(c(par_col, "min", "max", "Med", "Mu", "q5", 
                   "q25", "q75", "q95"), cumsum, .names = "{col}"))%>%ungroup()%>%
   arrange(scenario)%>%group_by(year, scenario)%>%
   summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))
+)
+
+names(x_catcost_total) <- ytitle_lab
+
 x_catcost_total_incre <- list()
 x <- list()
-for(i in unique(x_catcost_total$scenario)){ 
-  x[[i]] <- x_catcost_total%>%filter(scenario == i)
-  x_catcost_total_incre[[i]] <- 
-    cbind(year = x[[i]]$year, scenario = x[[i]]$scenario, 
-          as.data.frame(x[[i]][, c(par_col)] - x_total_ref[, c(par_col)]))%>%
+
+for(i in unique(x_catcost_total$scenario)) {
+  x[[i]] <- list()
+  x_catcost_total_incre[[i]] <- list()
+}
+
+
+for(i in unique(x_catcost_total[[1]]$scenario)){ 
+  x[[i]][[ytitle_lab[1]]] <- x_catcost_total[[1]]%>%filter(scenario == i)
+  x_catcost_total_incre[[i]][[ytitle_lab[1]]] <- 
+    cbind(year = x[[i]][[ytitle_lab[1]]]$year, scenario = x[[i]][[ytitle_lab[1]]]$scenario, 
+          as.data.frame(x[[i]][[ytitle_lab[1]]][, c(par_col)] - x_total_ref[[1]][, c(par_col)]))%>%
+    as.data.frame()
+
+  x_catcost_total_incre[[i]][[ytitle_lab[1]]][x_catcost_total_incre[[i]][[ytitle_lab[1]]] == 0] <- NA
+  x_catcost_total_incre[[i]][[ytitle_lab[1]]] <- x_catcost_total_incre[[i]][[ytitle_lab[1]]]%>%
+    popResults_range(POC_AU, ., end_Y = 100)
+  
+  
+  x[[i]][[ytitle_lab[2]]] <- x_catcost_total[[2]]%>%filter(scenario == i)
+  x_catcost_total_incre[[i]][[ytitle_lab[2]]] <- 
+    cbind(year = x[[i]][[ytitle_lab[2]]]$year, scenario = x[[i]][[ytitle_lab[2]]]$scenario, 
+          as.data.frame(x[[i]][[ytitle_lab[2]]][, c(par_col)] - x_total_ref[[2]][, c(par_col)]))%>%
     as.data.frame()
   
-  x_catcost_total_incre[[i]][x_catcost_total_incre[[i]] == 0] <- NA
-  x_catcost_total_incre[[i]] <- x_catcost_total_incre[[i]]%>%
+  x_catcost_total_incre[[i]][[ytitle_lab[2]]][x_catcost_total_incre[[i]][[ytitle_lab[2]]] == 0] <- NA
+  x_catcost_total_incre[[i]][[ytitle_lab[2]]] <- x_catcost_total_incre[[i]][[ytitle_lab[2]]]%>%
     popResults_range(POC_AU, ., end_Y = 100)
   
 
 }
+View(x_catcost_total_incre[[2]][[1]])
 
-x_total_incre <- x_catcost_total_incre%>%dplyr::bind_rows(., .id = "scenario")%>%
-  mutate(scenario = factor(scenario, levels = sce_level, 
-                           labels = sce_label))
+x_catcost_total_incre <- purrr::transpose(x_catcost_total_incre)
+
+
+x_total_incre <- lapply(x_catcost_total_incre, function(x) x%>%dplyr::bind_rows(., .id = "scenario")%>%
+  mutate(scenario = factor(scenario, levels = sce_label, 
+                           labels = sce_label)))
+names(x_total_incre) <- names(x_catcost_total_incre)
+
   
-incremental_cost <- ggplot(x_total_incre, aes(x = year, colour = scenario) ) + 
+incremental_cost <- lapply(1: length(x_total_incre) , function(x) ggplot(x_total_incre[[x]], aes(x = year, colour = scenario) ) + 
   geom_line(aes(x = year, y = best, colour = scenario,
                 linetype = scenario), size = 1
             ) + 
@@ -2081,13 +2270,119 @@ incremental_cost <- ggplot(x_total_incre, aes(x = year, colour = scenario) ) +
                      labels = seq(-150000000, 10000000, 10000000)/1000000) + 
   scale_color_manual(values = c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442")) + 
   scale_linetype_manual(values = c("dashed", "solid", "solid", "solid", "solid")) + 
-  labs( y = "Incremental cost (in millions)", x = "Year")
+  labs( y = "Incremental cost (in millions)", x = "Year") + 
+    ggtitle(ytitle_lab[x]) 
+)
 
-incremental_cost <- incremental_cost + 
-  geom_hline(linetype = "dashed", yintercept = 0, size = 1)
-ggsave(file=file.path(OutputFig, paste0("Reports/incremental_cost ",".png")), 
-       incremental_cost , 
-       width = 16, height = 8, bg = "white", dpi = 300)   
+incremental_cost <- lapply(incremental_cost, function(x) x + 
+  geom_hline(linetype = "dashed", yintercept = 0, size = 1))
+lapply(1: length(incremental_cost), function(x) 
+  ggsave(file=file.path(OutputFig, paste0("Reports/incremental_cost",ytitle_lab[x],".png")), 
+         incremental_cost[[x]], 
+         width = 16, height = 8, bg = "white", dpi = 300)   
+  
+  )
+
+#### table for year of cost turing
+View(x_catcost_total_incre$`Total program cost`$`Program sustained`)
+
+#### no cap #### 
+x_total_ref_nocap <- lapply(list(cost_disydaanocap_categories, cost_disydaanocap_categories_totalcost), 
+                      function(x) x%>%
+                        filter(year>= 2022)%>%
+                        group_by(scenario, Categories)%>%
+                        mutate(across(c(par_col, "min", "max", "Med", "Mu", "q5", 
+                                        "q25", "q75", "q95"), cumsum, .names = "{col}"))%>%ungroup()%>%
+                        arrange(scenario)%>%group_by(year, scenario)%>%
+                        summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))%>%filter(scenario == "No national program"))
+names(x_total_ref_nocap) <- ytitle_lab
+x_catcost_total_nocap <- lapply(list(cost_disydaanocap_categories, cost_disydaanocap_categories_totalcost), 
+                          function(x) x%>%
+                            filter(year>= 2022)%>%
+                            group_by(scenario, Categories)%>%
+                            mutate(across(c(par_col, "min", "max", "Med", "Mu", "q5", 
+                                            "q25", "q75", "q95"), cumsum, .names = "{col}"))%>%ungroup()%>%
+                            arrange(scenario)%>%group_by(year, scenario)%>%
+                            summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))
+)
+
+names(x_catcost_total_nocap) <- ytitle_lab
+unique(x_catcost_total_nocap$`Direct variables + operational fixed costs`$scenario)
+x_catcost_total_incre_nocap <`Direct variables + operational fixed costs`x_catcost_total_incre_nocap <- list()
+x_nocap <- list()
+
+for(i in unique(x_catcost_total_nocap[[1]]$scenario)) {
+  x_nocap[[i]] <- list()
+  x_catcost_total_incre_nocap[[i]] <- list()
+}
+
+
+for(i in unique(x_catcost_total[[1]]$scenario)){ 
+  x_nocap[[i]][[ytitle_lab[1]]] <- x_catcost_total_nocap[[1]]%>%filter(scenario == i)
+  x_catcost_total_incre_nocap[[i]][[ytitle_lab[1]]] <- 
+    cbind(year = x_nocap[[i]][[ytitle_lab[1]]]$year, scenario = x_nocap[[i]][[ytitle_lab[1]]]$scenario, 
+          as.data.frame(x_nocap[[i]][[ytitle_lab[1]]][, c(par_col)] - x_total_ref_nocap[[1]][, c(par_col)]))%>%
+    as.data.frame()
+  
+  x_catcost_total_incre_nocap[[i]][[ytitle_lab[1]]][x_catcost_total_incre_nocap[[i]][[ytitle_lab[1]]] == 0] <- NA
+  x_catcost_total_incre_nocap[[i]][[ytitle_lab[1]]] <- x_catcost_total_incre_nocap[[i]][[ytitle_lab[1]]]%>%
+    popResults_range(POC_AU, ., end_Y = 100)
+  
+  
+  x_nocap[[i]][[ytitle_lab[2]]] <- x_catcost_total_nocap[[2]]%>%filter(scenario == i)
+  x_catcost_total_incre_nocap[[i]][[ytitle_lab[2]]] <- 
+    cbind(year = x_nocap[[i]][[ytitle_lab[2]]]$year, scenario = x_nocap[[i]][[ytitle_lab[2]]]$scenario, 
+          as.data.frame(x_nocap[[i]][[ytitle_lab[2]]][, c(par_col)] - x_total_ref_nocap[[2]][, c(par_col)]))%>%
+    as.data.frame()
+  
+  x_catcost_total_incre_nocap[[i]][[ytitle_lab[2]]][x_catcost_total_incre_nocap[[i]][[ytitle_lab[2]]] == 0] <- NA
+  x_catcost_total_incre_nocap[[i]][[ytitle_lab[2]]] <- x_catcost_total_incre_nocap[[i]][[ytitle_lab[2]]]%>%
+    popResults_range(POC_AU, ., end_Y = 100)
+  
+  
+}
+View(x_catcost_total_incre_nocap[[2]][[1]])
+
+x_catcost_total_incre_nocap <- purrr::transpose(x_catcost_total_incre_nocap)
+
+
+x_total_incre_nocap <- lapply(x_catcost_total_incre_nocap, function(x) x%>%dplyr::bind_rows(., .id = "scenario")%>%
+                          mutate(scenario = factor(scenario, levels = sce_label, 
+                                                   labels = sce_label)))
+names(x_total_incre_nocap) <- names(x_catcost_total_incre_nocap)
+
+incremental_cost_nocap <- list()
+incremental_cost_nocap <- lapply(1: length(x_total_incre_nocap) , function(x) ggplot(x_total_incre_nocap[[x]], aes(x = year, colour = scenario) ) + 
+                             geom_line(aes(x = year, y = best, colour = scenario,
+                                           linetype = scenario), size = 1
+                             ) + 
+                             theme_Publication() + 
+                             scale_x_continuous(expand = c(0,0), limits = c(2021,2041), breaks = seq(2021, 2041, 1)) + 
+                             scale_y_continuous(limits = c(-150000000, 50000000), 
+                                                breaks = seq(-150000000, 50000000, 10000000), 
+                                                labels = seq(-150000000, 50000000, 10000000)/1000000) + 
+                             scale_color_manual(values = c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442")) + 
+                             scale_linetype_manual(values = c("dashed", "solid", "solid", "solid", "solid")) + 
+                             labs( y = "Incremental cost (in millions)", x = "Year") + 
+                             ggtitle(paste0(ytitle_lab[x], "(without DAA cap)")) 
+)
+
+incremental_cost_nocap <- lapply(incremental_cost_nocap, function(x) x + 
+                             geom_hline(linetype = "dashed", yintercept = 0, size = 1))
+
+incremental_cost_nocap[[1]]
+
+lapply(1: length(incremental_cost_nocap), function(x) 
+  ggsave(file=file.path(OutputFig, paste0("Reports/incremental_cost_nocap",ytitle_lab[x],".png")), 
+         incremental_cost_nocap[[x]], 
+         width = 16, height = 8, bg = "white", dpi = 300)   
+  
+)
+
+
+View(x_total_incre_nocap$`Total program cost`)
+
+
 
 
 
@@ -2095,144 +2390,276 @@ ggsave(file=file.path(OutputFig, paste0("Reports/incremental_cost ",".png")),
 #### Cost saving 5, 10, 20 y
 # total 
 p_cost_saving <- list()
-col_pal <- list("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442")
-names(col_pal) <- c(unique(x_total_incre$scenario))
-
-for(i in unique(x_total_incre$scenario)){ 
+for(n in 1: length(x_total_incre)){ 
+  p_cost_saving[[n]] <- list()
   
-  p_cost_saving[[i]] <- 
-    ggplot(x_total_incre%>%filter(scenario == i & year %in% (year_obs)), 
-           aes(x = as.character(year), y = best)) + 
-    geom_bar(stat="identity") + 
-    geom_text(aes(label=paste0(round(best/1000000, digits = 1), "m")),
-              position = position_dodge(width = 0.55),
-              hjust = 0.5, vjust = -0.5) + 
-    scale_x_discrete(labels = c(paste0((year_obs - POC_AU$simY + 1), "-Year", sep = ""))) + 
-    labs(y = "Incremental costs (millions)", x = "Time frame")  + 
-    scale_y_continuous(limits = c(-300000000, 100000000), 
-                       breaks = seq(-300000000, 100000000, 10000000), 
-                       labels = seq(-300000000, 100000000, 10000000)/1000000) + 
-    theme_Publication() + 
-    theme(panel.grid.major = element_line(color = "gray80",
-                                    size = 0.1,
-                                    linetype = 1)) + 
-    geom_hline(yintercept = 0, linetype = "dashed") +
-    ggtitle(i)
-}
-p_cost_saving$`NP Phase III: continue`
-
-for(i in names(p_cost_saving)){ 
-  ggsave(file=file.path(OutputFig, paste0("Reports/Tot_cost_saving", i,".png")), 
-         p_cost_saving[[i]] , 
-         width = 10, height = 8, bg = "white", dpi = 300)   
   }
+col_pal <- list("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442")
+names(col_pal) <- c(unique(x_total_incre[[1]]$scenario))
+
+for(n in 1: length(x_total_incre)){
+  for(i in unique(x_total_incre[[1]]$scenario)){ 
+    p_cost_saving[[n]][[i]] <- 
+      ggplot(x_total_incre[[n]]%>%filter(scenario == i & year %in% (year_obs)), 
+             aes(x = as.character(year), y = best)) + 
+      geom_bar(stat="identity") + 
+      geom_text(aes(label=paste0(round(best/1000000, digits = 1), "m")),
+                position = position_dodge(width = 0.55),
+                hjust = 0.5, vjust = -0.5) + 
+      scale_x_discrete(labels = c(paste0((year_obs - POC_AU$simY + 1), "-Year", sep = ""))) + 
+      labs(y = "Incremental costs (millions)", x = "Time frame")  + 
+      scale_y_continuous(limits = c(-300000000, 500000000), 
+                         breaks = seq(-300000000, 500000000, 50000000), 
+                         labels = seq(-300000000, 500000000, 50000000)/1000000) + 
+      theme_Publication() + 
+      theme(panel.grid.major = element_line(color = "gray80",
+                                            size = 0.1,
+                                            linetype = 1)) + 
+      geom_hline(yintercept = 0, linetype = "dashed") +
+      ggtitle(paste0(i, "(",names(x_total_incre)[n], ")"))
+    }
+  }
+  
+names(p_cost_saving) <- ytitle_lab
+
+
+for(n in names(p_cost_saving)){ 
+  for(i in names(p_cost_saving[[1]])){ 
+    ggsave(file=file.path(OutputFig, paste0("Reports/Tot_cost_saving_",n,"_", i,".png")), 
+           p_cost_saving[[n]][[i]] , 
+           width = 10, height = 8, bg = "white", dpi = 300)   
+  }
+    }
+  
 
 # by categories 
-catcost_cum <- cost_disydaacap_categories%>%
+catcost_cum <- lapply(list(cost_disydaacap_categories, cost_disydaacap_categories_totalcost), 
+                      function(x) x%>%
   filter(year>= 2022)%>%
   group_by(scenario, Categories)%>%
   mutate(across(c(par_col), cumsum, .names = "{col}"))%>%ungroup()%>%
-  arrange(scenario)
+  arrange(scenario))
+names(catcost_cum) <- ytitle_lab
+catcost_cum_ref <- lapply(catcost_cum, function(x) x%>%filter(scenario == "No national program"))
 
-catcost_cum_ref <- catcost_cum%>%filter(scenario == "Status quo")
+catcost_cum_nocap <- lapply(list(cost_disydaanocap_categories, cost_disydaanocap_categories_totalcost), 
+                      function(x) x%>%
+                        filter(year>= 2022)%>%
+                        group_by(scenario, Categories)%>%
+                        mutate(across(c(par_col), cumsum, .names = "{col}"))%>%ungroup()%>%
+                        arrange(scenario))
+names(catcost_cum) <- ytitle_lab
+unique(catcost_cum_nocap[[1]]$Categories)
+catcost_cum_ref_nocap <- lapply(catcost_cum_nocap, function(x) x%>%filter(scenario == "No national program"))
 x <- list()
+x_nocap <- list()
 catcost_incre <- list()
-for(i in unique(catcost_cum$scenario)){ 
-  x[[i]] <- catcost_cum%>%filter(scenario == i)
-  catcost_incre[[i]] <- cbind(scenario = x[[i]]$scenario, 
-                              Categories = x[[i]]$Categories, 
-                              year = x[[i]]$year, 
-                              dplyr::bind_cols(x[[i]][, par_col] - catcost_cum_ref[, par_col]))%>%
-    as.data.frame()%>%
-    popResults_range(POC_AU, .)%>%
-    filter(Categories != "Treatment") 
+catcost_incre_nocap <- list()
+for(n in 1: length(catcost_cum_ref)){
+  
+  x[[n]] <- list()
+  x_nocap[[n]] <- list()
+  catcost_incre[[n]] <- list()
+  catcost_incre_nocap[[n]] <- list()
+}
+unique(catcost_cum$`Direct variables + operational fixed costs`$Categories)
+for(n in 1: length(catcost_cum_ref)){ 
+  for(i in unique(catcost_cum[[1]]$scenario)){ 
+    x[[n]][[i]] <- catcost_cum[[n]]%>%filter(scenario == i)
+    x_nocap[[n]][[i]] <- catcost_cum_nocap[[n]]%>%filter(scenario == i)
+    catcost_incre[[n]][[i]] <- cbind(scenario = x[[n]][[i]]$scenario, 
+                                Categories = x[[n]][[i]]$Categories, 
+                                year = x[[n]][[i]]$year, 
+                                dplyr::bind_cols(x[[n]][[i]][, par_col] - catcost_cum_ref[[n]][, par_col]))%>%
+      as.data.frame()%>%
+      popResults_range(POC_AU, .)%>%
+      filter(Categories != "Treatment") 
+
+    catcost_incre_nocap[[n]][[i]] <- cbind(scenario = x_nocap[[n]][[i]]$scenario, 
+                                     Categories = x_nocap[[n]][[i]]$Categories, 
+                                     year = x_nocap[[n]][[i]]$year, 
+                                     dplyr::bind_cols(x_nocap[[n]][[i]][, par_col] - catcost_cum_ref_nocap[[n]][, par_col]))%>%
+      as.data.frame()%>%
+      popResults_range(POC_AU, .)
+    
+  }
   }
 
-catcost_incre <- dplyr::bind_rows(catcost_incre, .id = "Scenario")
-unique(catcost_incre$Scenario)
-catcost_incre <- catcost_incre%>%
-  mutate(Scenario = factor(Scenario, levels = sce_level, 
-                           labels = sce_label))
-catcost_incre <- catcost_incre%>%
-  mutate(Categories = factor(Categories, 
-                             levels = c("Diagnosis", "Management", "Treatment_cap"),
-                             labels = c("Diagnosis", "Management", "Treatment")))
+
+catcost_incre <- lapply(catcost_incre, function(x) dplyr::bind_rows(x, .id = "scenario"))
+catcost_incre_nocap <- lapply(catcost_incre_nocap, function(x) dplyr::bind_rows(x, .id = "scenario"))
+
+for(i in 1:length(catcost_incre)){ 
+  catcost_incre[[i]] <- catcost_incre[[i]]%>%
+    mutate(Scenario = factor(scenario, levels = sce_label, 
+                             labels = sce_label))
+  catcost_incre_nocap[[i]] <- catcost_incre_nocap[[i]]%>%
+    mutate(Categories = factor(Categories, 
+                               levels = c("Diagnosis", "Management", "Treatment"),
+                               labels = c("Diagnosis", "Management", "Treatment")),
+           Scenario = factor(scenario, levels = sce_label, 
+                             labels = sce_label)
+           )
+  
+  }
+unique(catcost_incre_nocap[[1]]$Categories)
 
 p_catcost_saving <- list()
+
+p_catcost_saving_nocap <- list()
 lim_catcost_saving <- list(c(-1000000, 10000000 ), c(-50000000, 20000000), c(-150000000, 20000000))
 bek_catcost_saving <- list(seq(-1000000, 10000000 , 1000000), 
                            seq(-50000000, 20000000, 5000000), 
                            c(seq(-150000000, 0, 50000000), 10000000, 20000000))
 
 
+
 for(i in 1: length(year_obs)){ 
-  
-  p_catcost_saving[[i]] <- 
-    ggplot(catcost_incre%>%
-             filter(Scenario != "No national program" & year %in% year_obs[i])%>%
-             arrange(Categories), 
-           aes(x = Scenario, y = best, fill = Scenario)) + 
-    geom_bar(stat = "identity", width = 0.8) + 
-    geom_text(aes(y = best + 2 * sign(best), 
-                  label=paste0(round(best/1000000, digits = 1), "m")),
-              position = position_stack(vjust = 0.5), size = 6) + 
-    scale_fill_manual(values = c(col_pal[2:6])) + 
-    facet_wrap(~Categories, nrow = 3) + 
-    theme_Publication_facet() + 
+  p_catcost_saving[[i]] <- list()
+  p_catcost_saving_nocap[[i]] <- list()
+  for(n in 1: length(catcost_incre)){ 
+    p_catcost_saving[[i]][[n]] <- 
+      ggplot(catcost_incre[[n]]%>%
+               filter(Scenario != "No national program" & year %in% year_obs[i])%>%
+               arrange(Categories), 
+             aes(x = Scenario, y = best, fill = Scenario)) + 
+      geom_bar(stat = "identity", width = 0.8) + 
+      geom_text(aes(y = best + 2 * sign(best), 
+                    label=paste0(round(best/1000000, digits = 1), "m")),
+                position = position_stack(vjust = 0.5), size = 6) + 
+      scale_fill_manual(values = c(col_pal[2:6])) + 
+      facet_wrap(~Categories, nrow = 3) + 
+      theme_Publication_facet() + 
+      
+      labs(y = "Incremental costs (millions)", x = "Scenarios")  + 
+      scale_y_continuous(limits = lim_catcost_saving[[i]], 
+                         breaks = bek_catcost_saving[[i]], 
+                         labels = bek_catcost_saving[[i]]/1000000) + 
+      theme_Publication_facet() + 
+      theme(panel.grid.major = element_line(color = "gray80",
+                                            size = 0.1,
+                                            linetype = 1)) +
+      theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust = 0.5)) +
+      geom_hline(yintercept = 0, linetype = "dashed") + 
+      ggtitle(paste0(POC_AU$simY, "-", year_obs[i], 
+                     " (",year_obs[i] - POC_AU$simY + 1 ,"-Year, ",ytitle_lab[n] ,")"))
     
-    labs(y = "Incremental costs (millions)", x = "Scenarios")  + 
-    scale_y_continuous(limits = lim_catcost_saving[[i]], 
-                       breaks = bek_catcost_saving[[i]], 
-                       labels = bek_catcost_saving[[i]]/1000000) + 
-    theme_Publication_facet() + 
-    theme(panel.grid.major = element_line(color = "gray80",
-                                          size = 0.1,
-                                          linetype = 1)) +
-    theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust = 0.5)) +
-    geom_hline(yintercept = 0, linetype = "dashed") + 
-    ggtitle(paste0(POC_AU$simY, "-", year_obs[i], 
-                   " (",year_obs[i] - POC_AU$simY + 1 ,"-Year)"))
+    p_catcost_saving_nocap[[i]][[n]] <- 
+      ggplot(catcost_incre_nocap[[n]]%>%
+               filter(scenario != "No national program" & year %in% year_obs[i])%>%
+               arrange(Categories), 
+             aes(x = scenario, y = best, fill = scenario)) + 
+      geom_bar(stat = "identity", width = 0.8) + 
+      geom_text(aes(y = best + 2 * sign(best), 
+                    label=paste0(round(best/1000000, digits = 1), "m")),
+                position = position_stack(vjust = 0.5), size = 6) + 
+      scale_fill_manual(values = c(col_pal[2:6])) + 
+      facet_wrap(~Categories, nrow = 3) + 
+      theme_Publication_facet() + 
+      
+      labs(y = "Incremental costs (millions)", x = "Scenarios")  + 
+      scale_y_continuous(limits = lim_catcost_saving[[i]], 
+                         breaks = bek_catcost_saving[[i]], 
+                         labels = bek_catcost_saving[[i]]/1000000) + 
+      theme_Publication_facet() + 
+      theme(panel.grid.major = element_line(color = "gray80",
+                                            size = 0.1,
+                                            linetype = 1)) +
+      theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust = 0.5)) +
+      geom_hline(yintercept = 0, linetype = "dashed") + 
+      scale_x_discrete(limits = c("Foundational implementation", 
+                                  "Program succession",
+                                  "Program sustained", 
+                                  "Program accelerated")) + 
+      ggtitle(paste0(POC_AU$simY, "-", year_obs[i], 
+                     " (",year_obs[i] - POC_AU$simY + 1 ,"-Year, ",ytitle_lab[n], ", no cap" ,")"))
+    }
+  
+  
 }
+p_catcost_saving_nocap[[3]][[1]]
 
-p_catcost_saving[[3]]
 for(i in 1: length(year_obs)){ 
-  ggsave(file=file.path(OutputFig, paste0("Reports/cat_cost_saving", i,".png")), 
-         p_catcost_saving[[i]] , 
-         width = 14, height = 6, bg = "white", dpi = 300)   
+  for(n in 1:length(ytitle_lab)){ 
+    ggsave(file=file.path(OutputFig, paste0("Reports/cat_cost_saving", i,ytitle_lab[n], ".png")), 
+           p_catcost_saving[[i]][[n]] , 
+           width = 14, height = 6, bg = "white", dpi = 300)   
+    
+    ggsave(file=file.path(OutputFig, paste0("Reports/cat_cost_saving_nocap", i,ytitle_lab[n], ".png")), 
+           p_catcost_saving_nocap[[i]][[n]] , 
+           width = 14, height = 6, bg = "white", dpi = 300)   
+    }
 }
-p_cat_cost_supple <- p_catcost_saving[[3]] + facet_custom (~Categories,
-                                      scales = "free", ncol = 1,
-                                      scale_overrides = 
-                                        list(
-                                          scale_new(1,
-                                                    scale_y_continuous(limits = 
-                                                                         c(-5000000, 20000000),
-                                                                       breaks = seq(-5000000, 20000000, 5000000),
-                                                                       labels = seq(-5000000, 20000000, 5000000)/1000000)),
-                                          scale_new(2,
-                                                    scale_y_continuous(limits = 
-                                                                         c(-10000000, 0),
-                                                                       breaks = seq(-10000000, 0, 5000000),
-                                                                       labels = seq(-10000000, 0, 5000000)/1000000)),
-                                          
-                                          scale_new(3,
-                                                    scale_y_continuous(limits = 
-                                                                         c(-150000000, 0 ),
-                                                                       breaks = seq(-150000000, 0, 50000000),
-                                                                       labels = seq(-150000000, 0, 50000000)/1000000))
-                                        )) + 
-  #labs(caption = "*HCV management cost in the expanded National Program scenario: A$35,818")+
-  theme_Publication_facet(base_size = 22) + 
-  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust = 0.5)) + 
-  theme(legend.direction = "vertical") + 
-  theme(plot.caption.position = "plot",
-        plot.caption = element_text(hjust = 1, size = 20))
-  
-  
 
-ggsave(file=file.path(OutputFig, paste0("Reports/cat_cost_saving","cat_cost_supple",".png")), 
-       p_cat_cost_supple , 
-       width = 16, height = 14, bg = "white", dpi = 300)    
+p_cat_cost_supple <- list()
+p_cat_cost_supple_nocap <- list()
+for(i in 1: length(ytitle_lab)){ 
+  p_cat_cost_supple[[i]] <- p_catcost_saving[[3]][[i]] + facet_custom (~Categories,
+                                                             scales = "free", ncol = 1,
+                                                             scale_overrides = 
+                                                               list(
+                                                                 scale_new(1,
+                                                                           scale_y_continuous(limits = 
+                                                                                                c(-5000000, 20000000),
+                                                                                              breaks = seq(-5000000, 20000000, 5000000),
+                                                                                              labels = seq(-5000000, 20000000, 5000000)/1000000)),
+                                                                 scale_new(2,
+                                                                           scale_y_continuous(limits = 
+                                                                                                c(-10000000, 0),
+                                                                                              breaks = seq(-10000000, 0, 5000000),
+                                                                                              labels = seq(-10000000, 0, 5000000)/1000000)),
+                                                                 
+                                                                 scale_new(3,
+                                                                           scale_y_continuous(limits = 
+                                                                                                c(-150000000, 0 ),
+                                                                                              breaks = seq(-150000000, 0, 50000000),
+                                                                                              labels = seq(-150000000, 0, 50000000)/1000000))
+                                                               )) + 
+    #labs(caption = "*HCV management cost in the expanded National Program scenario: A$35,818")+
+    theme_Publication_facet(base_size = 22) + 
+    theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust = 0.5)) + 
+    theme(legend.direction = "vertical") + 
+    theme(plot.caption.position = "plot",
+          plot.caption = element_text(hjust = 1, size = 20))
+  
+  p_cat_cost_supple_nocap[[i]] <- p_catcost_saving_nocap[[3]][[i]] + facet_custom (~Categories,
+                                                                       scales = "free", ncol = 1,
+                                                                       scale_overrides = 
+                                                                         list(
+                                                                           scale_new(1,
+                                                                                     scale_y_continuous(limits = 
+                                                                                                          c(-5000000, 20000000),
+                                                                                                        breaks = seq(-5000000, 20000000, 5000000),
+                                                                                                        labels = seq(-5000000, 20000000, 5000000)/1000000)),
+                                                                           scale_new(2,
+                                                                                     scale_y_continuous(limits = 
+                                                                                                          c(-10000000, 0),
+                                                                                                        breaks = seq(-10000000, 0, 5000000),
+                                                                                                        labels = seq(-10000000, 0, 5000000)/1000000)),
+                                                                           
+                                                                           scale_new(3,
+                                                                                     scale_y_continuous(limits = 
+                                                                                                          c(-150000000, 0 ),
+                                                                                                        breaks = seq(-150000000, 0, 50000000),
+                                                                                                        labels = seq(-150000000, 0, 50000000)/1000000))
+                                                                         )) + 
+    #labs(caption = "*HCV management cost in the expanded National Program scenario: A$35,818")+
+    theme_Publication_facet(base_size = 22) + 
+    theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust = 0.5)) + 
+    theme(legend.direction = "vertical") + 
+    theme(plot.caption.position = "plot",
+          plot.caption = element_text(hjust = 1, size = 20))
+  
+  
+  
+  ggsave(file=file.path(OutputFig, paste0("Reports/cat_cost_saving","cat_cost_supple", ytitle_lab[i],".png")), 
+         p_cat_cost_supple[[i]] , 
+         width = 16, height = 14, bg = "white", dpi = 300)    
+  ggsave(file=file.path(OutputFig, paste0("Reports/cat_cost_saving","cat_cost_supple_nocap", ytitle_lab[i],".png")), 
+         p_cat_cost_supple_nocap[[i]] , 
+         width = 16, height = 14, bg = "white", dpi = 300)    
+  }
+
 
 g_legend <- function(a.gplot){ 
   tmp <- ggplot_gtable(ggplot_build(a.gplot)) 
@@ -2241,7 +2668,7 @@ g_legend <- function(a.gplot){
   legend
 } 
 
-legend <- g_legend(p_cat_cost_supple) 
+legend <- g_legend(p_cat_cost_supple[[1]]) 
 
 grid.newpage()
 leg_x <- grid.draw(legend) 

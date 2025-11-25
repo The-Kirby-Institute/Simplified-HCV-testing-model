@@ -271,136 +271,88 @@ save(lhs_samples, file = file.path(OutputFolder,
 rm(paramDflist)
 gc()
 
+#### cost uncertainty ####
+cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
 
-
-files <- list.files(path = paste0(DataFolder, 
-                                  "/cost/", sep =  ""), pattern = '*.csv')
-
-# parameter sets for cost data 
-# +- 10% 
-costdfList <- lapply(files, function(f) {
+for (cost_type in cost_types) {
   
-  df <- read.csv(file.path(paste0(DataFolder, "/cost/", f, sep = "")), header = TRUE)
-  
-  df <- df[, -1]
-  
-  df <- df%>%as_tibble()
-  
-  df <- as.matrix(df, nrow = npops, ncol = length(.) + 1)
-  
-})
-costdfList$QALYPops_LL
-names(costdfList) <- c(gsub("^|.csv", "", files)) # ^: from beginning, \ end before .csv
-
-
-cost_state <- costdfList$state
-costflow <- list()
-costflow[[1]] <- costdfList$costFlow
-costflow[[2]] <- costdfList$costFlow_POCRNA
-
-costflow_Neg <- list()
-costflow_Neg[[1]] <- costdfList$costFlow_NEG
-costflow_Neg[[2]] <- costdfList$`costFlow_POCRNA _NEG`
-
-
-
-set.seed(123456) 
-rand_multiply <- runif(number_samples, 0.9, 1.1)
-
-param_cost <- lapply(rand_multiply, function(x) lapply(costdfList, function(y) y*x))
-
-for(i in 1: length(rand_multiply)){ 
-  names(param_cost[[i]]) <- names(costdfList)
-  param_cost[[i]]$QALY <- lhs_samples[i,"poparray"]*(costdfList$QALYPops_UU - costdfList$QALYPops_LL) + costdfList$QALYPops_LL 
-  }
-
-param_cost_flow <- list()
-param_costflow_Neg <- list()
-param_QALY <- list()
-for(i in 1: number_samples){ 
-  param_cost_flow[[i]] <- list(param_cost[[i]]$costFlow, 
-                               param_cost[[i]]$costFlow_POCRNA)
-  
-  param_costflow_Neg[[i]] <- list(param_cost[[i]]$costFlow_NEG,
-                                  param_cost[[i]]$`costFlow_POCRNA _NEG`)
+  if (cost_type == "fixednvariable") {
     
-                                   
-  param_QALY[[i]] <-  param_cost[[i]]$QALY  
+    #### Fixed & Variable cost (from /cost/ folder) ####
+    files <- list.files(path = paste0(DataFolder, "/cost/", sep = ""), pattern = '*.csv')
+  }
+  else if (cost_type == "total") {
+    #### Sensitivity total cost  ####
+    files <- list.files(path = paste0(DataFolder, "/cost/sensitivity_total/", sep = ""), pattern = '*.csv')
+  }
+  else if (cost_type == "DAAcost_reducquarter"){
+    files <- list.files(path = paste0(DataFolder, "/cost/sensitivity_DAAcost_reducquarter/", sep = ""), pattern = '*.csv')
+    
+  } 
+  else if (cost_type == "DAAcost_reduchalf"){
+    files <- list.files(path = paste0(DataFolder, "/cost/sensitivity_DAAcost_reduchalf/", sep = ""), pattern = '*.csv')
+    
+  }
   
-} 
-
-
-save(param_cost,
-     param_cost_flow, 
-     param_costflow_Neg, 
-     param_QALY,
-     rand_multiply ,
-     file = file.path(OutputFolder,
-                      paste0(project_name, "param_cost", ".rda")))
+  costdfList <- lapply(files, function(f) {
+    df <- read.csv(file.path(paste0(DataFolder, "/cost/", f, sep = "")), header = TRUE)
+    df <- df[, -1]
+    df <- df %>% as_tibble()
+    df <- as.matrix(df, nrow = npops, ncol = length(.) + 1)
+  })
   
-
-#### sensitivity total cost(including program cost) ####
-files <- list.files(path = paste0(DataFolder, 
-                                  "/cost/sensitivity/", sep =  ""), pattern = '*.csv')
-
-# parameter sets for cost data 
-# +- 10% 
-costdfList <- lapply(files, function(f) {
+  names(costdfList) <- c(gsub("^|.csv", "", files))
   
-  df <- read.csv(file.path(paste0(DataFolder, "/cost/sensitivity/", f, sep = "")), header = TRUE)
+  cost_state <- costdfList$state
+  costflow <- list()
+  costflow[[1]] <- costdfList$costFlow
+  costflow[[2]] <- costdfList$costFlow_POCRNA
+  costflow_Neg <- list()
+  costflow_Neg[[1]] <- costdfList$costFlow_NEG
+  costflow_Neg[[2]] <- costdfList$`costFlow_POCRNA _NEG`
   
-  df <- df[, -1]
+  set.seed(123456) 
+  rand_multiply <- runif(number_samples, 0.9, 1.1)
   
-  df <- df%>%as_tibble()
+  param_cost <- lapply(rand_multiply, function(x) lapply(costdfList, function(y) y*x))
   
-  df <- as.matrix(df, nrow = npops, ncol = length(.) + 1)
+  for(i in 1: length(rand_multiply)){ 
+    names(param_cost[[i]]) <- names(costdfList)
+    param_cost[[i]]$QALY <- lhs_samples[i,"poparray"]*(costdfList$QALYPops_UU - costdfList$QALYPops_LL) + costdfList$QALYPops_LL 
+  }
   
-})
-
-names(costdfList) <- c(gsub("^|.csv", "", files)) # ^: from beginning, \ end before .csv
-
-
-cost_state <- costdfList$state
-costflow <- list()
-costflow[[1]] <- costdfList$costFlow
-costflow[[2]] <- costdfList$costFlow_POCRNA_progcostinclude
-
-costflow_Neg <- list()
-costflow_Neg[[1]] <- costdfList$costFlow_NEG
-costflow_Neg[[2]] <- costdfList$costFlow_POCRNA_NEG_progcost_included
-
-
-
-set.seed(123456) 
-rand_multiply <- runif(number_samples, 0.9, 1.1)
-
-param_cost <- lapply(rand_multiply, function(x) lapply(costdfList, function(y) y*x))
-
-for(i in 1: length(rand_multiply)){ 
-  names(param_cost[[i]]) <- names(costdfList)
-  param_cost[[i]]$QALY <- lhs_samples[i,"poparray"]*(costdfList$QALYPops_UU - costdfList$QALYPops_LL) + costdfList$QALYPops_LL 
+  param_cost_flow <- list()
+  param_costflow_Neg <- list()
+  param_QALY <- list()
+  
+  tic <- proc.time()
+  
+  for(i in 1: number_samples){ 
+    param_cost_flow[[i]] <- list(param_cost[[i]]$costFlow, 
+                                 param_cost[[i]]$costFlow_POCRNA)
+    
+    param_costflow_Neg[[i]] <- list(param_cost[[i]]$costFlow_NEG,
+                                    param_cost[[i]]$`costFlow_POCRNA _NEG`)
+    
+    
+    param_QALY[[i]] <-  param_cost[[i]]$QALY  
+    
+  } 
+  toc <- proc.time() - tic
+  print(paste0("Completed: ", cost_type, " | Time: ", toc))
+  
+  
+  save(param_cost,
+       param_cost_flow, 
+       param_costflow_Neg, 
+       param_QALY,
+       rand_multiply ,
+       file = file.path(OutputFolder,
+                        paste0(project_name, "param_cost_", cost_type, ".rda")))
+  
+  
+  print(paste0("Saved: ", cost_type))
 }
 
-param_cost_flow <- list()
-param_costflow_Neg <- list()
-param_QALY <- list()
-for(i in 1: number_samples){ 
-  param_cost_flow[[i]] <- list(param_cost[[i]]$costFlow, 
-                               param_cost[[i]]$costFlow_POCRNA_progcostinclude)
-  
-  param_costflow_Neg[[i]] <- list(param_cost[[i]]$costFlow_NEG,
-                                  param_cost[[i]]$costFlow_POCRNA_NEG_progcost_included)
-  
-  
-  param_QALY[[i]] <-  param_cost[[i]]$QALY  
-  
-} 
 
 
-save(param_cost,
-     param_cost_flow, 
-     param_costflow_Neg, 
-     param_QALY,
-     rand_multiply ,
-     file = file.path(OutputFolder,
-                      paste0(project_name, "param_cost_total", ".rda")))

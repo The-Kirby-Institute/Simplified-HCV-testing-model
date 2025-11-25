@@ -1,6 +1,7 @@
 rm(list = ls())
 gc()
 project_name <- "POC_AU"
+options(digits = 15)
 
 codefun_path <- paste("/Users/jjwu/Documents/Simplified-HCV-testing-model")
 
@@ -30,7 +31,7 @@ load(file.path(OutputFolder, paste0(project_name, ".rda")))
 
 load(file.path(OutputFolder, paste0(project_name, "param.rda")))
 load(file.path(OutputFolder, paste0(project_name, "paramDflist.rda")))
-load(file.path(OutputFolder, paste0(project_name, "param_cost.rda")))
+
 source(file.path(Rcode, "/Functions/HCV_model.R"))
 
 source(file.path(Rcode, "/Functions/plotManuscript.R"))
@@ -69,29 +70,34 @@ gc()
 paramDflist <- lapply(paramDflist, function(x) lapply(x, function(y) y[, , c(1:trim_pt)]))
 gc()
 
-for(x in 1:1000){
-  param_sq[[x]] <- HCVMSM(POC_AU, Param_estimates[[x]], Param_Pops[[x]],
-                          Param_disease_progress[[x]], param_poparray[[x]],
-                          paramDflist[[x]], param_cascade_sc = param_dfList, 
-                          fib = Param_fib[[x]], 
-                          modelrun="UN", proj = "POC_AU", end_Y = endY, 
-                          cost = param_cost[[x]], costflow = param_cost_flow[[x]], 
-                          costflow_Neg = param_costflow_Neg[[x]], fc_sc = fc,
-                          fp = NULL)
-  
+#### cost sensitivity #####
+cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
 
+for (cost_type in cost_types) {
+  tic <- proc.time()
+  load(file.path(OutputFolder, paste0(project_name, "param_cost_", cost_type,".rda")))
+  for(x in 1:1000){
+    param_sq[[x]] <- HCVMSM(POC_AU, Param_estimates[[x]], Param_Pops[[x]],
+                            Param_disease_progress[[x]], param_poparray[[x]],
+                            paramDflist[[x]], param_cascade_sc = param_dfList, 
+                            fib = Param_fib[[x]], 
+                            modelrun="UN", proj = "POC_AU", end_Y = endY, 
+                            cost = param_cost[[x]], costflow = param_cost_flow[[x]], 
+                            costflow_Neg = param_costflow_Neg[[x]], fc_sc = fc,
+                            fp = NULL)
+  }
   
-  
+  toc <- proc.time() - tic
+  print(paste0("Completed: ", cost_type, " | Time: ", toc))
+  save(param_sq,
+       file = file.path(OutputFolder,
+                        paste0(project_name, "param_simulation_", cost_type, ".rda")))
+  print(paste0("Saved: ", cost_type))
+  rm(param_sq) 
+  gc()
 }
+  
 
-toc <- proc.time() - tic
-
-save(param_sq,
-     file = file.path(OutputFolder,
-                      paste0(project_name, "param_simulation", ".rda")))
-
-rm(param_sq) 
-gc()
 ##### scenarios ##### 
 load(file.path(OutputFolder, paste0(project_name, "scenario_cascade.rda")))
 
