@@ -73,8 +73,10 @@ gc()
 #### cost sensitivity #####
 cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
 
-for (cost_type in cost_types) {
+for (cost_type in cost_types[2:4]) {
+  
   tic <- proc.time()
+  param_sq <- list()
   load(file.path(OutputFolder, paste0(project_name, "param_cost_", cost_type,".rda")))
   for(x in 1:1000){
     param_sq[[x]] <- HCVMSM(POC_AU, Param_estimates[[x]], Param_Pops[[x]],
@@ -97,47 +99,4 @@ for (cost_type in cost_types) {
   gc()
 }
   
-
-##### scenarios ##### 
-load(file.path(OutputFolder, paste0(project_name, "scenario_cascade.rda")))
-
-sce_name <- names(scenario_cascade)
-rm(scenario_cascade)
-
-param_dfList <- list()
-
-param_scenario <- list()
-trim_pt <- 100*(1/POC_AU$timestep)
-
-# check whether any parameter >=1 : which_ones <- which(sapply(1:1000, function(i) any(scenario_p[[i]]$tau_ab >= 1)))
-
-for(n in sce_name){ 
-  load(file.path(OutputFolder, paste0(project_name,"param_scenario_",n, ".rda"))) 
-  
-  trim_pt <- 100*(1/POC_AU$timestep)
-  scenario_p <- lapply(scenario_p, function(x) lapply(x, function(y)y[, , c(1:trim_pt)]))
-  gc()
-  tic <- proc.time()
-  param_scenario <- list()
-  for(x in 1:1000){
-    param_scenario[[x]] <- HCVMSM(POC_AU, Param_estimates[[x]], Param_Pops[[x]],
-                                  Param_disease_progress[[x]], param_poparray[[x]],
-                                  paramDflist[[x]], param_cascade_sc = scenario_p[[x]], 
-                                  fib = Param_fib[[x]], 
-                                  modelrun="UN", proj = "POC_AU", end_Y = endY, 
-                                  cost = param_cost[[x]], costflow = param_cost_flow[[x]], 
-                                  costflow_Neg = param_costflow_Neg[[x]], fc_sc = scenario_fc[[n]],
-                                  fp = NULL)
-    
-  }
-  
-  toc <- proc.time() - tic
-  
-  save(param_scenario,
-       file = file.path(OutputFolder,
-                        paste0(project_name, "param_sc_", n, ".rda")))
-  
-  rm(scenario_p, param_scenario)
-  gc()
-}
 

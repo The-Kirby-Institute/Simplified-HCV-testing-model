@@ -314,20 +314,6 @@ for(i in names(Resflow_year_all)){
   }
 
 
-Resflow_year_all_range <- list() 
-
-for(i in names(Resflow_year_all)){ 
-  for(indic in names(Resflow_year_all[[1]])){
-    Resflow_year_all_range[[i]][[indic]] <- Resflow_year_all[[i]][[indic]]%>%
-      mutate(year = year + POC_AU$cabY)%>%
-      filter(year>= POC_AU$simY - 1)%>%
-      popResults_range(POC_AU, . , Population = NULL, 
-                       Disease_prog = NULL, Cascade = NULL, end_Y = endY - 1)
-  }
-}
-
-View(Resflow_year_all_range$dfList_NP_2024$Treatment)
-
 
 Resflow_sc_year_all_range <- list() 
 
@@ -2691,7 +2677,7 @@ ggsave(file=file.path(OutputFig, paste0("Reports/cat_cost_saving","legend",".png
 # load(file.path(OutputFolder, paste0(project_name, "Res_flowcost_discount_0.03.rda")))
 # load(file.path(OutputFolder, paste0(project_name, "Res_flowcost_discount_0.07.rda")))
 
-load(file.path(OutputFolder, paste0(project_name, "Res_flowcost_discount_0.07.rda")))
+load(file.path(OutputFolder, paste0(project_name, "Res_flowcost.rda")))
 # test  
 tab_epi <- Resflow_all_lst
 cost_qaly_range <- list() 
@@ -2933,18 +2919,22 @@ for(i in names(CEAanalysis$`20y`$QALY)){
   
   x_sce[[i]] <- x_sce[[i]]%>%popResults_range(POC_AU, .)
   
-  x_sce[[i]] <- x_sce[[i]]%>%select(year, best, q5, q95)
+  x_sce[[i]] <- x_sce[[i]]%>%select(year, Med, q5, q95)
   }
-
-
+x_cap$`10y`
+x_cap <- x_cap$`5y`%>%gather(sim, val, -c(scenario, year))
 for(i in names(x_cap)){ 
   x_cap[[i]] <- x_cap[[i]]%>%gather(sim, val, -c(indicator, scenario, year))%>%
     spread(indicator, val)
 }
-unique(x_cap$`5y`$scenario)
-View(x_cap[["20y"]])
-PSA_dt <- x_cap[["20y"]]%>%
-  filter( Cost_cap != 0)%>%
+
+for(i in names(x_nocap)){  
+  x_nocap[[i]] <- x_nocap[[i]]%>%gather(sim, val, -c(indicator, scenario, year))%>%
+    spread(indicator, val)
+}
+
+PSA_dt <- x_nocap[["20y"]]%>%
+  filter( Cost!= 0)%>%
   mutate(scenario = factor(scenario, levels = sce_label))
 
 
@@ -2953,7 +2943,7 @@ PSA_dt<- PSA_dt%>%mutate(outline = ifelse(sim == "best", 1,0))%>%
   mutate(category = factor(category, level = sce_label)) 
 
 PSA <- ggplot(PSA_dt, 
-              aes(y = `Cost_cap`, x = QALY)) + 
+              aes(y = Cost, x = QALY)) + 
   geom_point(aes(colour = scenario))  +
   facet_wrap(~scenario) +
   scale_color_manual(name = "Scenarios", 
@@ -2964,7 +2954,7 @@ PSA <- ggplot(PSA_dt,
   geom_hline(yintercept=0, color = "black", linewidth = 1) +
   geom_vline(xintercept=0, color = "black", linewidth = 1)   +
   labs(colour = "Scenarios",  x = "QALY", 
-       y = "Costs (DAA cap, millions)") + 
+       y = "Costs (millions)") + 
   theme_bw() + 
     scale_y_continuous(limits = c(-500000000, 200000000),
                        breaks = seq(-500000000, 200000000, 100000000), 
@@ -3023,8 +3013,8 @@ CEA_cap <- CEA_cap%>%dplyr::bind_rows(., .id = "Timeframe")
 CEA_cap <- CEA_cap%>%mutate(Timframe = factor(Timeframe, 
                                               levels = c("5y", "10y", "20y", "30y", "40y", "50y", "60y"), 
                                               labels = c("5y", "10y", "20y", "30y", "40y", "50y", "60y")))
-CEA_cap <- CEA_cap%>%select(Timeframe, Scenario,best, q5, q95)%>%
-  mutate(best = formatC(best,  format = "fg", big.mark = ","),
+CEA_cap <- CEA_cap%>%select(Timeframe, Scenario,Med, q5, q95)%>%
+  mutate(best = formatC(Med,  format = "fg", big.mark = ","),
          q5 = formatC(q5,  format = "fg", big.mark = ","),
          q95 = formatC(q95,  format = "fg", big.mark = ","))%>%
   mutate(vv = paste0(best, "\n", "(", q5, "-", q95, ")"))%>%
@@ -3041,12 +3031,12 @@ CEA_nocap <- CEA_nocap%>%dplyr::bind_rows(., .id = "Timeframe")
 CEA_nocap <- CEA_nocap%>%mutate(Timframe = factor(Timeframe, 
                                               levels = c("5y", "10y", "20y", "30y", "40y", "50y", "60y"), 
                                               labels = c("5y", "10y", "20y", "30y", "40y", "50y", "60y")))
-CEA_nocap <- CEA_nocap%>%select(Timeframe, Scenario,best, q5, q95)%>%
-  mutate(best = formatC(best,  format = "fg", big.mark = ","),
+CEA_nocap <- CEA_nocap%>%select(Timeframe, Scenario,Med, q5, q95)%>%
+  mutate(best = formatC(Med,  format = "fg", big.mark = ","),
          q5 = formatC(q5,  format = "fg", big.mark = ","),
          q95 = formatC(q95,  format = "fg", big.mark = ","))%>%
   mutate(vv = paste0(best, "\n", "(", q5, "-", q95, ")"))%>%
-  select(-c(best, q5, q95))%>%ungroup()%>%spread(Scenario, vv)
+  select(-c(best,Med, q5, q95))%>%ungroup()%>%spread(Scenario, vv)
 
 CEA_nocap%>%
   gt(

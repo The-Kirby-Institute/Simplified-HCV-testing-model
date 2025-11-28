@@ -73,7 +73,7 @@ save(Res_numbox,
                       paste0(project_name,"Res_numbox" ,".rda"))) 
 
 
-##### bug #####
+
 Resflow_year_pop <- list()
 dtnam <- n_Res_dt
 for(x in 1: length(dtnam)){ 
