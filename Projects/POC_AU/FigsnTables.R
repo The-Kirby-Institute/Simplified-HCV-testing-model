@@ -2294,9 +2294,9 @@ x_catcost_total_nocap <- lapply(list(cost_disydaanocap_categories, cost_disydaan
 
 names(x_catcost_total_nocap) <- ytitle_lab
 unique(x_catcost_total_nocap$`Direct variables + operational fixed costs`$scenario)
-x_catcost_total_incre_nocap <`Direct variables + operational fixed costs`x_catcost_total_incre_nocap <- list()
-x_nocap <- list()
 
+x_nocap <- list()
+x_catcost_total_incre_nocap <- list()
 for(i in unique(x_catcost_total_nocap[[1]]$scenario)) {
   x_nocap[[i]] <- list()
   x_catcost_total_incre_nocap[[i]] <- list()
@@ -2327,7 +2327,7 @@ for(i in unique(x_catcost_total[[1]]$scenario)){
   
   
 }
-View(x_catcost_total_incre_nocap[[2]][[1]])
+
 
 x_catcost_total_incre_nocap <- purrr::transpose(x_catcost_total_incre_nocap)
 

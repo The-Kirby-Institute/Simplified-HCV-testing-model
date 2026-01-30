@@ -56,9 +56,9 @@ cap <- 200000000
 endY <- 100
 par_col <- c("best", paste0("set", seq(1, POC_AU$numberSamples,1)))
 
-for(cost_type in cost_types[2:4]){
+for(cost_type in cost_types){
   files <- list.files(OutputFolder, pattern = paste0(project_name,"Res_dt_.*_", cost_type))
-  
+
   Res_dt <- Map(rda2list, file.path(OutputFolder, files))
   
   name_file <- sub("POC_AURes_dt_", "", files)
@@ -153,61 +153,41 @@ for(cost_type in cost_types[2:4]){
   cost_totalDAA <- list()
   index_col <- list()
   #### applied different unit cost of DAA to different cost_type sensitivity analysis 
-
-  if(cost_type %in% c(cost_types[1], cost_types[2])){
-    unitC_DAA <- 35956.37
-    unitC_secline_DAA <- 44613.66
-    
-    for(i in names(RescostDAA)){
-      
-      index_col[[i]] <- cbind.data.frame(year = RescostDAA[[i]]$cost_Treatment$year,
-                                         population = RescostDAA[[i]]$cost_Treatment$population)
-    
-      cost_TreatDAA[[i]] <-  cbind(as.data.frame(index_col[[i]]), 
-                                   Resflow_year_pop[[i]]$Treatment[ ,c(par_col)]*unitC_DAA)
-     
-      cost_RetreatDAA[[i]] <- cbind(as.data.frame(index_col[[i]]), 
-                                    Resflow_year_pop[[i]]$Retreat[, c(par_col)]*unitC_secline_DAA)
- 
-      cost_TreatDAA_sc[[i]] <- cbind(as.data.frame(index_col[[i]]), 
-                                     Resflow_sc_year_pop[[i]]$Treatment_sc[, c(par_col)]*unitC_DAA)
-    }
-  }else if(cost_type %in% c(cost_types[3])){
-      unitC_DAA <- 26967.27
-      unitC_secline_DAA <- 33460.24
-      for(i in names(RescostDAA)){
-        
-        index_col[[i]] <- cbind.data.frame(year = RescostDAA[[i]]$cost_Treatment$year,
-                                           population = RescostDAA[[i]]$cost_Treatment$population)
-        cost_TreatDAA[[i]] <-  cbind(as.data.frame(index_col[[i]]), 
-                                     Resflow_year_pop[[i]]$Treatment[ ,c(par_col)]*unitC_DAA)
-        
-        cost_RetreatDAA[[i]] <- cbind(as.data.frame(index_col[[i]]), 
-                                      Resflow_year_pop[[i]]$Retreat[, c(par_col)]*unitC_secline_DAA)
-        
-        cost_TreatDAA_sc[[i]] <- cbind(as.data.frame(index_col[[i]]), 
-                                       Resflow_sc_year_pop[[i]]$Treatment_sc[, c(par_col)]*unitC_DAA)
-      }
-      
-  }else if(cost_type %in% c(cost_types[4])){
-    unitC_DAA <- 17978.18
-    unitC_secline_DAA <- 22306.83
-    for(i in names(RescostDAA)){
-      
-      index_col[[i]] <- cbind.data.frame(year = RescostDAA[[i]]$cost_Treatment$year,
-                                         population = RescostDAA[[i]]$cost_Treatment$population)
-      cost_TreatDAA[[i]] <-  cbind(as.data.frame(index_col[[i]]), 
-                                   Resflow_year_pop[[i]]$Treatment[ ,c(par_col)]*unitC_DAA)
-      
-      cost_RetreatDAA[[i]] <- cbind(as.data.frame(index_col[[i]]), 
-                                    Resflow_year_pop[[i]]$Retreat[, c(par_col)]*unitC_secline_DAA)
-      
-      cost_TreatDAA_sc[[i]] <- cbind(as.data.frame(index_col[[i]]), 
-                                     Resflow_sc_year_pop[[i]]$Treatment_sc[, c(par_col)]*unitC_DAA)
-    }
-    
-  }
+  unit_costs <- list(
+    "fixednvariable" = c(DAA = 35956.37, secline = 44613.66),
+    "total" = c(DAA = 35956.37, secline = 44613.66),
+    "DAAcost_reducquarter" = c(DAA = 26967.27, secline = 33460.24),
+    "DAAcost_reduchalf" = c(DAA = 17978.18, secline = 22306.83)
+  )
+  idx <- match(cost_type, cost_types)
+  unitC_DAA <- unit_costs[[idx]]["DAA"]
+  unitC_secline_DAA <- unit_costs[[idx]]["secline"]
   
+  # Verify (optional)
+  message(paste0("Cost type: ", cost_type, " | DAA: ", unitC_DAA, " | Secline: ", unitC_secline_DAA))
+  
+  # Apply costs
+  for(i in names(RescostDAA)){
+    index_col[[i]] <- cbind.data.frame(
+      year = RescostDAA[[i]]$cost_Treatment$year,
+      population = RescostDAA[[i]]$cost_Treatment$population
+    )
+    
+    cost_TreatDAA[[i]] <- cbind(
+      as.data.frame(index_col[[i]]), 
+      Resflow_year_pop[[i]]$Treatment[, c(par_col)] * unitC_DAA
+    )
+    
+    cost_RetreatDAA[[i]] <- cbind(
+      as.data.frame(index_col[[i]]), 
+      Resflow_year_pop[[i]]$Retreat[, c(par_col)] * unitC_secline_DAA
+    )
+    
+    cost_TreatDAA_sc[[i]] <- cbind(
+      as.data.frame(index_col[[i]]), 
+      Resflow_sc_year_pop[[i]]$Treatment_sc[, c(par_col)] * unitC_DAA
+    )
+  }
   index_col <- list()
   for(i in names(RescostDAA)){
     

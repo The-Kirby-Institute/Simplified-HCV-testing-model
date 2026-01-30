@@ -28,8 +28,8 @@ Proj_code <- file.path(codefun_path, paste0("projects/", project_name))
 
 
 load(file.path(OutputFolder, paste0(project_name, ".rda")))
-load(file.path(OutputFolder, paste0(project_name, "param_simulation.rda")))
-load(file.path(OutputFolder, paste0(project_name, "Simulations.rda")))
+load(file.path(OutputFolder, paste0(project_name, "param_simulation_fixednvariable.rda")))
+load(file.path(OutputFolder, paste0(project_name, "Simulations_fixednvariable.rda")))
 
 source(file.path(Rcode, "/Functions/plotManuscript.R"))
 source(file.path(Rcode, "/Functions/plotFunctions.R")) 
@@ -58,10 +58,19 @@ subpop_N <- lapply(POC_AU$popNames, function(x){
                         Disease_prog = NULL , 
                         Cascade = NULL, end_Y = 100) 
 })
-
 names(subpop_N) <- POC_AU$popNames
 # all subpop in one list 
 pop_N <- dplyr::bind_rows(subpop_N, .id = 'population')
+
+allpop_N <- popResults_MidYear(POC_AU, Sce_sq,
+                          Population = NULL,
+                          Disease_prog = NULL, 
+                          Cascade = NULL, param = param_sq, 
+                          endYear = endY)%>%ungroup() 
+ 
+allpop_N_range <- popResults_range(POC_AU, allpop_N, Population = NULL,
+                        Disease_prog = NULL , 
+                        Cascade = NULL, end_Y = 100)%>%arrange(year) 
 
 # colnames for the parameset and best estimation
 name_parset <- c("best", paste0("set", seq(1, 1000, 1)))
@@ -171,6 +180,8 @@ tempPrev_setting[["prisonsPWID"]] <- cbind(year = seq(POC_AU$startYear , endY-1 
 #   (II) community
 #   (III) Prison
 #   (IV) Prison_f/PWID (P_fPWID, P_PWID)
+#   (V) overall
+
 tempNOTInfectedRNA_subpop <- pop_state%>%
   filter(cascade %in%  c("s", "cured" ) )%>%group_by(year, population)%>%
   summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year, population)
@@ -240,13 +251,36 @@ tempPrevRNA_setting[["prisonsPWID"]] <- cbind(year = seq(POC_AU$startYear , endY
                                                               prisonPWID_N[ ,name_parset]))%>%tibble::as_tibble()
 
 
+tempPrevRNA_setting_range <- lapply(tempPrevRNA_setting, function(x) popResults_range(POC_AU, x, Population =  NULL,
+                                                                                      Disease_prog = NULL , 
+                                                                                      Cascade = NULL, end_Y = 100) )
 
+names(tempPrevRNA_setting_range) <- names(tempPrevRNA_setting)
+View(tempPrevRNA_setting_range$prisons%>%mutate(year = year + 2015 - 1)%>%select(year, best, q5, q95))
+# overall  
+## all pop 
+tempNOTInfectedRNA_all <- pop_state%>%
+  filter(cascade %in%  c("s", "cured" ) )%>%group_by(year)%>%
+  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year)
+
+View(pop_state)
+tempPrevRNA_all <- cbind(year = rep(seq(POC_AU$startYear , endY-1 ,1), each = 1),
+                            
+                            as.data.frame(100*(allpop_N[, name_parset] - 
+                                                 tempNOTInfectedRNA_all[ ,name_parset])/ 
+                                            allpop_N[ ,name_parset]))%>%
+  tibble::as_tibble()  
+
+tempPrevRNA_all_range <- popResults_range(POC_AU, tempPrevRNA_all, Population =  NULL,
+                      Disease_prog = NULL , 
+                      Cascade = NULL, end_Y = 100) 
+View(tempPrevRNA_all_range%>%mutate(year = year + 2015 - 1)%>%select(year, best, q5, q95))
 ##### HCV incidence ##### 
 HCVInfect_subpop <- indicatorResults(POC_AU, Sce_sq, "newInfections", 
                                      pop=POC_AU$popNames,
                                      paramR = param_sq, range = NULL,
                                      endY = endY)
-
+View(HCVInfect_subpop)
 HCVInfect_subpop_P <- HCVInfect_subpop%>%
   filter(population %in% c("P_PWID", "P_fPWID", "P_nPWID"))
 
@@ -353,7 +387,7 @@ HCVIncp_subpop <- rbind(HCVIncp_subpop_C, HCVIncp_subpop_P)%>%arrange(year, popu
   tibble::as_tibble()
 
 save(tempPrev_subpop, tempPrev_setting,
-     tempPrevRNA_subpop, tempPrevRNA_setting,
+     tempPrevRNA_subpop, tempPrevRNA_setting, tempPrevRNA_all,
      HCVInc_subpop, HCVInc_setting, HCVInfect_subpop,
      HCVIncre_subpop, HCVIncp_subpop, HCVInfectRE_subpop, 
      file = file.path(OutputFolder,
@@ -361,7 +395,7 @@ save(tempPrev_subpop, tempPrev_setting,
 
 
 rm(tempPrev_subpop, tempPrev_setting,
-   tempPrevRNA_subpop, tempPrevRNA_setting,
+   tempPrevRNA_subpop, tempPrevRNA_setting,tempPrevRNA_all_range,
    HCVInc_subpop, HCVInc_setting, 
    HCVIncre_subpop, HCVIncp_subpop, param_sq, HCVInfectRE_subpop,HCVInfect_subpop ) 
 gc()
@@ -377,6 +411,7 @@ indicator_flow <- list()
 endY <- 100
 subpop_N <- list()
 pop_N <- list()
+
 name_parset <- c()
 total_N <- list()
 commu_N <- list()
@@ -398,6 +433,9 @@ tempNOTInfectedRNA_commu <- list()
 tempPrevRNA_setting <- list()
 tempNOTInfectedRNA_prison <- list()
 tempNOTInfectedRNA_prisonPWID <- list()
+tempNOTInfectedRNA_all <- list()
+tempPrevRNA_all <- list()
+tempPrevRNA_all_range <- list()
 HCVInfect_subpop <- list()
 
 tempPrev_subpop <- list() 
@@ -410,7 +448,7 @@ HCVIncre_subpop <- list()
 HCVIncp_subpop <- list()
 
 for(i in names(Sce_np)){
-  load(file.path(OutputFolder, paste0(project_name, "param_sc_",i ,".rda"))) 
+  load(file.path(OutputFolder, paste0(project_name, "param_sc_",i ,"_", "fixednvariable",".rda"))) 
   
   indicator_flow <- Sce_np[[i]][!names(Sce_np[[i]])%in% c("allPops", "newpop_tran", 
                                                 "newpop_tranState", "HCVdeathState",
@@ -537,6 +575,7 @@ for(i in names(Sce_np)){
   #   (II) community
   #   (III) Prison
   #   (IV) Prison_f/PWID (P_fPWID, P_PWID)
+  #   (V) Overall 
   
   tempNOTInfectedRNA_subpop <- list()
   
@@ -607,6 +646,28 @@ for(i in names(Sce_np)){
                                                                 prisonPWID_N[ ,name_parset]))%>%tibble::as_tibble()
   
  
+  # overall 
+  tempNOTInfectedRNA_all <- list()
+  tempNOTInfectedRNA_all <- pop_state%>%
+    filter(cascade %in%  c("s", "cured" ) )%>%group_by(year)%>%
+    summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year)
+  
+  tempPrevRNA_all <- list()
+  tempPrevRNA_all <- cbind(year = rep(seq(POC_AU$startYear , endY-1 ,1), each = 1),
+                           
+                           as.data.frame(100*(total_N[, name_parset] - 
+                                                tempNOTInfectedRNA_all[ ,name_parset])/ 
+                                           total_N[ ,name_parset]))%>%
+    tibble::as_tibble()  
+  
+  tempPrevRNA_all_range <- list()
+  tempPrevRNA_all_range <- popResults_range(POC_AU, tempPrevRNA_all, Population =  NULL,
+                                            Disease_prog = NULL , 
+                                            Cascade = NULL, end_Y = 100) 
+  
+  
+  
+  
   
   ##### HCV incidence ##### 
   HCVInfect_subpop <- list()
@@ -732,7 +793,7 @@ for(i in names(Sce_np)){
     tibble::as_tibble()
   
   save(tempPrev_subpop, tempPrev_setting,
-       tempPrevRNA_subpop, tempPrevRNA_setting,
+       tempPrevRNA_subpop, tempPrevRNA_setting,tempPrevRNA_all,
        HCVInc_subpop, HCVInc_setting, 
        HCVIncre_subpop, HCVIncp_subpop, HCVInfect_subpop, HCVInfectRE_subpop,
        file = file.path(OutputFolder,
@@ -766,7 +827,7 @@ options(scipen = 999)
 PrevInc_range <- list()
 PrevInc <- PrevInc[!names(PrevInc)%in% c("dfList_NP_2023", "dfList_NPPhaseII_A",
                                          "dfList_NPPhaseII_B", "plot_dt")]
-names(PrevInc)
+
 for(i in names(PrevInc)){
   for( n in names(PrevInc[[1]])){ 
     if(n%in% c("tempPrevRNA_setting" ,"tempPrev_setting", "HCVInc_setting")){ 
@@ -779,14 +840,16 @@ for(i in names(PrevInc)){
       names(PrevInc_range[[i]][[n]]) <- names(PrevInc[[i]][[n]])
       
       PrevInc_range[[i]][[n]] <- bind_rows(PrevInc_range[[i]][[n]], .id = 'setting')
-    }
-    else{ 
-      PrevInc_range[[i]][[n]] <- popResults_range(POC_AU, PrevInc[[i]][[n]], 
-                                                  Population = POC_AU$popNames, 
+      }else if(n =="tempPrevRNA_all"){ 
+        PrevInc_range[[i]][[n]] <- popResults_range(POC_AU, PrevInc[[i]][[n]], 
+                                                  Population = NULL, 
                                                   Disease_prog = NULL, 
                                                   Cascade = NULL, end_Y = endY - 1)
-      }
-  }
+        }else{ PrevInc_range[[i]][[n]] <- popResults_range(POC_AU, PrevInc[[i]][[n]], 
+                                                  Population = POC_AU$popNames, 
+                                                  Disease_prog = NULL, 
+                                                  Cascade = NULL, end_Y = endY - 1)}
+    }
 }
 names(PrevInc_range)
 PrevInc_range <- PrevInc_range[!names(PrevInc_range)%in% c("dfList_NP_2023", 
@@ -796,7 +859,7 @@ PrevInc_range <- PrevInc_range[!names(PrevInc_range)%in% c("dfList_NP_2023",
 PrevInc_range_bind <- PrevInc_range%>%purrr::transpose()%>%
   lapply(., function(x) dplyr::bind_rows(x, .id = 'scenario'))
 names(PrevInc_range_bind) <- names(PrevInc_range[[1]])
-
+library("openxlsx")
 write.xlsx(x = PrevInc_range_bind, file.path(OutputFolder, "PrevInc_epi.xlsx"), append = TRUE)
 
 pop_labname <- c("PWID in community",  "Former PWID in community", 
@@ -823,12 +886,14 @@ for(i in names(PrevInc_range_bind)){
                                  levels = c("commu", "prisons", "prisonsPWID"), 
                                  labels = c("Community", "Prisons", 
                                             "Current & former PWID in prisons")))
-  }
-  else{ 
+  } else if(i == "tempPrevRNA_all"){ 
     PrevInc_range_bind[[i]] <-  
-      PrevInc_range_bind[[i]]%>%mutate(
-        population = factor(population, levels = POC_AU$popNames, 
-                            labels = pop_labname))
+      PrevInc_range_bind[[i]]
+    }else{ 
+      PrevInc_range_bind[[i]] <-  
+        PrevInc_range_bind[[i]]%>%
+        mutate(population = factor(population, levels = POC_AU$popNames, 
+                                   labels = pop_labname))
     
     }
   PrevInc_trajectory[[i]] <-  PrevInc_range_bind[[i]]%>%
@@ -1423,11 +1488,138 @@ PrevInc_sce_p[[8]] <- PrevInc_sce_p[[8]] +
 for(i in names(PrevInc_sce_p)){ 
   ggsave(file=file.path(OutputFig, paste0(i,"_sce" ,".png")), 
          PrevInc_sce_p[[i]], 
-         width = 9, height = 6, bg = "white", dpi = 300)
+         width = 12, height = 8, bg = "white", dpi = 300)
 }
 
 save(PrevInc_range_bind,
      file = file.path(OutputFolder,
                       paste0(project_name,"PrevInc_plot_dt" ,".rda"))) 
 
+
+
+
+PrevInc_sce_p$HCVInc_subpop <- PrevInc_sce_p$HCVInc_subpop + facet_custom (~population,
+                                                 scales = "free", ncol = 2,
+                                                 scale_overrides = 
+                                                   list(
+                                                     scale_new(1,
+                                                               scale_y_continuous(limits = 
+                                                                                    c(0, 30))),
+                                                     scale_new(2,
+                                                               scale_y_continuous(limits = 
+                                                                                    c(0, 30))),
+                                                     
+                                                     scale_new(3,
+                                                               scale_y_continuous(limits = 
+                                                                                    c(0, 30))),
+                                                     scale_new(4,
+                                                               scale_y_continuous(limits = 
+                                                                                    c(0, 30))),
+                                                     scale_new(5,
+                                                               scale_y_continuous(limits = 
+                                                                                    c(0, 10))))) 
+
+ggsave(file=file.path(OutputFig, paste0("HCVInc_subpop","_sce" ,".png")), 
+       PrevInc_sce_p$HCVInc_subpop, 
+       width = 12, height = 8, bg = "white", dpi = 300)
+
+
+PrevRNA_subpop_calibrated <- PrevInc_plot(pj = POC_AU, 
+             dt = PrevInc_trajectory$tempPrevRNA_subpop%>%
+               filter(scenario %in% c("No national program","Foundational implementation")), 
+             obdt = observedt_lst$tempPrevRNA_subpop, 
+             xlimits = c(1, 16, 5), 
+             UI = "y") + 
+  labs(x = "Year", y = "HCV RNA prevalence") +
+  facet_custom (~population,
+                  scales = "free", ncol = 2,
+                  scale_overrides = 
+                    list(
+                      scale_new(1,
+                                scale_y_continuous(limits = 
+                                                     c(0, 60))),
+                      scale_new(2,
+                                scale_y_continuous(limits = 
+                                                     c(0, 60))),
+                      
+                      scale_new(3,
+                                scale_y_continuous(limits = 
+                                                     c(0, 80))),
+                      scale_new(4,
+                                scale_y_continuous(limits = 
+                                                     c(0, 80))),
+                      scale_new(5,
+                                scale_y_continuous(limits = 
+                                                     c(0, 10))))) 
+
+ggsave(file=file.path(OutputFig, paste0("PrevRNA_subpop_calibrated","_sce" ,".png")), 
+       PrevRNA_subpop_calibrated, 
+       width = 12, height = 8, bg = "white", dpi = 300)
+
+
+# HCV RNA setting/treatment  
+
+PrevRNA_setting_calibrated <- PrevInc_plot(pj = POC_AU, 
+                                          dt = PrevInc_trajectory$tempPrevRNA_setting%>%
+                                            filter(scenario %in% c("No national program","Foundational implementation")), 
+                                          obdt = observedt_lst$tempPrevRNA_setting, 
+                                          xlimits = c(1, 16, 5), 
+                                          UI = "y") + 
+  labs(x = "Year", y = "HCV RNA prevalence") +
+  facet_custom (~population,
+                scales = "free", ncol = 2,
+                scale_overrides = 
+                  list(
+                    scale_new(1,
+                              scale_y_continuous(limits = 
+                                                   c(0, 40))),
+                    scale_new(2,
+                              scale_y_continuous(limits = 
+                                                   c(0, 40))),
+                    
+                    scale_new(3,
+                              scale_y_continuous(limits = 
+                                                   c(0, 60)))))
+
+ggsave(file=file.path(OutputFig, paste0("PrevRNA_setting_calibrated","_sce" ,".png")), 
+       PrevRNA_setting_calibrated, 
+       width = 12, height = 8, bg = "white", dpi = 300) 
+
+
+
+#### incidence
+
+Ince_calibrated <- PrevInc_plot(pj = POC_AU, 
+             dt = PrevInc_trajectory$HCVInc_subpop%>%
+               filter(scenario %in% c("No national program","Foundational implementation")), 
+             obdt = observedt_lst$HCVInc_subpop, 
+             xlimits = c(1, 16, 5), 
+             UI = "y") + 
+  labs(x = "Year", y = "HCV RNA prevalence") +
+  facet_custom (~population,
+                scales = "free", ncol = 2,
+                scale_overrides = 
+                  list(
+                    scale_new(1,
+                              scale_y_continuous(limits = 
+                                                   c(0, 10))),
+                    scale_new(2,
+                              scale_y_continuous(limits = 
+                                                   c(0, 10))),
+                    
+                    scale_new(3,
+                              scale_y_continuous(limits = 
+                                                   c(0, 30))),
+                    scale_new(4,
+                              scale_y_continuous(limits = 
+                                                   c(0, 30))),
+                    scale_new(5,
+                              scale_y_continuous(limits = 
+                                                   c(0, 5))))) + 
+  labs(x = "Year", y = "HCV incidence (100 PY)") 
+  
+
+ggsave(file=file.path(OutputFig, paste0("Inc_subpop_calibrated","_sce" ,".png")), 
+       Ince_calibrated, 
+       width = 12, height = 8, bg = "white", dpi = 300) 
 

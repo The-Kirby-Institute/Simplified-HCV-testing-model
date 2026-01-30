@@ -41,33 +41,32 @@ source(file.path(Rcode, "/Functions/check_steady.R"))
 
 # run pre-national program scenario first 
 # import cost data
-# files <- list.files(path = paste0(DataFolder, 
-#                                  "/cost/", sep =  ""), pattern = '*.csv')
+ files <- list.files(path = paste0(DataFolder, 
+                                  "/cost/", sep =  ""), pattern = '*.csv')
 
 
-# costdfList <- lapply(files, function(f) {
+ costdfList <- lapply(files, function(f) {
+   df <- read.csv(file.path(paste0(DataFolder, "/cost/", f, sep = "")), header = TRUE)
   
-#  df <- read.csv(file.path(paste0(DataFolder, "/cost/", f, sep = "")), header = TRUE)
+  df <- df[, -1]
   
-#  df <- df[, -1]
+  df <- df%>%as_tibble()
   
-#  df <- df%>%as_tibble()
+  df <- as.matrix(df, nrow = npops, ncol = length(.) + 1)
   
-#  df <- as.matrix(df, nrow = npops, ncol = length(.) + 1)
-  
-# })
+ })
 
-# names(costdfList) <- c(gsub("^|.csv", "", files)) # ^: from beginning, \ end before .csv
+ names(costdfList) <- c(gsub("^|.csv", "", files)) # ^: from beginning, \ end before .csv
 
 
-# cost_state <- costdfList$state
-# costflow <- list()
-# costflow[[1]] <- costdfList$costFlow
-# costflow[[2]] <- costdfList$costFlow_POCRNA
+ cost_state <- costdfList$state
+ costflow <- list()
+ costflow[[1]] <- costdfList$costFlow
+ costflow[[2]] <- costdfList$costFlow_POCRNA
 
-# costflow_Neg <- list()
-# costflow_Neg[[1]] <- costdfList$costFlow_NEG
-# costflow_Neg[[2]] <- costdfList$`costFlow_POCRNA _NEG`
+ costflow_Neg <- list()
+ costflow_Neg[[1]] <- costdfList$costFlow_NEG
+ costflow_Neg[[2]] <- costdfList$`costFlow_POCRNA _NEG`
 
 #### sensitivity total cost(including program cost) ####
 
@@ -953,9 +952,71 @@ fs[["2030"]][5, ini_dt: end_dt] <-   xfs[["2030"]][[1]][5, ini_dt: end_dt]/xfs[[
 
 
 ####NP Phase III (2027-2030: expand Phase II-B)-B #### 
+# 2027
+
+odd_num_test <- 1.112
+
+Ccal[[2027]] <- lapply(Ccal[[2026]],function(x) x*odd_num_test)
+
+frac_test[[2027]] <- frac_test[[2026]]
+
+frac_ab[["2027"]] <- c(unlist(as.numeric(frac_test[[2027]]$C$reflex)),
+                       unlist(as.numeric(frac_test[[2027]]$P$reflex)))
+
+dfList_NP_2027 <- dfList_NPPhaseII
+for(i in param_var){  
+  dfList_NP_2027[[i]] <- Param_cal(pj = POC_AU, dlist = dfList_NP_2027, index = i, 
+                                   frac_testing = frac_test[[2027]],
+                                   S_Yint = 2027, S_Yend = 2028, r_Yend = 2028, NPlst = NPlst, 
+                                   fp = c(Ccal[[2027]]$C*fm[["2027"]][1], 
+                                          Ccal[[2027]]$C*fm[["2027"]][2], 
+                                          Ccal[[2027]]$P*fm[["2027"]][3], 
+                                          Ccal[[2027]]$P*fm[["2027"]][4], 
+                                          Ccal[[2027]]$P*fm[["2027"]][5]))
+  
+}
+
+for(i in param_var){
+  # begining of 2027
+  b_pt <- (2028 - POC_AU$cabY)/POC_AU$timestep + 1 
+  
+  # length of the time points
+  dim_length <- dim(dfList_NPPhaseII[[i]])[3]
+  dfList_NP_2027[[i]][, , b_pt: dim_length] <- dfList_NP[[i]][, , b_pt: dim_length]
+} 
+
+coverage_np[["2027"]] <- c(Ccal[[2027]]$C, Ccal[[2027]]$P)
+n_ab_np[["2027"]] <- n_ab_np[["2026"]]*odd_num_test
+xfs[["2027"]] <- fs_estimate(num_ab = n_ab_np[["2027"]], 
+                             cov_np = coverage_np[["2027"]], 
+                             frac_ab = frac_ab[["2027"]], 
+                             fp = fm[["2027"]], year = 2027, endY = 100,
+                             modsim = Sce_sq)
+
+View(xfs[["2027"]][[1]])
+ini_dt <- (2027 - POC_AU$cabY)/POC_AU$timestep + 1 
+end_dt <- ((2027 + 1 ) - POC_AU$cabY)/POC_AU$timestep
+# fs[["2024"]][1, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][1, ini_dt:end_dt ]/fm[["2024"]][1]
+# fs[["2024"]][2, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][2, ini_dt:end_dt ]/fm[["2024"]][2]
+# fs[["2024"]][3, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][3, ini_dt:end_dt ]/fm[["2024"]][3]
+# fs[["2024"]][4, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][4, ini_dt:end_dt ]/fm[["2024"]][4]
+# fs[["2024"]][5, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][5, ini_dt:end_dt ]/xfs[["2024"]][[1]][5, ini_dt:end_dt ] 
+
+fs[["2027"]] <- fs[["2026"]]
+fs[["2027"]][1, ini_dt: end_dt] <-   xfs[["2027"]][[1]][1, ini_dt: end_dt]/fm[["2027"]][1]
+fs[["2027"]][2, ini_dt: end_dt] <-   xfs[["2027"]][[1]][2, ini_dt: end_dt]/fm[["2027"]][2]
+fs[["2027"]][3, ini_dt: end_dt] <-   xfs[["2027"]][[1]][3, ini_dt: end_dt]/fm[["2027"]][3]
+fs[["2027"]][4, ini_dt: end_dt] <-   xfs[["2027"]][[1]][4, ini_dt: end_dt]/fm[["2027"]][4]
+fs[["2027"]][5, ini_dt: end_dt] <-   xfs[["2027"]][[1]][5, ini_dt: end_dt]/xfs[["2027"]][[1]][5, ini_dt: end_dt]
+
+
+
+
+
 # 2028 
 
-odd_num_test <- 1.11
+odd_num_test <- 1.17
+fm[["2028"]] <- c(0.8, 0.8, 12, 12, 1)
 
 Ccal[[2028]] <- lapply(Ccal[[2027]],function(x) x*odd_num_test)
 
@@ -1011,8 +1072,9 @@ fs[["2028"]][4, ini_dt: end_dt] <-   xfs[["2028"]][[1]][4, ini_dt: end_dt]/fm[["
 fs[["2028"]][5, ini_dt: end_dt] <-   xfs[["2028"]][[1]][5, ini_dt: end_dt]/xfs[["2028"]][[1]][5, ini_dt: end_dt]
 
 # 2029
-
-odd_num_test <- 1.03
+fm[["2029"]] <- c(0.8, 0.8, 10, 10, 1)
+fm[["2030"]] <- c(0.8, 0.8, 10, 10, 1)
+odd_num_test <- 1.137
 
 Ccal[[2029]] <- lapply(Ccal[[2028]],function(x) x*odd_num_test)
 
@@ -1071,7 +1133,7 @@ fs[["2029"]][5, ini_dt: end_dt] <-   xfs[["2029"]][[1]][5, ini_dt: end_dt]/xfs[[
 
 # 2030
 
-odd_num_test <- 1.45
+odd_num_test <- 1.065
 
 Ccal[[2030]] <- lapply(Ccal[[2029]],function(x) x*odd_num_test)
 
@@ -1148,19 +1210,19 @@ scenario_fc <- list(
                     "dfList_NPPhaseIII_B" = fs[["dfList_NPPhaseIII_B"]])
 
 
-View(fs[["2026"]])
-save(scenario_cascade,
+
+ save(scenario_cascade,
      scenario_fc,
      file = file.path(OutputFolder,
                       paste0(project_name, "scenario_cascade", ".rda")))
 
-tic <- proc.time()
+# tic <- proc.time()
 endY <- 100
 Sce_np <- list()
 
-cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
+ cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
 
-for (cost_type in cost_types) {
+ for (cost_type in cost_types) {
   
   if (cost_type == "fixednvariable") {
     
@@ -1178,7 +1240,7 @@ for (cost_type in cost_types) {
   else if (cost_type == "DAAcost_reduchalf"){
     files <- list.files(path = paste0(DataFolder, "/cost/sensitivity_DAAcost_reduchalf/", sep = ""), pattern = '*.csv')
     
-  }
+   }
       
     costdfList <- lapply(files, function(f) {
       df <- read.csv(file.path(paste0(DataFolder, "/cost/", f, sep = "")), header = TRUE)
@@ -1215,23 +1277,23 @@ for (cost_type in cost_types) {
   }
   
   toc <- proc.time() - tic
-  print(paste0("Completed: ", cost_type, " | Time: "))
+  # print(paste0("Completed: ", cost_type, " | Time: "))
   print(toc)
   
   #### Save results based on cost_type ####
-  save(Sce_sq, Sce_np,
+   save(Sce_sq, Sce_np,
        file = file.path(OutputFolder,
                         paste0(project_name, "Simulations_", cost_type, ".rda")))
   
-  print(paste0("Saved: ", cost_type))
-  }
+   print(paste0("Saved: ", cost_type))
+   }
 
 
 test <- list()
-cl_ext <- names(Sce_np$dfList_NPPhaseIII_A)[c(10:22)]
+cl_ext <- names(Sce_np$dfList_NPPhaseIII_B)[c(10:22)]
 for(i in cl_ext){
   
-  test[[i]] <- modres.flow.t(POC_AU, Sce_np$dfList_NPPhaseIII_A, endYear = 100, 
+  test[[i]] <- modres.flow.t(POC_AU, Sce_np$dfList_NPPhaseIII_B, endYear = 100, 
                              allp = i)%>%
     ungroup()%>%
     group_by(year, population)%>%
@@ -1266,7 +1328,7 @@ test_fscal <- test%>%mutate(Ab = newTestingAb_sc + newTestingAb_sc_neg,
   gather(index, value, -c(year, setting))%>%
   group_by(year, setting, index)%>%summarise(value = sum(value))%>%
   mutate(scenario = "exp_PhaseIII_B")
-dtp <- c(6667, 11476, 20393, 25000, 25000, 25000,30000,35000,40000 )
+dtp <- c(6667, 11476, 20393, 25000, 25000, 31250,37500,43750,50000 )
 # View(test_fscal%>%filter(year%in% c(7:15)))
 View(test_fscal%>%filter(year%in% c(7:15))%>%group_by(year)%>%
        summarise(tot_NP_test = sum(value))%>%
@@ -1305,7 +1367,7 @@ ggplot(data = x%>%filter(index == "Ab"), aes(x = year, y = value)) +
 #################################################################################
 Sce_np$dfList_NP_2023$newTreatment
 
-calibrateFlow_sc <- Sce_np$dfList_NP_2023[names(Sce_np$dfList_NP_2023)%in%
+calibrateFlow_sc <- Sce_np$dfList_NPPhaseIII_B[names(Sce_np$dfList_NPPhaseIII_B)%in%
                                  c("newTreatment", "newRetreat", 
                                    "newTreatment_sc")]
 flow_sub <- list()
@@ -1343,10 +1405,11 @@ N_treatment <- cbind(year = rep(seq(POC_AU$startYear , endY-1 ,1),
   tibble::as_tibble()%>%
   mutate(population = factor(population, 
                              levels = c("commu", "prisons"), 
-                             labels = c("Community", "Prisons" )))
+                             labels = c("Community", "Prisons" )))%>%
+  mutate(year = year + 2015 - 1)
 
 
-
+View(N_treatment)
 HCVtreatinitN_setting_fit <-read.csv(file.path(paste0(DataFolder%>%dirname(), "/HCVtreatinitN_setting_POC_AU.csv")), header = TRUE)%>%
   as.data.frame()%>%mutate(time = year- POC_AU$cabY + 1, 
                            realPop = realpop,

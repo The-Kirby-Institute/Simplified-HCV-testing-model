@@ -72,6 +72,12 @@ for(i in names(Resflow_year_all)){
     Resflow_year_pop[[i]][[n]] <-  Resflow_year_pop[[i]][[n]]%>%ungroup()
     Resflow_year_pop[[i]][[n]][is.na(Resflow_year_pop[[i]][[n]])]  <- 0 
     
+    Resflow_year_all[[i]][[n]] <- Resflow_year_all[[i]][[n]]%>%
+      mutate(year = ifelse(is.na(year), POC_AU$cabY, year +POC_AU$cabY ))
+    
+    Resflow_year_pop[[i]][[n]] <- Resflow_year_pop[[i]][[n]]%>%
+      mutate(year = ifelse(is.na(year), POC_AU$cabY, year +POC_AU$cabY ))
+    
   }
 }
 
@@ -211,7 +217,6 @@ for(i in names(Resflow_year_all)){
   for(indic in names(Resflow_year_all[[1]])){ 
     Resflow_cum_all[[i]][[indic]] <- Resflow_year_all[[i]][[indic]]%>%
       ungroup()%>%
-      mutate(year = year + POC_AU$cabY)%>%
       filter(year>= POC_AU$simY )%>%
       ungroup()%>%
       mutate(across(all_of(par_col), ~{
@@ -219,7 +224,7 @@ for(i in names(Resflow_year_all)){
         out <- rep(NA_real_, length(.x))
         out[i] <- cumsum(.x[i])
         out
-      }, .names = "{col}_cum"))
+      }, .names = "{col}"))
   }
 }
 
@@ -245,10 +250,8 @@ for(i in names(Resflow_cum_all)){
 for(i in names(Resflow_cum_all)){ 
   for(indic in names(Resflow_cum_all[[1]])){
     
-    zero_cols <- colSums(Resflow_cum_all_avert[[i]][[indic]] == 0) == nrow(Resflow_cum_all_avert[[i]][[indic]])
-    zero_cols[is.na(zero_cols)] <- FALSE
     # Set those columns to NA
-    Resflow_cum_all_avert[[i]][[indic]][, zero_cols] <- NA
+    Resflow_cum_all_avert[[i]][[indic]][Resflow_cum_all_avert[[i]][[indic]] == 0] <- NA
     
     
   }
@@ -257,23 +260,26 @@ for(i in names(Resflow_cum_all)){
 
 
 Resflow_sc_cum_all <- list()
+for(i in names(Resflow_sc_year_all)){ 
+  for(indic in names(Resflow_sc_year_all[[1]])){
+    
+    Resflow_sc_year_all[[i]][[indic]] <- Resflow_sc_year_all[[i]][[indic]]%>%mutate(year = year + POC_AU$cabY)
+  }
+}
 
 for(i in names(Resflow_sc_year_all)){ 
   for(indic in names(Resflow_sc_year_all[[1]])){
     Resflow_sc_cum_all[[i]][[indic]] <- Resflow_sc_year_all[[i]][[indic]]%>%
       ungroup()%>%
-      mutate(year = year + POC_AU$cabY)%>%
       mutate(across(all_of(par_col), ~{
         i <- !is.na(.x)
         out <- rep(NA_real_, length(.x))
         out[i] <- cumsum(.x[i])
         out
-      }, .names = "{col}_cum"))
+      }, .names = "{col}"))
     
-    zero_cols <- colSums(Resflow_sc_cum_all[[i]][[indic]] == 0) == nrow(Resflow_sc_cum_all[[i]][[indic]])
-    zero_cols[is.na(zero_cols)] <- FALSE
     # Set those columns to NA
-    Resflow_sc_cum_all[[i]][[indic]][, zero_cols] <- NA
+    Resflow_sc_cum_all[[i]][[indic]][Resflow_sc_cum_all[[i]][[indic]] == 0] <- NA
     
   }
 }
@@ -293,10 +299,7 @@ for(i in names(Resflow_sc_cum_all)){
 
 for(i in names(Resflow_sc_cum_all)){ 
   for(indic in names(Resflow_sc_cum_all[[1]])){
-    zero_cols <- colSums(Resflow_sc_cum_all_avert[[i]][[indic]] == 0) == nrow(Resflow_sc_cum_all_avert[[i]][[indic]])
-    zero_cols[is.na(zero_cols)] <- FALSE
-    # Set those columns to NA
-    Resflow_sc_cum_all_avert[[i]][[indic]][, zero_cols] <- NA
+    Resflow_sc_cum_all_avert[[i]][[indic]][Resflow_sc_cum_all_avert[[i]][[indic]] == 0] <- NA
   }}
 
 
@@ -311,7 +314,6 @@ Resflow_year_all_range <- list()
 for(i in names(Resflow_year_all)){ 
   for(indic in names(Resflow_year_all[[1]])){
     Resflow_year_all_range[[i]][[indic]] <- Resflow_year_all[[i]][[indic]]%>%
-      mutate(year = year + POC_AU$cabY - 1 )%>%
       popResults_range(POC_AU, . , Population = NULL, 
                        Disease_prog = NULL, Cascade = NULL, end_Y = endY - 1)
   }
@@ -328,7 +330,6 @@ Resflow_sc_year_all_range <- list()
 for(i in names(Resflow_sc_year_all)){ 
   for(indic in names(Resflow_sc_year_all[[1]])){
     Resflow_sc_year_all_range[[i]][[indic]] <- Resflow_sc_year_all[[i]][[indic]]%>%
-      mutate(year = year + POC_AU$cabY)%>%
       popResults_range(POC_AU, . , Population = NULL, 
                        Disease_prog = NULL, Cascade = NULL, end_Y = endY - 1)
     
@@ -339,10 +340,9 @@ Resflow_cum_all_range <- list()
 
 for(i in names(Resflow_cum_all)){ 
   for(indic in names(Resflow_cum_all[[1]])){
-    zero_cols <- colSums(Resflow_cum_all[[i]][[indic]] == 0) == nrow(Resflow_cum_all[[i]][[indic]])
-    zero_cols[is.na(zero_cols)] <- FALSE
+    
     # Set those columns to NA
-    Resflow_cum_all[[i]][[indic]][, zero_cols] <- NA
+    Resflow_cum_all[[i]][[indic]][Resflow_cum_all[[i]][[indic]] == 0] <- NA
     
     
     Resflow_cum_all_range[[i]][[indic]] <- 
@@ -364,10 +364,9 @@ for(i in names(Resflow_cum_all_avert)){
 Resflow_sc_cum_all_range <- list()
 for(i in names(Resflow_sc_cum_all)){ 
   for(indic in names(Resflow_sc_cum_all[[1]])){
-    zero_cols <- colSums(Resflow_sc_cum_all[[i]][[indic]] == 0) == nrow(Resflow_sc_cum_all[[i]][[indic]])
-    zero_cols[is.na(zero_cols)] <- FALSE
+    
     # Set those columns to NA
-    Resflow_sc_cum_all[[i]][[indic]][, zero_cols] <- NA
+    Resflow_sc_cum_all[[i]][[indic]][Resflow_sc_cum_all[[i]][[indic]] ==0] <- NA
     
     Resflow_sc_cum_all_range[[i]][[indic]] <- 
       popResults_range(POC_AU, Resflow_sc_cum_all[[i]][[indic]], Population = NULL, 
@@ -408,12 +407,11 @@ for(i in names(Resflow_all)){
       mutate(scenario = factor(scenario, 
                                levels = sce_level, 
                                labels = sce_label),
-             sensitivity = cost_types[1],
-             year = ifelse(is.na(year), POC_AU$cabY, year + 1))%>%
+             sensitivity = cost_types[1])%>%
       arrange(scenario, year)
   }
 }
-View(Resflow_all_lst$Resflow_year$Treatment_sc)
+
 # extracting the scenario wanna present 
 Resflow_all_lst_subsce <- list()
 for(i in names(Resflow_all_lst)){
@@ -574,7 +572,25 @@ p_pocau_avert$Tot_Testing_ab <- p_pocau_avert$Tot_Testing_ab +
 p_pocau_avert$Tot_Testing_RNA <- p_pocau_avert$Tot_Testing_RNA + 
   scale_y_continuous(limits = c(-4000, 1000),breaks = seq(-4000, 1000, 500))
 
+p_pocau_cum$newInfections <- p_pocau_cum$newInfections + 
+  scale_y_continuous(limits = c(0, 250000), breaks = seq(0, 250000, 50000))
 
+p_pocau_cum$HCVdeath <- p_pocau_cum$HCVdeath + 
+  scale_y_continuous(limits = c(0, 15000), breaks = seq(0, 15000, 1000))
+
+p_pocau_cum$Tot_Treatment <- p_pocau_cum$Tot_Treatment + 
+  scale_y_continuous(limits = c(0, 250000), breaks = seq(0, 250000, 50000))
+
+p_pocau_cum$Tot_Testing_ab <- p_pocau_cum$Tot_Testing_ab + 
+  scale_y_continuous(limits = c(0, 2000000), breaks = seq(0, 2000000, 500000))
+p_pocau_cum$Tot_Testing_RNA <- p_pocau_cum$Tot_Testing_RNA + 
+  scale_y_continuous(limits = c(0, 2000000), breaks = seq(0, 2000000, 500000))
+p_pocau_cum$Testing_POCT_sc <- p_pocau_cum$Testing_POCT_sc +
+  scale_y_continuous(limits = c(0, 2000000), breaks = seq(0, 2000000, 500000))
+p_pocau_avert$HCVdeath <- p_pocau_avert$HCVdeath + 
+  scale_y_continuous(limits = c(0, 500), breaks = seq(0, 500, 100))
+p_pocau_avert$Tot_Treatment <- p_pocau_avert$Tot_Treatment + 
+  scale_y_continuous(limits = c(-10000, 10000), breaks = seq(-10000, 10000, 1000))
 for(i in names(p_pocau_avert)){ 
   ggsave(file=file.path(OutputFig_y_cum_avert, paste0(i,"_avert" ,".png")), 
          p_pocau_avert[[i]], 
@@ -605,14 +621,11 @@ Resflow_year_setting_range <- lapply(Resflow_year_setting_range, function(x){
     mutate(scenario = factor(scenario, 
                              levels = sce_level, 
                              labels = sce_label),
-           sensitivity = cost_types[1],
-           year =  POC_AU$cabY + year )%>%
+           sensitivity = cost_types[1])%>%
     arrange(scenario, year)
   return(x)
   } )
-Resflow_year_setting_range_trajectory <- lapply(Resflow_year_setting_range, function(x){ 
-  
-  x%>%mutate(year = ifelse(is.na(year), POC_AU$cabY, year))})
+
 
   
   
@@ -642,7 +655,7 @@ HCVtreatinitN_NP_fit <-read.csv(file.path(paste0(DataFolder%>%dirname(), "/HCVtr
 
 
 
-total_treatm <- Resflow_year_setting_range_trajectory$Tot_Treatment%>%
+total_treatm <- Resflow_year_setting_range$Tot_Treatment%>%
   group_by(year, scenario)%>%summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))
 total_treatm_lst <- list()
 for(i in sce_label){ 
@@ -656,7 +669,7 @@ total_treatm_lst <- total_treatm_lst%>%bind_rows(., .id = 'scenario')%>%
   mutate(scenario = factor(scenario, levels = sce_label, label = sce_label))%>%
   mutate(year = year )
 
-p_T_num <- Cas_num_plot(POC_AU,Resflow_year_setting_range_trajectory$Tot_Treatment%>%
+p_T_num <- Cas_num_plot(POC_AU,Resflow_year_setting_range$Tot_Treatment%>%
                           filter(scenario %in% sce_label[1:2]) , 
                         obdt = HCVtreatinitN_setting_fit, 
                         xlimits = c(2015, 2030, 5), UI = "No National Program") + 
@@ -688,6 +701,10 @@ p_T_num_total <- Cas_num_plot(POC_AU,total_treatm_lst ,
 ggsave(file=file.path(OutputFig_y_cum_avert, paste0("NP_numTreat_all", ".png")), 
        p_T_num_total , 
        width = 8, height = 6, bg = "white", dpi = 300)
+
+ggsave(file=file.path(OutputFig_y_cum_avert, paste0("NP_numTreat_setting", ".png")), 
+       p_T_num , 
+       width = 12, height = 6, bg = "white", dpi = 300)
 
 
 
@@ -742,11 +759,11 @@ ggsave(file=file.path(OutputFig_y_cum_avert, paste0("HCVdeath_supp", ".png")),
 #### testing numbers #### 
 
 # testing 
-xt_np_ab <- cbind(year = Resflow_year_setting_range_trajectory$Testing_ab_sc$year, 
-                  population = Resflow_year_setting_range_trajectory$Testing_ab_sc$population, 
-                  scenario = Resflow_year_setting_range_trajectory$Testing_ab_sc$scenario, 
-                  as.data.frame(Resflow_year_setting_range_trajectory$Testing_ab_sc[, par_col] + 
-                                  Resflow_year_setting_range_trajectory$Testing_ab_sc_neg[, par_col]))%>%
+xt_np_ab <- cbind(year = Resflow_year_setting_range$Testing_ab_sc$year, 
+                  population = Resflow_year_setting_range$Testing_ab_sc$population, 
+                  scenario = Resflow_year_setting_range$Testing_ab_sc$scenario, 
+                  as.data.frame(Resflow_year_setting_range$Testing_ab_sc[, par_col] + 
+                                  Resflow_year_setting_range$Testing_ab_sc_neg[, par_col]))%>%
   as.data.frame()%>%
   split(., .$scenario)%>%
   lapply(., function(x) popResults_range(POC_AU, x, Population = c("Community", "Prisons"),
@@ -754,25 +771,33 @@ xt_np_ab <- cbind(year = Resflow_year_setting_range_trajectory$Testing_ab_sc$yea
            mutate(NP = "NP"))
   
 
-xt_pnp_ab <- cbind(year = Resflow_year_setting_range_trajectory$Testing_ab$year, 
-                   population = Resflow_year_setting_range_trajectory$Testing_ab_sc$population, 
-                   scenario = Resflow_year_setting_range_trajectory$Testing_ab$scenario, 
-                   as.data.frame(Resflow_year_setting_range_trajectory$Testing_ab[, par_col] + 
-                                   Resflow_year_setting_range_trajectory$Testing_ab_neg[, par_col]))%>%
+xt_pnp_ab <- cbind(year = Resflow_year_setting_range$Testing_ab$year, 
+                   population = Resflow_year_setting_range$Testing_ab_sc$population, 
+                   scenario = Resflow_year_setting_range$Testing_ab$scenario, 
+                   as.data.frame(Resflow_year_setting_range$Testing_ab[, par_col] + 
+                                   Resflow_year_setting_range$Testing_ab_neg[, par_col]))%>%
   as.data.frame()%>%
   split(., .$scenario)%>%
   lapply(., function(x) popResults_range(POC_AU, x, Population = c("Community", "Prisons"),
                                          Disease_prog = NULL, Cascade = NULL, end_Y = endY-1)%>%
   mutate(NP = "out of NP"))
 
-xt_np_rna <- cbind(year = Resflow_year_setting_range_trajectory$Testing_RNA_sc$year, 
-                   population = Resflow_year_setting_range_trajectory$Testing_RNA_sc$population, 
-                   scenario = Resflow_year_setting_range_trajectory$Testing_RNA_sc$scenario, 
+# number of treatment, testing plot with calibration points 
+
+
+
+Resflow_year_setting_range_trajectory <- lapply(Resflow_year_setting_range, function(x)
+  x%>%mutate(scenario = factor(scenario, levels = sce_level, 
+                               labels = sce_label)))
+
+xt_np_rna <- cbind(year = Resflow_year_setting_range$Testing_RNA_sc$year, 
+                   population = Resflow_year_setting_range$Testing_RNA_sc$population, 
+                   scenario = Resflow_year_setting_range$Testing_RNA_sc$scenario, 
                    as.data.frame(
-                     replace(Resflow_year_setting_range_trajectory$Testing_RNA_sc[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_RNA_sc[, par_col]), 0) + 
-                       replace(Resflow_year_setting_range_trajectory$Testing_RNA_sc_neg[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_RNA_sc_neg[, par_col]), 0) + 
-                       replace(Resflow_year_setting_range_trajectory$Testing_POCT_sc[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_POCT_sc[, par_col]), 0) + 
-                       replace(Resflow_year_setting_range_trajectory$Testing_POCT_sc_neg[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_POCT_sc_neg[, par_col]), 0)
+                     replace(Resflow_year_setting_range$Testing_RNA_sc[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_RNA_sc[, par_col]), 0) + 
+                       replace(Resflow_year_setting_range$Testing_RNA_sc_neg[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_RNA_sc_neg[, par_col]), 0) + 
+                       replace(Resflow_year_setting_range$Testing_POCT_sc[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_POCT_sc[, par_col]), 0) + 
+                       replace(Resflow_year_setting_range$Testing_POCT_sc_neg[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_POCT_sc_neg[, par_col]), 0)
                    ))%>%
   as.data.frame()%>%mutate(across(all_of(par_col), ~na_if(., 0)))%>%
   split(., .$scenario)%>%
@@ -780,14 +805,14 @@ xt_np_rna <- cbind(year = Resflow_year_setting_range_trajectory$Testing_RNA_sc$y
                                          Disease_prog = NULL, Cascade = NULL, end_Y = endY-1)%>%
            mutate(NP = "NP"))
 
-xt_pnp_rna <- cbind(year = Resflow_year_setting_range_trajectory$Testing_ab$year, 
-                    population = Resflow_year_setting_range_trajectory$Testing_ab_sc$population, 
-                    scenario = Resflow_year_setting_range_trajectory$Testing_ab$scenario, 
+xt_pnp_rna <- cbind(year = Resflow_year_setting_range$Testing_ab$year, 
+                    population = Resflow_year_setting_range$Testing_ab_sc$population, 
+                    scenario = Resflow_year_setting_range$Testing_ab$scenario, 
                     as.data.frame(
-                      replace(Resflow_year_setting_range_trajectory$Testing_RNA[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_RNA[, par_col]), 0) + 
-                        replace(Resflow_year_setting_range_trajectory$Testing_RNA_neg[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_RNA_neg[, par_col]), 0) + 
-                        replace(Resflow_year_setting_range_trajectory$Testing_POCT[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_POCT[, par_col]), 0) + 
-                        replace(Resflow_year_setting_range_trajectory$Testing_POCT_neg[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_POCT_neg[, par_col]), 0)
+                      replace(Resflow_year_setting_range$Testing_RNA[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_RNA[, par_col]), 0) + 
+                        replace(Resflow_year_setting_range$Testing_RNA_neg[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_RNA_neg[, par_col]), 0) + 
+                        replace(Resflow_year_setting_range$Testing_POCT[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_POCT[, par_col]), 0) + 
+                        replace(Resflow_year_setting_range$Testing_POCT_neg[, par_col], is.na(Resflow_year_setting_range_trajectory$Testing_POCT_neg[, par_col]), 0)
                     ))%>%
   as.data.frame()%>%mutate(across(all_of(par_col), ~na_if(., 0)))%>%
   split(., .$scenario)%>%
@@ -971,7 +996,7 @@ for(i in names(HCVNP_ab_setting_fit_lst)[-1]){
 
 ggsave(file=file.path(OutputFig_y_cum_avert, paste0("T_num" ,".png")), 
        p_T_num, 
-       width = 9, height = 6, bg = "white", dpi = 300)
+       width = 12, height = 8, bg = "white", dpi = 300)
 
 # total test 
 xt_ab <- xt_ab%>%arrange(year, population, scenario, NP)%>%ungroup()
@@ -1269,11 +1294,11 @@ p_num_adliver_avert$PLT <- p_num_adliver_avert$PLT +
   geom_hline(yintercept = 0, size = 0.8, linetype = "dashed") +
   labs(y = "Number averted of post-liver transplant") 
 
-p_y_adliver_arrange <- ggarrange(plotlist = p_num_adliver_y, ncol = 3, nrow = 2, 
+p_y_adliver_arrange <- ggarrange(plotlist = p_num_adliver_y, ncol = 2, nrow = 2, 
                                  common.legend = TRUE, legend = "bottom")
-p_cum_adliver_arrange <- ggarrange(plotlist = p_num_adliver_cum, ncol = 3, nrow = 2, 
+p_cum_adliver_arrange <- ggarrange(plotlist = p_num_adliver_cum, ncol = 2, nrow = 2, 
                                    common.legend = TRUE, legend = "bottom")
-p_avert_adliver_arrange <- ggarrange(plotlist = p_num_adliver_avert, ncol = 3, nrow = 2, 
+p_avert_adliver_arrange <- ggarrange(plotlist = p_num_adliver_avert, ncol = 2, nrow = 2, 
                                      common.legend = TRUE, legend = "bottom")
 
 ggsave(file=file.path(OutputFig_y_cum_avert, paste0("num_adliver_y"  ,".png")), 
@@ -1379,12 +1404,12 @@ names(plot_num_avert) <- c(sce_label[2:5], sce_label[1])
 
 for(i in names(plot_num_avert)){ 
   plot_num_avert[[i]]$newInfections <- 
-    plot_num_avert[[i]]$newInfections + scale_y_continuous(limits = c(0,1000))
+    plot_num_avert[[i]]$newInfections + scale_y_continuous(limits = c(0,15000))
   plot_num_avert[[i]]$HCVdeath <- 
-    plot_num_avert[[i]]$HCVdeath + scale_y_continuous(limits = c(0,5))
+    plot_num_avert[[i]]$HCVdeath + scale_y_continuous(limits = c(0,100))
   plot_num_avert[[i]]$DC <- plot_num_avert[[i]]$DC + scale_y_continuous(limits = c(0,200))
   
-  plot_num_avert[[i]]$HCC <- plot_num_avert[[i]]$HCC + scale_y_continuous(limits = c(0,30))
+  plot_num_avert[[i]]$HCC <- plot_num_avert[[i]]$HCC + scale_y_continuous(limits = c(0,100))
   
   plot_num_avert[[i]]$LT <- plot_num_avert[[i]]$LT + scale_y_continuous(limits = c(0,10))
   
@@ -1462,12 +1487,14 @@ name_file <- sub("POC_AURes_flowcost_", "", files)
 
 names(Resflowcost_dt) <- tools::file_path_sans_ext(name_file)
 
-Resflowcost_dt$DAAcost_reduchalf$Rescost_year_all$dfList_NP_2024_DAAcost_reduchalf
+
 
 Rescost_year_all <- list()
 Rescost_disyear_all <- list()
 # Rescost_year_all$cost_type[1:4]$list_name
-for(i in names(Resflowcost_dt)){
+for(i in c("DAAcost_reduchalf","DAAcost_reducquarter" ,"fixednvariable" ,"total")){
+  Rescost_year_all[[i]] <- list()
+  Rescost_disyear_all[[i]] <- list()
   for(n in list_name){
     Rescost_year_all[[i]][[n]] <- Resflowcost_dt[[i]]$Rescost_year_all[[paste0(n,"_", i)]]
     Rescost_disyear_all[[i]][[n]] <- Resflowcost_dt[[i]]$Rescost_disyear_all[[paste0(n,"_", i)]]
@@ -1478,7 +1505,82 @@ for(i in names(Resflowcost_dt)){
 
 
 cost_y_categories <- list()
+# drop off the Cost_treatment part 
+# the following is the validated formula. 
+# extract treatment, treatment sc, retreat
+unit_costs <- list(
+  "fixednvariable" = c(DAA = 35956.37, secline = 44613.66),
+  "total" = c(DAA = 35956.37, secline = 44613.66),
+  "DAAcost_reducquarter" = c(DAA = 26967.27, secline = 33460.24),
+  "DAAcost_reduchalf" = c(DAA = 17978.18, secline = 22306.83)
+)
+eta_cost <- lapply(unit_costs, function(x){
+  a <-  x+884.37
+  
+  return(a)}
+)
 
+Treatlist <- list()
+Treatlist <- list(treat = Resflow_all_lst$Resflow_year$Treatment[, c("scenario", "year",  par_col)],
+                  retreat = Resflow_all_lst$Resflow_year$Retreat[, c("scenario", "year",  par_col)],
+                  treat_sc = Resflow_all_lst$Resflow_year$Treatment_sc[, c("scenario", "year",  par_col)])
+Treatlist[["treat_sc"]][is.na(Treatlist[["treat_sc"]])] <- 0
+cost_TreatOther <- list()
+cost_TreatOther <- lapply(1:length(names(eta_cost)), function(x){
+  a <-cbind(year = Treatlist[["treat"]]$year,
+            scenario = Treatlist[["treat"]]$scenario, 
+            as.data.frame(eta_cost[[x]][1]*Treatlist[["treat"]][, par_col] + eta_cost[[x]][1]*Treatlist[["treat_sc"]][ ,par_col])-
+              (unit_costs[[x]][1]*Treatlist[["treat"]][, par_col] + unit_costs[[x]][1]*Treatlist[["treat_sc"]][ ,par_col]))
+  return(a)}
+)
+names(cost_TreatOther) <- names(eta_cost)
+
+cost_RetreatOther <- list()
+cost_RetreatOther <- lapply(1:length(names(eta_cost)), function(x){
+  a <- cbind(year = Treatlist[["retreat"]]$year,
+             scenario = Treatlist[["retreat"]]$scenario, 
+             as.data.frame(eta_cost[[x]][2]*Treatlist[["retreat"]][, par_col] -
+                             unit_costs[[x]][2]*Treatlist[["retreat"]][, par_col] ))
+  return(a)}
+)
+names(cost_RetreatOther) <- names(eta_cost)
+
+cost_TreatOtherx <- list()
+cost_RetreatOtherx <- list()
+for(i in names(cost_TreatOther)){ 
+  for(n in unique(cost_TreatOther[[1]]$scenario)){ 
+    
+    cost_TreatOtherx[[i]][[n]] <- cost_TreatOther[[i]]%>%filter(scenario == n)
+    cost_RetreatOtherx[[i]][[n]] <- cost_RetreatOther[[i]]%>%filter(scenario == n)
+    
+  }
+  
+} 
+
+disy_cost_TreatOtherx <- list()
+disy_cost_RetreatOtherx <- list()
+for(i in names(cost_TreatOtherx)){ 
+  for(n in names(cost_TreatOtherx[[1]])){ 
+    
+    disy_cost_TreatOtherx[[i]][[n]] <- cost_TreatOtherx[[i]][[n]]%>%
+      as.data.frame()%>%
+      ungroup()%>%
+      mutate(id = year - POC_AU$simY, 
+             discount = ifelse(id>=0, (1 + AUdiscount)^id, NA))%>%
+      mutate(across(c(par_col), ~./discount,
+                    .names = "{col}"))
+    
+    disy_cost_RetreatOtherx[[i]][[n]] <- cost_RetreatOtherx[[i]][[n]]%>%
+      as.data.frame()%>%
+      ungroup()%>%
+      mutate(id = year - POC_AU$simY, 
+             discount = ifelse(id>=0, (1 + AUdiscount)^id, NA))%>%
+      mutate(across(c(par_col), ~./discount,
+                    .names = "{col}"))
+    
+    
+  }
+}
 for(i in names(Rescost_year_all)){ 
   for(n in names(Rescost_year_all[[1]])){
     Rescost_year_all[[i]][[n]]$cost_POCT[is.na(Rescost_year_all[[i]][[n]]$cost_POCT)]  <- 0
@@ -1507,14 +1609,15 @@ for(i in names(Rescost_year_all)){
    
     Rescost_year_all[[i]][[n]]$cost_compartment[is.na(Rescost_year_all[[i]][[n]]$cost_compartment)]  <- 0
     Rescost_year_all[[i]][[n]]$cost_Cured[Rescost_year_all[[i]][[n]]$cost_Cured <0 ] <- 0
-    Rescost_year_all[[i]][[n]]$cost_TreatOther[Rescost_year_all[[i]][[n]]$cost_TreatOther <0 ] <- 0
-    Rescost_year_all[[i]][[n]]$cost_RetreatOther[Rescost_year_all[[i]][[n]]$cost_RetreatOther <0 ] <- 0
+    cost_TreatOtherx[[i]][[n]][cost_TreatOtherx[[i]][[n]] <0 ] <- 0
+    cost_RetreatOtherx[[i]][[n]][cost_RetreatOtherx[[i]][[n]] <0 ] <- 0
+    
     cost_y_categories[[i]][[n]][["Management"]] <- cbind(
       year = Rescost_year_all[[i]][[n]]$cost_compartment$year, 
       as.data.frame(Rescost_year_all[[i]][[n]]$cost_compartment[, par_col] + 
                       Rescost_year_all[[i]][[n]]$cost_Cured[, par_col] +
-                      Rescost_year_all[[i]][[n]]$cost_TreatOther[, par_col] + 
-                      Rescost_year_all[[i]][[n]]$cost_RetreatOther[, par_col])) 
+                      cost_TreatOtherx[[i]][[n]][, par_col] + 
+                      cost_RetreatOtherx[[i]][[n]][, par_col])) 
     
    
     cost_y_categories[[i]][[n]][["Management"]][cost_y_categories[[i]][[n]][["Management"]] == 0] <- NA  
@@ -1526,8 +1629,42 @@ for(i in names(Rescost_year_all)){
     
     }
   }
+#### recalculate Rescost 
+for(i in names(Rescost_year_all)){ 
+  for(n in names(Rescost_year_all[[1]])){
+    
+    Rescost_year_all[[i]][[n]][["cost_TreatOther"]] <- cost_TreatOtherx[[i]][[n]]%>%select(-scenario)
+    Rescost_year_all[[i]][[n]][["cost_RetreatOther"]] <- cost_RetreatOtherx[[i]][[n]]%>%select(-scenario)
+    for(m in names(Rescost_year_all[[i]][[n]])){
+      Rescost_year_all[[i]][[n]][[m]][is.na(Rescost_year_all[[i]][[n]][[m]])] <- 0
+    }
+   
+    Rescost_year_all[[i]][[n]][["cost_total"]] <- cbind(year =Rescost_year_all[[i]][[n]]$cost_totalDAA$year,
+            as.data.frame(Rescost_year_all[[i]][[n]][["cost_compartment"]][, c(par_col)] + 
+                            Rescost_year_all[[i]][[n]][["cost_ab"]][, c(par_col)] + 
+                            Rescost_year_all[[i]][[n]][["cost_RNA"]][, c(par_col)] + 
+                            Rescost_year_all[[i]][[n]][["cost_POCT"]][, c(par_col)] +
+                            Rescost_year_all[[i]][[n]][["cost_totalDAA"]][, c(par_col)] + 
+                            Rescost_year_all[[i]][[n]][["cost_TreatOther"]][, c(par_col)] + 
+                            Rescost_year_all[[i]][[n]][["cost_RetreatOther"]][, c(par_col)] + 
+                            Rescost_year_all[[i]][[n]][["cost_Cured"]][, c(par_col)]))
+    
+    Rescost_year_all[[i]][[n]][["cost_total_Cap"]] <- 
+      cbind(year =Rescost_year_all[[i]][[n]]$cost_totalDAA$year,
+            as.data.frame(Rescost_year_all[[i]][[n]][["cost_compartment"]][, c(par_col)] + 
+                            Rescost_year_all[[i]][[n]][["cost_ab"]][, c(par_col)] + 
+                            Rescost_year_all[[i]][[n]][["cost_RNA"]][, c(par_col)] + 
+                            Rescost_year_all[[i]][[n]][["cost_POCT"]][, c(par_col)] +
+                            Rescost_year_all[[i]][[n]][["cost_totalDAA_Cap"]][, c(par_col)] + 
+                            Rescost_year_all[[i]][[n]][["cost_TreatOther"]][, c(par_col)] + 
+                            Rescost_year_all[[i]][[n]][["cost_RetreatOther"]][, c(par_col)] + 
+                            Rescost_year_all[[i]][[n]][["cost_Cured"]][, c(par_col)]))
+  }
+  }
 
+View(Rescost)
 cost_disyear_categories <- list()
+
 
 for(i in names(Rescost_year_all)){
   for(n in names(Rescost_year_all[[1]])){
@@ -1561,15 +1698,15 @@ for(i in names(Rescost_year_all)){
     
     Rescost_disyear_all[[i]][[n]]$cost_compartment[is.na(Rescost_disyear_all[[i]][[n]]$cost_compartment)]  <- 0
     Rescost_disyear_all[[i]][[n]]$cost_Cured[Rescost_disyear_all[[i]][[n]]$cost_Cured <0 ] <- 0
-    Rescost_disyear_all[[i]][[n]]$cost_TreatOther[Rescost_disyear_all[[i]][[n]]$cost_TreatOther <0 ] <- 0
-    Rescost_disyear_all[[i]][[n]]$cost_RetreatOther[Rescost_disyear_all[[i]][[n]]$cost_RetreatOther <0 ] <- 0
+    disy_cost_TreatOtherx[[i]][[n]][disy_cost_TreatOtherx[[i]][[n]] <0 ] <- 0
+    disy_cost_RetreatOtherx[[i]][[n]][disy_cost_RetreatOtherx[[i]][[n]] <0 ] <- 0
     
     cost_disyear_categories[[i]][[n]][["Management"]] <- cbind(
       year = Rescost_disyear_all[[i]][[n]]$cost_compartment$year, 
       as.data.frame(Rescost_disyear_all[[i]][[n]]$cost_compartment[, par_col] + 
                       Rescost_disyear_all[[i]][[n]]$cost_Cured[, par_col] +
-                      Rescost_disyear_all[[i]][[n]]$cost_TreatOther[, par_col] + 
-                      Rescost_disyear_all[[i]][[n]]$cost_RetreatOther[, par_col]))
+                      disy_cost_TreatOtherx[[i]][[n]][, par_col] + 
+                      disy_cost_RetreatOtherx[[i]][[n]][, par_col]))
     
     
     cost_disyear_categories[[i]][[n]][["Management"]][cost_disyear_categories[[i]][[n]][["Management"]] == 0] <- NA
@@ -1583,12 +1720,47 @@ for(i in names(Rescost_year_all)){
 }
 
 
+for(i in names(Rescost_year_all)){ 
+  for(n in names(Rescost_year_all[[1]])){
+    
+    Rescost_disyear_all[[i]][[n]][["cost_TreatOther"]] <- disy_cost_TreatOtherx[[i]][[n]]
+    Rescost_disyear_all[[i]][[n]][["RetreatOther"]] <- disy_cost_RetreatOtherx[[i]][[n]]
+    
+    for(m in names(Rescost_year_all[[i]][[n]])){
+      Rescost_disyear_all[[i]][[n]][[m]][is.na(Rescost_disyear_all[[i]][[n]][[m]])] <- 0
+    }
+    Rescost_disyear_all[[i]][[n]][["cost_TreatOther"]][]
+    Rescost_disyear_all[[i]][[n]][["cost_total"]] <- 
+      cbind(year =Rescost_disyear_all[[i]][[n]]$cost_totalDAA$year,
+            as.data.frame(Rescost_disyear_all[[i]][[n]][["cost_compartment"]][, c(par_col)] + 
+                            Rescost_disyear_all[[i]][[n]][["cost_ab"]][, c(par_col)] + 
+                            Rescost_disyear_all[[i]][[n]][["cost_RNA"]][, c(par_col)] + 
+                            Rescost_disyear_all[[i]][[n]][["cost_POCT"]][, c(par_col)] +
+                            Rescost_disyear_all[[i]][[n]][["cost_totalDAA"]][, c(par_col)] + 
+                            Rescost_disyear_all[[i]][[n]][["cost_TreatOther"]][, c(par_col)] + 
+                            Rescost_disyear_all[[i]][[n]][["cost_RetreatOther"]][, c(par_col)] + 
+                            Rescost_disyear_all[[i]][[n]][["cost_Cured"]][, c(par_col)]))
+    
+    Rescost_disyear_all[[i]][[n]][["cost_total_Cap"]] <- 
+      cbind(year =Rescost_disyear_all[[i]][[n]]$cost_totalDAA$year,
+            as.data.frame(Rescost_disyear_all[[i]][[n]][["cost_compartment"]][, c(par_col)] + 
+                            Rescost_disyear_all[[i]][[n]][["cost_ab"]][, c(par_col)] + 
+                            Rescost_disyear_all[[i]][[n]][["cost_RNA"]][, c(par_col)] + 
+                            Rescost_disyear_all[[i]][[n]][["cost_POCT"]][, c(par_col)] +
+                            Rescost_disyear_all[[i]][[n]][["cost_totalDAA_Cap"]][, c(par_col)] + 
+                            Rescost_disyear_all[[i]][[n]][["cost_TreatOther"]][, c(par_col)] + 
+                            Rescost_disyear_all[[i]][[n]][["cost_RetreatOther"]][, c(par_col)] + 
+                            Rescost_disyear_all[[i]][[n]][["cost_Cured"]][, c(par_col)]))
+  }
+}
+
 
 y_cost_disyear_categories <- list()
 
 for(i in names(cost_disyear_categories)){
   y_cost_disyear_categories[[i]] <- cost_disyear_categories[[i]]%>%
-    dplyr::bind_rows(., .id = "scenario")%>%ungroup()%>%
+    dplyr::bind_rows(., .id = "scenario")%>%
+    ungroup()%>%
     mutate(sensitivity = i)%>%group_by(scenario, year)%>%
     dplyr::summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))
   
@@ -1649,16 +1821,18 @@ names(p_cost_y_turning) <- names(y_cost_disyear_categories)
 for(i in names(p_cost_y_turning)){ 
   ggsave(file=file.path(OutputFig_y_cum_avert, paste0("p_cost_y_turning_",i,".png")), 
          p_cost_y_turning[[i]], 
-         width = 12, height = 8, bg = "white", dpi = 300)
+         width = 8, height = 8, bg = "white", dpi = 300)
   }
 
 for(i in names(cost_y_categories)){ 
-  cost_y_categories[[i]] <- dplyr::bind_rows(cost_y_categories[[i]], .id = "scenario")%>%
+  cost_y_categories[[i]] <- cost_y_categories[[i]]%>%
+    dplyr::bind_rows(., .id = "scenario")%>%
     mutate(scenario = factor(scenario, 
                              levels = sce_label,
                              labels = sce_label))
   
-  cost_disyear_categories[[i]] <- dplyr::bind_rows(cost_disyear_categories[[i]], .id = "scenario")%>%
+  cost_disyear_categories[[i]] <- cost_disyear_categories[[i]]%>%
+    dplyr::bind_rows(., .id = "scenario")%>%
     mutate(scenario = factor(scenario, 
                              levels = sce_label,
                              labels = sce_label))
@@ -1707,7 +1881,7 @@ write.xlsx(cost_disydaanocap_categories_bind%>%
                     Med, Mu, q5, q25, q75, q95), file = file.path(OutputFig, paste0("cost_disy_daanocap.xlsx")), 
            append=TRUE) 
 
-
+View(cost_disydaanocap_categories_bind)
 # gt_table: 4 tables by categories
 # categories yearly cost and discount yearly cost to 2022- 2080 
 # columns: scenarios 
@@ -1760,7 +1934,7 @@ for(i in unique(x_catcost$discount_cap$sensitivity)) {
 
 }
 #### 20 years #### 
-
+pcatcost$`Main analysis`$discount_nocap
 for(i in unique(x_catcost$discount_cap$sensitivity)){ 
   pcatcost[[i]][[names(x_catcost)[1]]] <- x_catcost[[1]]%>%
     filter(year == year_obs[3] & sensitivity == i)%>%arrange(Categories)%>%
@@ -1809,11 +1983,112 @@ file_name <- c(cost_types[4], cost_types[3], cost_types[1], cost_types[2])
 for(i in 1:length(pcatcost)){ 
   for(n in names(pcatcost[[1]])){
     
-    ggsave(file=file.path(OutputFig, paste0("costs/cost_catego_20y_",file_name[i], "_", n,".png")), 
+    ggsave(file=file.path(OutputFig, paste0("cost_catego_20y_",file_name[i], "_", n,".png")), 
            pcatcost[[i]][[n]],  width = 10, height = 8, bg = "white", dpi = 300)  
   }
 }
+pcatcost$`Cost of DAA:-50%`$discount_nocap
+#### categories increase #### 
+ref_catcost_cap <- x_catcost$discount_cap%>%group_by(sensitivity)%>%filter(year == 2041 & scenario == "No national program" & sensitivity == "Main analysis")%>%
+  select(sensitivity, Categories, ref_best = best, ref_q5 = q5, ref_q95 = q95)
+incre_catcost_cap <- x_catcost$discount_cap%>%group_by(sensitivity)%>%filter(year == 2041& sensitivity == "Main analysis" )%>%
+  left_join(ref_catcost_cap, by = c("sensitivity", "Categories"))%>%
+  mutate(incre_best = best- ref_best, 
+         incre_q5 = q5 - ref_q5, 
+         incre_q95 = q95 - ref_q95)%>%
+  ungroup()
+incre_catcost_cap <- incre_catcost_cap%>%mutate(sensitivity = "DAA capped")
+incre_catcost_cap <- incre_catcost_cap%>%mutate(Categories = if_else(Categories == "Treatment_cap", "Treatment", Categories))
 
+ref_catcost <- x_catcost$discount_nocap%>%group_by(sensitivity)%>%filter(year == 2041 & scenario == "No national program")%>%
+  select(sensitivity, Categories, ref_best = best, ref_q5 = q5, ref_q95 = q95)
+incre_catcost <- x_catcost$discount_nocap%>%group_by(sensitivity)%>%filter(year == 2041 )%>%
+  left_join(ref_catcost, by = c("sensitivity", "Categories"))%>%
+  mutate(incre_best = best- ref_best, 
+         incre_q5 = q5 - ref_q5, 
+         incre_q95 = q95 - ref_q95)%>%
+  ungroup()
+
+incre_catcost <- rbind(incre_catcost, incre_catcost_cap)%>%filter(scenario != "No national program")
+
+
+incre_plot_sens <- list()
+for(i in unique(incre_catcost$sensitivity)){ 
+  if(i == "Main analysis"){ 
+    gtitle <- paste0("Main analysis: National Program direct costs" )
+
+  }else if(i == "NP total program cost"){
+    gtitle <- (paste0("National Program total costs" ))
+  }else {
+    gtitle <- i
+  }
+  incre_plot_sens[[i]] <- 
+    ggplot(incre_catcost%>%filter(sensitivity == i), 
+         aes(x = scenario, y = incre_best, fill = Categories)) +
+    geom_bar(stat = "identity", position = "stack", width = 0.8) +
+    scale_fill_manual(values = c( "grey30", "grey40","grey80")) + 
+    theme_Publication(base_size = 16) + 
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), 
+          legend.direction = "vertical") + 
+    scale_y_continuous(limit = c(-200000000, 50000000), 
+                       breaks = seq(-200000000, 50000000, 50000000),
+                       labels = seq(-200000000, 50000000, 50000000)/1000000) + 
+    labs(y = "Cost (discounted, millions)", x = "Scenarios") + 
+    geom_text( aes(label = paste0(format(round(incre_best/1000000, 1), nsmall = 1), "m")),
+               position = position_stack(vjust = 0.5), 
+               size = 4)  + geom_hline(yintercept = 0, linetype ="dashed") + 
+    ggtitle(gtitle )
+  
+  
+  }
+library(ggpubr)
+library(cowplot)
+
+incre_plot_sens[[3]] <- incre_plot_sens[[3]] + 
+  theme(
+    legend.key.size = unit(1.5, "cm"),
+    legend.key.width = unit(1.5, "cm"),    # width of legend keys
+    legend.key.height = unit(1, "cm"),     # height of legend keys
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 16),
+    legend.spacing.y = unit(0.5, "cm")     # spacing between legend items
+  ) + theme(legend.position = "right")
+
+get_legend_manual <- function(p) {
+  tmp <- ggplot_gtable(ggplot_build(p))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  tmp$grobs[[leg]]
+}
+
+legend <- get_legend_manual(incre_plot_sens[[1]])
+
+# Remove legends from all plots
+plots_no_legend <- lapply(incre_plot_sens, function(p) {
+  p + theme(legend.position = "none")
+})
+
+# Arrange: 5 plots + legend in 6th cell
+incre_cost_sen <- ggarrange(
+  plots_no_legend[[3]], plots_no_legend[[4]], plots_no_legend[[1]],
+  plots_no_legend[[2]], plots_no_legend[[5]], legend,
+  nrow = 2, ncol = 3
+)
+
+ggsave(file=file.path(OutputFig, paste0("incre_cost_sen.png")), 
+       incre_cost_sen,  width = 21, height = 12, bg = "white", dpi = 300) 
+
+for(i in 1: length(names(cost_disydaanocap_categories))){ 
+  
+  ggsave(file=file.path(OutputFig, paste0("incre_cost_sen_", names(cost_disydaanocap_categories)[i],".png")), 
+         incre_plot_sens[[i]],  width = 14, height = 12, bg = "white", dpi = 300) 
+  }
+
+ggsave(file=file.path(OutputFig, paste0("incre_cost_maintext.png")), 
+       incre_plot_sens[[3]],  width = 14, height = 12, bg = "white", dpi = 300) 
+
+
+
+incre_plot_sens$`Cost of DAA:-50%`
 
 
 tab_epi <- Resflow_all_lst
@@ -1821,27 +2096,39 @@ cost_qaly_range <- list()
 cost_qaly_range_disy <- list()
 cost_qaly_range_ycum <- list()
 cost_qaly_range_disycum <- list()
+temp_df <- list()
+temp_disdf <- list()
+
 for(i in names(Rescost_year_all)){ 
   for(n in names(Rescost_year_all[[1]])){ 
     for(m in names(Rescost_year_all[[1]][[1]])){
       Rescost_year_all[[i]][[n]][[m]][Rescost_year_all[[i]][[n]][[m]] ==0 ]  <- NA
       
       Rescost_disyear_all[[i]][[n]][[m]][Rescost_disyear_all[[i]][[n]][[m]] ==0 ]  <- NA
+      temp_df <- Rescost_year_all[[i]][[n]][[m]]
+      temp_disdf <- Rescost_disyear_all[[i]][[n]][[m]]
+      
+      if (!"year" %in% names(temp_df)) {
+        stop(paste("No 'year' column in temp_df for", i, n, m))
+      }
+      if (!"year" %in% names(temp_disdf)) {
+        stop(paste("No 'year' column in temp_disdf for", i, n, m))
+      }
       
       cost_qaly_range[[i]][[n]][[m]] <- 
-        popResults_range(POC_AU, Rescost_year_all[[i]][[n]][[m]], end_Y = 100-1)%>%
+        popResults_range(POC_AU, temp_df, end_Y = 100-1)%>%
         as_tibble()
-      
+   
       cost_qaly_range_disy[[i]][[n]][[m]] <- 
-        popResults_range(POC_AU, Rescost_disyear_all[[i]][[n]][[m]], end_Y = 100-1)%>%
+        popResults_range(POC_AU, temp_disdf, end_Y = 100-1)%>%
         as_tibble()
       
-      cost_qaly_range_ycum[[i]][[n]][[m]] <- Rescost_year_all[[i]][[n]][[m]]%>%
+      cost_qaly_range_ycum[[i]][[n]][[m]] <- temp_df%>%
         filter(year>=2022)%>%
         mutate(across(par_col, list(cum=cumsum), .names = "{col}"))%>%
         popResults_range(POC_AU, ., end_Y = 100-1)%>%as_tibble()
       
-      cost_qaly_range_disycum[[i]][[n]][[m]] <- Rescost_disyear_all[[i]][[n]][[m]]%>%
+      cost_qaly_range_disycum[[i]][[n]][[m]] <- temp_disdf%>%
         filter(year>=2022)%>%
         mutate(across(par_col, list(cum=cumsum), .names = "{col}"))%>%
         popResults_range(POC_AU, ., end_Y = 100-1)%>%
@@ -2048,10 +2335,11 @@ for(m in names(CEAanalysis)){
   
 }
 
-
+CEAanalysis$DAAcost_reduchalf$`20y`$Cost$`Foundational implementation`
 Increx <- lapply(Incre, function(x) lapply(x, function(y) y%>%purrr::transpose())) 
 
-Increx$DAAcost_reduchalf$`5y`$`No national program`
+Increx$DAAcost_reduchalf$`20y`$`Foundational implementation`$Cost%>%select(year, Med, q5, q95, Mu)%>%
+  mutate(Mu = round(Med/1000000, digits = 1))
 CEA <- list()
 CEA_cap <- list()
 for(m in names(Increx)){
@@ -2080,15 +2368,11 @@ for(m in names(CEA)){
     
   }
 }
-
+CEA$DAAcost_reduchalf$`20y`$`Program accelerated`%>%select(year, Mu, min, q5, q95)
 te <- lapply(Increx, function(x) lapply(x, function(y) lapply(y, function(m) dplyr::bind_rows(m, .id = "indicator"))))
 
 
 te <- lapply(te, function(x) lapply(x, function(y) dplyr::bind_rows(y, .id = "scenario")))
-
-x_cap <- lapply(te, function(x) x%>%filter(indicator != "Cost"))
-x_nocap <- lapply(te, function(x) x%>%filter(indicator != "Cost_cap"))
-x_cap <- lapply(x_cap, function(x) x[, c(1:1004)])
 
 x_cap <- list()
 x_nocap <- list()
@@ -2105,9 +2389,6 @@ for(i in names(te)){
   
 }
 
-PSA_dt <- x_nocap[["20y"]]%>%
-  filter( Cost!= 0)%>%
-  mutate(scenario = factor(scenario, levels = sce_label))
 
 PSA_dt <- list()
 PSA_nocap_dt <- list()
@@ -2252,7 +2533,7 @@ for(i in names(PSA)){
   
 }
 
-
+PSA_nocap$DAAcost_reduchalf
 CEA_capbind <- list()
 CEA_capbind <- lapply(CEA_cap, function(x) lapply(x, function(y) dplyr::bind_rows(y, .id = "Scenario")))
 CEA_capbind <- lapply(CEA_capbind, function(x) bind_rows(x, .id = "Timeframe"))
@@ -2355,10 +2636,11 @@ x_catcost_total <- lapply(cost_disydaanocap_categories,
                                 mutate(across(c(par_col, "min", "max", "Med", "Mu", "q5", 
                                                 "q25", "q75", "q95"), cumsum, .names = "{col}"))%>%ungroup()%>%
                                 arrange(scenario)%>%group_by(year, scenario)%>%
-                                summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))
+                                summarise(across(c(par_col, "min", "max", "Med", "Mu", "q5", 
+                                                   "q25", "q75", "q95"),~ sum(.x, na.rm = FALSE)))
 )
 
-
+x_catcost_total$DAAcost_reduchalf%>%filter(year == 2041)%>%select(year, scenario, best, min, q5, q95)
 x_total_ref_cap 
 x_total_ref
 x_catcost_total_cap
@@ -2404,14 +2686,15 @@ for(i in names(x_catcost_total)){
     }
   }
 
-View(x_catcost_total_cap_incre$DAAcost_reduchalf)
+x_catcost_total_incre$DAAcost_reduchalf%>%filter(year == 2041)%>%
+  select(year, scenario, best, min, q5, q95)
 
 x_catcost_total_cap_incre <- lapply(x_catcost_total_cap_incre, function(x) bind_rows(x, .id = "scenario"))
 x_catcost_total_incre <- lapply(x_catcost_total_incre, function(x) bind_rows(x, .id = "scenario"))
 
 incremental_cost <- list()
 incremental_cost_cap <- list()
-
+sensi_name <- c("DAA cost: -50%", "DAA cost: -25%", "Main analysis: direct Program cost", "Total Program cost")
 for(i in 1: length(names(x_catcost_total_incre))){ 
   incremental_cost[[i]] <- ggplot(x_catcost_total_incre[[i]]%>%
                                  mutate(scenario = factor(scenario, levels = c(sce_label))), 
@@ -2428,15 +2711,26 @@ for(i in 1: length(names(x_catcost_total_incre))){
     scale_linetype_manual(values = c("dashed", "solid", "solid", "solid", "solid")) + 
     labs( y = "Incremental cost (in millions)", x = "Year") + 
     geom_hline(linetype = "dashed", yintercept = 0, size = 1) +
-    ggtitle(sensi_name[i]) 
+    ggtitle(sensi_name[i]) + 
+    theme(
+      legend.position = c(0.02, 0.02),
+      legend.justification = c("left", "bottom"),
+      legend.direction = "vertical",
+      legend.title = element_text(face = "bold"),
+      legend.background = element_blank(),  # no box
+      legend.key = element_blank()  # no key background
+    ) +
+    labs(linetype = "Scenarios",
+         color = "Scenarios")
   
-  
+
+
   ggsave(file=file.path(OutputFig, paste0("incremental_cost",names(x_catcost_total_incre)[i],".png")), 
          incremental_cost[[i]], 
-         width = 16, height = 8, bg = "white", dpi = 300)   
+         width = 12, height = 8, bg = "white", dpi = 300)   
   
   
-  
+  View(x_catcost_total_incre$DAAcost_reduchalf)
   
   incremental_cost_cap[[i]] <- ggplot(x_catcost_total_cap_incre[[i]]%>%
                                     mutate(scenario = factor(scenario, levels = c(sce_label))), 
@@ -2453,14 +2747,327 @@ for(i in 1: length(names(x_catcost_total_incre))){
     scale_linetype_manual(values = c("dashed", "solid", "solid", "solid", "solid")) + 
     labs( y = "Incremental cost (in millions)", x = "Year") + 
     geom_hline(linetype = "dashed", yintercept = 0, size = 1) +
-    ggtitle(sensi_name[i]) 
+    ggtitle(sensi_name[i]) +
+    theme(
+      legend.position = c(0.02, 0.02),
+      legend.justification = c("left", "bottom"),
+      legend.direction = "vertical",
+      legend.title = element_text(face = "bold"),
+      legend.background = element_blank(),  # no box
+      legend.key = element_blank()  # no key background
+    ) +
+    labs(linetype = "Scenarios",
+         color = "Scenarios")
   
   
   ggsave(file=file.path(OutputFig, paste0("incremental_cost_cap",names(x_catcost_total_incre)[i],".png")), 
          incremental_cost_cap[[i]], 
-         width = 16, height = 8, bg = "white", dpi = 300)   
+         width = 12, height = 8, bg = "white", dpi = 300)   
   
   }
+View(x_catcost_total_incre$fixednvariable)
+#### prevalence plots for manuscript  ####
+PrevInc_plot <- function(pj, dt, obdt =NULL, xlimits, UI = NULL){ 
+  if(length(unique(dt$scenario)) == 2){ 
+    col_pal <- c("#000000", "#E69F00")
+    
+  } 
+  else{col_pal <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442")
+  }
+  
+  
+  
+  if(is.null(obdt) & is.null(UI)){ 
+    traj_plot <- ggplot(dt, aes(x = year, y = best)) + 
+      geom_line(aes(colour = scenario, linetype = scenario)) + 
+      
+      facet_wrap(~ population, scale ="free", ncol = 2 ) + 
+      scale_color_manual(name = "Scenarios", values = col_pal ) + 
+      scale_linetype_manual(name = "Scenarios", 
+                            values = c("dashed", rep("solid", length(unique(dt$scenario)) - 1))) + 
+      coord_cartesian(xlim = xlimits[1:2]) +
+      scale_x_continuous(expand = c(0.01, 0), limits =c(xlimits[1], xlimits[2]) ,
+                         breaks = seq(xlimits[1], xlimits[2], 
+                                      by = xlimits[3]),
+                         labels = seq(pj$cabY + xlimits[1] - 1, 
+                                      (pj$cabY + xlimits[2] - 1),
+                                      xlimits[3])) +
+      theme(panel.spacing = unit(2, "lines")) + theme_Publication_facet() + 
+      theme(legend.key.size = unit(1,"line"))
+  }
+  else if(is.null(obdt) & !is.null(UI)){ 
+    traj_plot <- ggplot(dt, aes(x = year, y = best)) + 
+      geom_line(aes(colour = scenario, linetype = scenario)) + 
+      geom_ribbon(aes(ymin = q5, ymax = q95, fill = scenario), alpha = 0.2) +
+      facet_wrap(~ population, scale ="free", ncol = 2 ) + 
+      scale_color_manual(name = "Scenarios", values = col_pal ) + 
+      scale_fill_manual(name = "Scenarios", values = col_pal ) + 
+      scale_linetype_manual(name = "Scenarios", 
+                            values = c("dashed", rep("solid", length(unique(dt$scenario)) - 1))) + 
+      coord_cartesian(xlim = xlimits[1:2]) +
+      scale_x_continuous(expand = c(0.01, 0), limits =c(xlimits[1], xlimits[2]) ,
+                         breaks = seq(xlimits[1], xlimits[2], 
+                                      by = xlimits[3]),
+                         labels = seq(pj$cabY + xlimits[1] - 1, 
+                                      (pj$cabY + xlimits[2] - 1),
+                                      xlimits[3])) + 
+      theme(panel.spacing = unit(2, "lines")) + theme_Publication_facet() + 
+      theme(legend.key.size = unit(1,"line"))
+    
+  }
+  
+  else if(!is.null(obdt) & is.null(UI)){
+    traj_plot <- ggplot(dt, aes(x = year, y = best)) + 
+      geom_line(aes(colour = scenario, linetype = scenario)) + 
+      facet_wrap(~ population, scale ="free", ncol = 2 ) + 
+      scale_color_manual(name = "Scenarios", values = col_pal ) + 
+      scale_linetype_manual(name = "Scenarios", 
+                            values = c("dashed", rep("solid", length(unique(dt$scenario)) - 1))) + 
+      coord_cartesian(xlim = xlimits[1:2]) +
+      scale_x_continuous(expand = c(0.01, 0), limits =c(xlimits[1], xlimits[2]) ,
+                         breaks = seq(xlimits[1], xlimits[2], 
+                                      by = xlimits[3]),
+                         labels = seq(pj$cabY + xlimits[1] - 1, 
+                                      (pj$cabY + xlimits[2] - 1),
+                                      xlimits[3])) + 
+      geom_point(data=obdt, aes(y=realPop, x = time), 
+                 colour = "black", size = 1) +
+      geom_segment(data = obdt, 
+                   aes ( y = low, yend = up, x = time, xend = time)) +
+      theme(panel.spacing = unit(2, "lines")) + theme_Publication_facet() + 
+      theme(legend.key.size = unit(1,"line"))
+    
+    
+  }
+  else if(!is.null(obdt) & !is.null(UI)){
+    traj_plot <- ggplot(dt, aes(x = year, y = best)) + 
+      geom_line(aes(colour = scenario, linetype = scenario)) + 
+      geom_ribbon(aes(ymin = q5, ymax = q95, fill = scenario), alpha = 0.2) +
+      facet_wrap(~ population, scale ="free", ncol = 2 ) + 
+      scale_color_manual(name = "Scenarios", values = col_pal ) + 
+      scale_fill_manual(name = "Scenarios", values = col_pal ) + 
+      scale_linetype_manual(name = "Scenarios", 
+                            values = c("dashed", rep("solid", length(unique(dt$scenario)) - 1))) + 
+      coord_cartesian(xlim = xlimits[1:2]) +
+      scale_x_continuous(expand = c(0.01, 0), limits =c(xlimits[1], xlimits[2]) ,
+                         breaks = seq(xlimits[1], xlimits[2], 
+                                      by = xlimits[3]),
+                         labels = seq(pj$cabY + xlimits[1] - 1, 
+                                      (pj$cabY + xlimits[2] - 1),
+                                      xlimits[3])) + 
+      geom_point(data=obdt, aes(y=realPop, x = time), 
+                 colour = "black", size = 1) +
+      geom_segment(data = obdt, 
+                   aes ( y = low, yend = up, x = time, xend = time)) +
+      theme(panel.spacing = unit(2, "lines")) + theme_Publication_facet() + 
+      theme(legend.key.size = unit(1,"line"))
+  }
+  
+  return(traj_plot)
+}
+
+
+# function for getting ceiling number for plots 
+lim_ident <- function(dt, group_index, year_range, summar_col){ 
+  if(summar_col == "max"){
+    if(group_index == "pop"){ 
+      lim <- dt%>%group_by(population)%>%
+        filter(year %in% year_range)%>%
+        summarise(x = max(max))%>%
+        mutate(lim = case_when( 
+          x <1 ~5, 
+          x>=1 & x <10 ~ 10, 
+          x>=10 & x< 30 ~ 30, 
+          x>=30 & x<60 ~ 60, 
+          x>=60 & x<80 ~ 80, 
+          x>80 & x<=100 ~100,
+          x>100 & x<=1000 ~ (x%/%100 + 1)*100,
+          x >1000 & x<10000 ~ (x%/%1000 + 1)*1000
+        ))
+    }
+    else if(group_index == "setting"){ 
+      lim <- dt%>%group_by(setting)%>%
+        filter(year %in% year_range)%>%
+        summarise(x = max(max))%>%
+        mutate(lim = case_when( 
+          x <1 ~5, 
+          x>=1 & x <10 ~ 10, 
+          x>=10 & x< 30 ~ 30, 
+          x>=30 & x<60 ~ 60, 
+          x>=60 & x<80 ~ 80, 
+          x>80 & x<=100 ~100,
+          x>100 & x<=1000 ~ (x%/%100 + 1)*100,
+          x >1000 & x<10000 ~ (x%/%1000 + 1)*1000
+        ))
+    }
+    return(lim)  
+  }
+  else if(summar_col == "best"){ 
+    if(group_index == "pop"){ 
+      lim <- dt%>%group_by(population)%>%
+        filter(year %in% year_range)%>%
+        summarise(x = max(best))%>%
+        mutate(lim = case_when( 
+          x <1 ~5, 
+          x>=1 & x <10 ~ 10, 
+          x>=10 & x< 30 ~ 30, 
+          x>=30 & x<60 ~ 60, 
+          x>=60 & x<80 ~ 80, 
+          x>80 & x<=100 ~100,
+          x>100 & x<=1000 ~ (x%/%100 + 1)*100,
+          x >1000 & x<10000 ~ (x%/%1000 + 1)*1000
+        ))
+    }
+    else if(group_index == "setting"){ 
+      lim <- dt%>%group_by(setting)%>%
+        filter(year %in% year_range)%>%
+        summarise(x = max(best))%>%
+        mutate(lim = case_when( 
+          x <1 ~5, 
+          x>=1 & x <10 ~ 10, 
+          x>=10 & x< 30 ~ 30, 
+          x>=30 & x<60 ~ 60, 
+          x>=60 & x<80 ~ 80, 
+          x>80 & x<=100 ~100,
+          x>100 & x<=1000 ~ (x%/%100 + 1)*100,
+          x >1000 & x<10000 ~ (x%/%1000 + 1)*1000
+        ))
+    }
+    
+  }
+  
+  return(lim)
+} 
+
+library(readxl)
+prev_dt <- read_excel("/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/POC_AU/02. Output/PrevInc_epi.xlsx", sheet = "tempPrevRNA_setting")
+
+prev_dt <- prev_dt%>%mutate(scenario = factor(scenario, levels = sce_level, labels = sce_label))
+prev_dt <- prev_dt%>%mutate(setting = factor(setting, levels = c("commu", "prisons"), 
+                                             labels = c("Community", "Prison")))
+RNA_prev <- ggplot(prev_dt%>%mutate(year = year + POC_AU$cabY - 1)%>%filter(setting%in%c("Community", "Prison") ), 
+       aes(x = year, y = best)) + 
+  geom_line(aes(colour = scenario, linetype = scenario), size = 1) + 
+  facet_wrap(~ setting, scale ="free", ncol = 2 ) + 
+  scale_color_manual(name = "Scenarios", values = col_pal ) + 
+  scale_fill_manual(name = "Scenarios", values = col_pal ) + 
+  scale_linetype_manual(name = "Scenarios", 
+                        values = c("dashed", rep("solid", length(unique(prev_dt$scenario)) - 1))) + 
+  coord_cartesian(xlim = c(2021,2030)) +
+  scale_x_continuous(expand = c(0, 0), limits =c(2021,2030) ,
+                     breaks = seq(2021,2030, 
+                                  by = 1)) + 
+  theme(panel.spacing = unit(2, "lines")) + theme_Publication_facet() + 
+  theme(legend.key.size = unit(1,"line")) + 
+  scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, 1)) + 
+  labs(x = "Year", y = "HCV RNA prevalence") 
+  
+ggsave(file=file.path(OutputFig, paste0("RNAprev_setting_maintext.png")), 
+       RNA_prev, 
+       width = 16, height = 8, bg = "white", dpi = 300)   
 
 
 
+#### cost_saving plot #### 
+incre_plot_sens <- list()
+for(i in unique(incre_catcost$sensitivity)){ 
+  if(i == "Main analysis"){ 
+    gtitle <- paste0("Main analysis: National Program direct costs" )
+    
+  }else if(i == "NP total program cost"){
+    gtitle <- (paste0("National Program total costs" ))
+  }else {
+    gtitle <- i
+  }
+  incre_plot_sens[[i]] <- 
+    ggplot(incre_catcost%>%filter(sensitivity == i), 
+           aes(x = scenario, y = -incre_best, fill = Categories)) +
+    geom_bar(stat = "identity", position = "stack", width = 0.8) +
+    scale_fill_manual(values = c( "grey30", "grey40","grey80")) + 
+    theme_Publication(base_size = 16) + 
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), 
+          legend.direction = "vertical") + 
+    scale_y_continuous(limit = c(-20000000, 100000000), 
+                       breaks = seq(-20000000, 100000000, 10000000),
+                       labels = seq(-20000000, 100000000,  10000000)/1000000) + 
+    labs(y = "Cost saving (discounted, millions)", x = "Scenarios") + 
+    geom_text( aes(label = paste0(format(round(-incre_best/1000000, 1), nsmall = 1), "m")),
+               position = position_stack(vjust = 0.5), 
+               size = 4)  + geom_hline(yintercept = 0, linetype ="dashed") + 
+    ggtitle(gtitle )
+  
+  
+}
+
+incre_plot_sens[[1]]
+library(ggpubr)
+library(cowplot)
+
+incre_plot_sens[[3]] <- incre_plot_sens[[3]] + 
+  theme(
+    legend.key.size = unit(1.5, "cm"),
+    legend.key.width = unit(1.5, "cm"),    # width of legend keys
+    legend.key.height = unit(1, "cm"),     # height of legend keys
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 16),
+    legend.spacing.y = unit(0.5, "cm")     # spacing between legend items
+  ) + theme(legend.position = "right")
+
+get_legend_manual <- function(p) {
+  tmp <- ggplot_gtable(ggplot_build(p))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  tmp$grobs[[leg]]
+}
+
+legend <- get_legend_manual(incre_plot_sens[[1]])
+
+# Remove legends from all plots
+plots_no_legend <- lapply(incre_plot_sens, function(p) {
+  p + theme(legend.position = "none")
+})
+
+# Arrange: 5 plots + legend in 6th cell
+incre_cost_sen <- ggarrange(
+  plots_no_legend[[3]], plots_no_legend[[4]], plots_no_legend[[1]],
+  plots_no_legend[[2]], plots_no_legend[[5]], legend,
+  nrow = 2, ncol = 3
+)
+
+ggsave(file=file.path(OutputFig, paste0("incre_cost_sen.png")), 
+       incre_cost_sen,  width = 21, height = 12, bg = "white", dpi = 300) 
+
+for(i in 1: length(names(cost_disydaanocap_categories))){ 
+  
+  ggsave(file=file.path(OutputFig, paste0("incre_cost_sen_", names(cost_disydaanocap_categories)[i],".png")), 
+         incre_plot_sens[[i]],  width = 14, height = 12, bg = "white", dpi = 300) 
+}
+
+ggsave(file=file.path(OutputFig, paste0("incre_cost_maintext.png")), 
+       incre_plot_sens[[3]],  width = 14, height = 12, bg = "white", dpi = 300) 
+
+incre_plot_sens[[1]] <- incre_plot_sens[[1]] + 
+  theme(
+    legend.key.size = unit(1.5, "cm"),
+    legend.key.width = unit(1.5, "cm"),    # width of legend keys
+    legend.key.height = unit(1, "cm"),     # height of legend keys
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 16),
+    legend.spacing.y = unit(0.5, "cm")     # spacing between legend items
+  ) + theme(legend.position = "right")
+
+get_legend_manual <- function(p) {
+  tmp <- ggplot_gtable(ggplot_build(p))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  tmp$grobs[[leg]]
+}
+
+legend <- get_legend_manual(incre_plot_sens[[1]])
+
+# Remove legends from all plots
+plots_no_legend <- lapply(incre_plot_sens, function(p) {
+  p + theme(legend.position = "none")
+})
+
+incre_plot_sens[[1]] <- incre_plot_sens[[1]] + ggtitle("")
+ggsave(file=file.path(OutputFig, paste0("costsaving_category_maintext.png")), 
+       incre_plot_sens[[1]],  width = 14, height = 12, bg = "white", dpi = 300) 
