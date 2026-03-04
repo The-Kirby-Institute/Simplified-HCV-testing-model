@@ -869,9 +869,9 @@ pop_labname <- c("PWID in community",  "Former PWID in community",
 PrevInc_trajectory <- list() 
 sce_level <- c("sq", "dfList_NP_2024", "dfList_NPPhaseII", 
                "dfList_NPPhaseIII_A", "dfList_NPPhaseIII_B")
-sce_label <- c("No national program", "Foundational implementation", 
-               "Program succession", "Program sustained", 
-               "Program accelerated")
+sce_label <- c("(1) No national program", "(2) Foundational implementation", 
+               "(3) Program succession", "(4) Program sustained", 
+               "(5) Program scale-up")
 
 # bind
 for(i in names(PrevInc_range_bind)){
@@ -897,7 +897,7 @@ for(i in names(PrevInc_range_bind)){
     
     }
   PrevInc_trajectory[[i]] <-  PrevInc_range_bind[[i]]%>%
-    filter(scenario %in% c("No national program", "Foundational implementation"))
+    filter(scenario %in% c(sce_label[1], sce_label[2]))
   
 }
 
@@ -1266,7 +1266,7 @@ for(i in names(PrevInc_p)){
          PrevInc_p[[i]], 
          width = 6, height = 8, bg = "white", dpi = 300)
 }
-
+PrevInc_p
 #### reinfection number #### 
 
 unique(PrevInc_trajectory$HCVInfect_subpop$scenario)
@@ -1289,7 +1289,7 @@ for(i in names(PrevInc_range_bind)){
                                      UI = NULL) + 
     labs(x = "Year", y = ylab_PrevInc[[i]]) +
     guides(colour = guide_legend(override.aes = list(alpha = 5))) + 
-    theme(legend.position = "right", legend.direction="vertical")
+    theme(legend.position = "right", legend.direction="vertical") 
 }
 
 for(i in c("tempPrevRNA_setting" ,"tempPrev_setting", "HCVInc_setting")){ 
@@ -1308,7 +1308,8 @@ for(i in c("tempPrevRNA_setting" ,"tempPrev_setting", "HCVInc_setting")){
                       scale_new(3,
                                 scale_y_continuous(limits = 
                                                      c(0, as.numeric(limx[[i]][3,"lim"]))))
-                    )) 
+                    )) + 
+    theme_Publication_facet()
   
   
   
@@ -1337,7 +1338,8 @@ for(i in c("HCVIncp_subpop","HCVInc_subpop","tempPrevRNA_subpop",
                       scale_new(5,
                                 scale_y_continuous(limits = 
                                                      c(0, as.numeric(limx[[i]][5,"lim"]))))
-                    )) 
+                    )) +
+    theme_Publication_facet(base_size = 16)
 }
 
 
@@ -1420,38 +1422,57 @@ PrevInc_sce_p[[4]] <- PrevInc_sce_p[[4]] +
 
 PrevInc_sce_p[[5]] <- PrevInc_sce_p[[5]] + 
   facet_custom (~population,
-                scales = "free", ncol = 1,
+                scales = "free", ncol = 2,
                 scale_overrides = 
                   list(
                     scale_new(1,
                               scale_y_continuous(limits = 
-                                                   c(0, 80))),
-                    scale_new(2,
-                              scale_y_continuous(limits = 
-                                                   c(0, 40))),
-                    
-                    scale_new(3,
-                              scale_y_continuous(limits = 
-                                                   c(0, 80)))
-                  ))
- 
-PrevInc_sce_p[[6]] <- PrevInc_sce_p[[6]] + 
-  facet_custom (~population,
-                scales = "free", ncol = 1,
-                scale_overrides = 
-                  list(
-                    scale_new(1,
-                              scale_y_continuous(limits = 
-                                                   c(0, 1))),
+                                                   c(0, 5))),
                     scale_new(2,
                               scale_y_continuous(limits = 
                                                    c(0, 5))),
                     
                     scale_new(3,
                               scale_y_continuous(limits = 
-                                                   c(0, 10)))
-                  ))
-
+                                                   c(0, 20))),
+                    scale_new(4,
+                              scale_y_continuous(limits = 
+                                                   c(0, 20))),
+                    scale_new(5,
+                              scale_y_continuous(limits = 
+                                                   c(0, 1)))
+                    
+                  )) + 
+  theme(legend.direction   = "vertical",
+        legend.position        = c(0.999, 0.01),
+        legend.justification   = c(1, 0) )
+PrevInc_sce_p[[5]]
+PrevInc_sce_p[[6]] <- PrevInc_sce_p[[6]] + 
+  facet_custom (~population,
+                scales = "free", ncol = 2,
+                scale_overrides = 
+                  list(
+                    scale_new(1,
+                              scale_y_continuous(limits = 
+                                                   c(0, 30))),
+                    scale_new(2,
+                              scale_y_continuous(limits = 
+                                                   c(0, 30))),
+                    
+                    scale_new(3,
+                              scale_y_continuous(limits = 
+                                                   c(0, 30))),
+                    scale_new(4,
+                              scale_y_continuous(limits = 
+                                                   c(0, 30))),
+                    scale_new(5,
+                              scale_y_continuous(limits = 
+                                                   c(0, 1)))
+                  )) +
+  theme(legend.direction   = "vertical",
+        legend.position        = c(0.999, 0.01),
+        legend.justification   = c(1, 0) )
+PrevInc_sce_p[[6]]
 PrevInc_sce_p[[7]] <- PrevInc_sce_p[[7]] + 
   facet_custom (~population,
                 scales = "free", ncol = 1,
@@ -1488,7 +1509,7 @@ PrevInc_sce_p[[8]] <- PrevInc_sce_p[[8]] +
 for(i in names(PrevInc_sce_p)){ 
   ggsave(file=file.path(OutputFig, paste0(i,"_sce" ,".png")), 
          PrevInc_sce_p[[i]], 
-         width = 12, height = 8, bg = "white", dpi = 300)
+         width = 8, height = 10, bg = "white", dpi = 300)
 }
 
 save(PrevInc_range_bind,
@@ -1526,7 +1547,7 @@ ggsave(file=file.path(OutputFig, paste0("HCVInc_subpop","_sce" ,".png")),
 
 PrevRNA_subpop_calibrated <- PrevInc_plot(pj = POC_AU, 
              dt = PrevInc_trajectory$tempPrevRNA_subpop%>%
-               filter(scenario %in% c("No national program","Foundational implementation")), 
+               filter(scenario %in% c(sce_label[1], sce_label[2])), 
              obdt = observedt_lst$tempPrevRNA_subpop, 
              xlimits = c(1, 16, 5), 
              UI = "y") + 
@@ -1561,7 +1582,7 @@ ggsave(file=file.path(OutputFig, paste0("PrevRNA_subpop_calibrated","_sce" ,".pn
 
 PrevRNA_setting_calibrated <- PrevInc_plot(pj = POC_AU, 
                                           dt = PrevInc_trajectory$tempPrevRNA_setting%>%
-                                            filter(scenario %in% c("No national program","Foundational implementation")), 
+                                            filter(scenario %in% c(sce_label[1], sce_label[2])), 
                                           obdt = observedt_lst$tempPrevRNA_setting, 
                                           xlimits = c(1, 16, 5), 
                                           UI = "y") + 
@@ -1591,7 +1612,7 @@ ggsave(file=file.path(OutputFig, paste0("PrevRNA_setting_calibrated","_sce" ,".p
 
 Ince_calibrated <- PrevInc_plot(pj = POC_AU, 
              dt = PrevInc_trajectory$HCVInc_subpop%>%
-               filter(scenario %in% c("No national program","Foundational implementation")), 
+               filter(scenario %in% c(sce_label[1], sce_label[2])), 
              obdt = observedt_lst$HCVInc_subpop, 
              xlimits = c(1, 16, 5), 
              UI = "y") + 

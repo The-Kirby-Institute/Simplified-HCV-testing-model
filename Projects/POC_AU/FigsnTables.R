@@ -53,9 +53,9 @@ year_obs <- c(POC_AU$simY  +5 - 1  , POC_AU$simY + 10 - 1, POC_AU$simY + 20 - 1)
 par_col <- c("best", paste0("set", seq(1,1000,1)))
 sce_level <- c("Status quo", "dfList_NP_2024", "dfList_NPPhaseII", 
                "dfList_NPPhaseIII_A", "dfList_NPPhaseIII_B")
-sce_label <- c("No national program", "Foundational implementation", 
-               "Program succession", "Program sustained", 
-               "Program accelerated")
+sce_label <- c("(1) No national program", "(2) Foundational implementation", 
+               "(3) Program succession", "(4) Program sustained", 
+               "(5) Program scale-up")
 
 
 # sum up the total number of cascade 
@@ -884,9 +884,9 @@ p_T_num_total_maintext <- Cas_num_plot(POC_AU,total_treatm_lst ,
                               xlimits = c(7, 16, 1), UI = NULL, 
                               population = "n") + 
   labs(x = "Year", y = "Treatment initiations", tag ="B") +
-  theme(legend.position = "right",
+  theme(legend.position = "",
         legend.direction = "vertical") + 
-  scale_y_continuous(limits = c(0, 9000), breaks = seq(0, 9000,500))
+  scale_y_continuous(limits = c(0, 9000), breaks = seq(0, 9000,1000))
 
 ggsave(file=file.path(OutputFig_y_cum_avert, paste0("T_num_total_maintext", ".png")), 
        p_T_num_total_maintext, 
@@ -894,7 +894,7 @@ ggsave(file=file.path(OutputFig_y_cum_avert, paste0("T_num_total_maintext", ".pn
 
 p_newinf_num_total_maintext <- p_pocau_y$newInfections + 
   scale_x_continuous(expand = c(0,0), limits = c(2021, 2030), breaks = seq(2021, 2030, 1)) + 
-  scale_y_continuous(limits = c(0, 9000), breaks = seq(0, 9000, 500)) + 
+  scale_y_continuous(limits = c(0, 9000), breaks = seq(0, 9000, 1000)) + 
   labs(x = "Year", y = "New HCV infections", tag ="A") + 
   theme(legend.position = "",
         legend.direction = "vertical") 
@@ -906,7 +906,7 @@ ggsave(file=file.path(OutputFig_y_cum_avert, paste0("newinf_num_total_maintext",
 
 p_newinfnT_maintext  <- ggarrange(plotlist = list(p_newinf_num_total_maintext, 
                                                   p_T_num_total_maintext), ncol = 2, nrow = 1, 
-                       common.legend = FALSE)
+                       common.legend = TRUE, legend = "bottom")
 
 ggsave(file=file.path(OutputFig_y_cum_avert, paste0("newinfnT_maintext ", ".png")), 
        p_newinfnT_maintext , 
@@ -1198,19 +1198,19 @@ for(i in unique(xt_toltest$scenario)){
   xt_toltest_lst[[i]] <- xt_toltest%>%filter(scenario == i)
   
 }
-xt_toltest_lst
-xt_toltest_lst$`No national program` <- 
-  xt_toltest_lst$`No national program`%>%ungroup()%>%
+
+xt_toltest_lst$`(1) No national program` <- 
+  xt_toltest_lst$`(1) No national program`%>%ungroup()%>%
   mutate(dt = NA, dt_exp = NA)
-xt_toltest_lst$`Foundational implementation` <- 
-  xt_toltest_lst$`Foundational implementation`%>%ungroup()%>%
+xt_toltest_lst[[sce_label[2]]] <- 
+  xt_toltest_lst[[sce_label[2]]]%>%ungroup()%>%
   mutate(dt = ifelse(year == 7 & NP != "National Program", 6667, 
                      ifelse(year == 8 & NP != "National Program", 11476, 
                             ifelse(year == 9 & NP != "National Program", 20393, NA))), 
          dt_exp = NA)
 
-xt_toltest_lst$`Program succession` <- 
-  xt_toltest_lst$`Program succession`%>%ungroup()%>%
+xt_toltest_lst[[sce_label[3]]] <- 
+  xt_toltest_lst[[sce_label[3]]]%>%ungroup()%>%
   mutate(dt = ifelse(year == 7 & NP != "National Program", 6667, 
                      ifelse(year == 8 & NP != "National Program", 11476, 
                             ifelse(year == 9 & NP != "National Program", 20393, NA))), 
@@ -1218,24 +1218,33 @@ xt_toltest_lst$`Program succession` <-
                          ifelse(year %in% c(11) & NP != "National Program", 25000, NA)))
 
                      
-xt_toltest_lst$`Program sustained` <- 
-  xt_toltest_lst$`Program sustained`%>%ungroup()%>%
+xt_toltest_lst[[sce_label[4]]] <- 
+  xt_toltest_lst[[sce_label[4]]]%>%ungroup()%>%
   mutate(dt = ifelse(year == 7 & NP != "National Program", 6667, 
                      ifelse(year == 8 & NP != "National Program", 11476, 
                             ifelse(year == 9 & NP != "National Program", 20393, NA))),  
          dt_exp = ifelse(year %in% c(10:15) & NP != "National Program", 25000, NA))
 
-xt_toltest_lst$`Program accelerated` <- 
-  xt_toltest_lst$`Program accelerated`%>%ungroup()%>%
-  mutate(dt = ifelse(year == 7& NP != "National Program", 6667, 
-                     ifelse(year == 8 & NP != "National Program", 11476, 
-                            ifelse(year == 9 & NP != "National Program", 20393, NA))),  
-         dt_exp = ifelse(year %in% c(10:12) & NP != "National Program", 25000, 
-                         ifelse(year %in% c(13) & NP != "National Program", 30000,
-                                ifelse(year %in% c(14) & NP != "National Program", 35000,
-                                       ifelse(year %in% c(15) & NP != "National Program", 40000, NA)))))
+xt_toltest_lst[[sce_label[5]]] <- 
+  xt_toltest_lst[[sce_label[5]]]%>%ungroup()%>%
+  mutate(
+    dt = case_when(
+      year == 7  & NP != "National Program" ~ 6667,
+      year == 8  & NP != "National Program" ~ 11476,
+      year == 9  & NP != "National Program" ~ 20393,
+      TRUE ~ NA_real_
+    ),
+    dt_exp = case_when(
+      year %in% 10:11 & NP != "National Program" ~ 25000,
+      year == 12 & NP != "National Program" ~ 31250,
+      year == 13 & NP != "National Program" ~ 37500,
+      year == 14 & NP != "National Program" ~ 43750,
+      year == 15 & NP != "National Program" ~ 50000,
+      TRUE ~ NA_real_
+    )
+  )
 
-View(xt_toltest_lst$`Program accelerated`)
+View(xt_toltest_lst[[sce_label[5]]])
 parea_tol <- list()
 ggplot(xt_toltest_lst[[2]]) +
   geom_area(aes(x = year, y = best, fill = NP,colour = scenario), 
@@ -2186,7 +2195,7 @@ x_total_ref <- lapply(list(cost_disydaacap_categories, cost_disydaacap_categorie
   mutate(across(c(par_col, "min", "max", "Med", "Mu", "q5", 
                   "q25", "q75", "q95"), cumsum, .names = "{col}"))%>%ungroup()%>%
   arrange(scenario)%>%group_by(year, scenario)%>%
-  summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))%>%filter(scenario == "No national program"))
+  summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))%>%filter(scenario == sce_label[1]))
 names(x_total_ref) <- ytitle_lab
 
 x_catcost_total <- lapply(list(cost_disydaacap_categories, cost_disydaacap_categories_totalcost), 
@@ -2280,7 +2289,7 @@ x_total_ref_nocap <- lapply(list(cost_disydaanocap_categories, cost_disydaanocap
                         mutate(across(c(par_col, "min", "max", "Med", "Mu", "q5", 
                                         "q25", "q75", "q95"), cumsum, .names = "{col}"))%>%ungroup()%>%
                         arrange(scenario)%>%group_by(year, scenario)%>%
-                        summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))%>%filter(scenario == "No national program"))
+                        summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))%>%filter(scenario == sce_label[1]))
 names(x_total_ref_nocap) <- ytitle_lab
 x_catcost_total_nocap <- lapply(list(cost_disydaanocap_categories, cost_disydaanocap_categories_totalcost), 
                           function(x) x%>%
@@ -2426,7 +2435,7 @@ catcost_cum <- lapply(list(cost_disydaacap_categories, cost_disydaacap_categorie
   mutate(across(c(par_col), cumsum, .names = "{col}"))%>%ungroup()%>%
   arrange(scenario))
 names(catcost_cum) <- ytitle_lab
-catcost_cum_ref <- lapply(catcost_cum, function(x) x%>%filter(scenario == "No national program"))
+catcost_cum_ref <- lapply(catcost_cum, function(x) x%>%filter(scenario == sce_label[1]))
 
 catcost_cum_nocap <- lapply(list(cost_disydaanocap_categories, cost_disydaanocap_categories_totalcost), 
                       function(x) x%>%
@@ -2436,7 +2445,7 @@ catcost_cum_nocap <- lapply(list(cost_disydaanocap_categories, cost_disydaanocap
                         arrange(scenario))
 names(catcost_cum) <- ytitle_lab
 unique(catcost_cum_nocap[[1]]$Categories)
-catcost_cum_ref_nocap <- lapply(catcost_cum_nocap, function(x) x%>%filter(scenario == "No national program"))
+catcost_cum_ref_nocap <- lapply(catcost_cum_nocap, function(x) x%>%filter(scenario == sce_label[1]))
 x <- list()
 x_nocap <- list()
 catcost_incre <- list()
@@ -2506,7 +2515,7 @@ for(i in 1: length(year_obs)){
   for(n in 1: length(catcost_incre)){ 
     p_catcost_saving[[i]][[n]] <- 
       ggplot(catcost_incre[[n]]%>%
-               filter(Scenario != "No national program" & year %in% year_obs[i])%>%
+               filter(Scenario != sce_label[1] & year %in% year_obs[i])%>%
                arrange(Categories), 
              aes(x = Scenario, y = best, fill = Scenario)) + 
       geom_bar(stat = "identity", width = 0.8) + 
@@ -2532,7 +2541,7 @@ for(i in 1: length(year_obs)){
     
     p_catcost_saving_nocap[[i]][[n]] <- 
       ggplot(catcost_incre_nocap[[n]]%>%
-               filter(scenario != "No national program" & year %in% year_obs[i])%>%
+               filter(scenario != sce_label[1] & year %in% year_obs[i])%>%
                arrange(Categories), 
              aes(x = scenario, y = best, fill = scenario)) + 
       geom_bar(stat = "identity", width = 0.8) + 
@@ -2553,10 +2562,10 @@ for(i in 1: length(year_obs)){
                                             linetype = 1)) +
       theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust = 0.5)) +
       geom_hline(yintercept = 0, linetype = "dashed") + 
-      scale_x_discrete(limits = c("Foundational implementation", 
-                                  "Program succession",
-                                  "Program sustained", 
-                                  "Program accelerated")) + 
+      scale_x_discrete(limits = c(sce_label[2], 
+                                  sce_label[3],
+                                  sce_label[4], 
+                                  sce_label[5])) + 
       ggtitle(paste0(POC_AU$simY, "-", year_obs[i], 
                      " (",year_obs[i] - POC_AU$simY + 1 ,"-Year, ",ytitle_lab[n], ", no cap" ,")"))
     }
@@ -2866,7 +2875,7 @@ for(m in names(CEAanalysis)){
     for(n in names(CEAanalysis[[1]][[1]])){ 
       Incre[[m]][[i]][[n]] <- cbind(year = CEAanalysis[[m]][[i]][[n]]$year, 
                                     dplyr::bind_cols(CEAanalysis[[m]][[i]][[n]][, par_col] - 
-                                                    CEAanalysis[[m]][[i]][["No national program"]][, par_col]))%>%
+                                                    CEAanalysis[[m]][[i]][[sce_label[1]]][, par_col]))%>%
         as_tibble()%>%
         popResults_range(POC_AU, .)
     }

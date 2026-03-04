@@ -69,16 +69,16 @@ source(file.path(Rcode, "/Functions/check_steady.R"))
  costflow_Neg[[2]] <- costdfList$`costFlow_POCRNA _NEG`
 
 #### sensitivity total cost(including program cost) ####
-
+###################### debug required ##########################################
 files <- list.files(path = paste0(DataFolder, 
-                                  "/cost/sensitivity/", sep =  ""), pattern = '*.csv')
+                                  "/cost", sep =  ""), pattern = '*.csv')
 
 # parameter sets for cost data 
 # +- 10% 
  costdfList <- list()
  costdfList <- lapply(files, function(f) {
   
-  df <- read.csv(file.path(paste0(DataFolder, "/cost/sensitivity/", f, sep = "")), header = TRUE)
+  df <- read.csv(file.path(paste0(DataFolder, "/cost/", f, sep = "")), header = TRUE)
   
   df <- df[, -1]
   
@@ -94,12 +94,15 @@ files <- list.files(path = paste0(DataFolder,
  cost_state <- costdfList$state
  costflow <- list()
  costflow[[1]] <- costdfList$costFlow
- costflow[[2]] <- costdfList$costFlow_POCRNA_progcostinclude
+ costflow[[2]] <- costdfList$costFlow_POCRNA
 
  costflow_Neg <- list()
  costflow_Neg[[1]] <- costdfList$costFlow_NEG
- costflow_Neg[[2]] <- costdfList$costFlow_POCRNA_NEG_progcost_included
-endY <- 100
+ costflow_Neg[[2]] <- costdfList$`costFlow_POCRNA _NEG`
+
+ ###############################################################################
+ 
+ endY <- 100
 
 param_dfList <- lapply(dfList, function(x) x*0)
 names(param_dfList) <- names(dfList)
@@ -1224,40 +1227,48 @@ Sce_np <- list()
 
  for (cost_type in cost_types) {
   
-  if (cost_type == "fixednvariable") {
-    
-    #### Fixed & Variable cost (from /cost/ folder) ####
-    files <- list.files(path = paste0(DataFolder, "/cost/", sep = ""), pattern = '*.csv')
-    }
-  else if (cost_type == "total") {
-    #### Sensitivity total cost  ####
-      files <- list.files(path = paste0(DataFolder, "/cost/sensitivity_total/", sep = ""), pattern = '*.csv')
-  }
-  else if (cost_type == "DAAcost_reducquarter"){
-    files <- list.files(path = paste0(DataFolder, "/cost/sensitivity_DAAcost_reducquarter/", sep = ""), pattern = '*.csv')
-    
-  } 
-  else if (cost_type == "DAAcost_reduchalf"){
-    files <- list.files(path = paste0(DataFolder, "/cost/sensitivity_DAAcost_reduchalf/", sep = ""), pattern = '*.csv')
-    
-   }
-      
-    costdfList <- lapply(files, function(f) {
-      df <- read.csv(file.path(paste0(DataFolder, "/cost/", f, sep = "")), header = TRUE)
-      df <- df[, -1]
-      df <- df %>% as_tibble()
-      df <- as.matrix(df, nrow = npops, ncol = length(.) + 1)
-    })
-    
-    names(costdfList) <- c(gsub("^|.csv", "", files))
-    
-    cost_state <- costdfList$state
-    costflow <- list()
-    costflow[[1]] <- costdfList$costFlow
-    costflow[[2]] <- costdfList$costFlow_POCRNA
-    costflow_Neg <- list()
-    costflow_Neg[[1]] <- costdfList$costFlow_NEG
-    costflow_Neg[[2]] <- costdfList$`costFlow_POCRNA _NEG`
+   cost_dir <- switch(
+     cost_type,
+     "fixednvariable"       = file.path(DataFolder, "cost"),
+     "total"                = file.path(DataFolder, "cost", "sensitivity_total"),
+     "DAAcost_reducquarter" = file.path(DataFolder, "cost", "sensitivity_DAAcost_reducquarter"),
+     "DAAcost_reduchalf"    = file.path(DataFolder, "cost", "sensitivity_DAAcost_reduchalf")
+   )
+   
+   # list full paths; correct regex for csv
+   files <- list.files(path = cost_dir, pattern = "\\.csv$", full.names = TRUE)
+   
+   # read all csvs in that directory
+   costdfList <- lapply(files, function(fp) {
+     df <- read.csv(fp, header = TRUE, check.names = FALSE)
+     
+     # drop first column if it's an index column (common in exported csv)
+     df <- df[, -1, drop = FALSE]
+     
+     # keep numeric matrix
+     m <- as.matrix(df)
+     
+     # optional sanity check if you expect one row per population
+     # stopifnot(nrow(m) == npops)
+     
+     m
+   })
+   
+   # name by filename (without .csv)
+   names(costdfList) <- tools::file_path_sans_ext(basename(files))
+   
+   # extract components (will error loudly if missing)
+   cost_state <- costdfList[["state"]]
+   
+   costflow <- list(
+     costdfList[["costFlow"]],
+     costdfList[["costFlow_POCRNA"]]
+   )
+   
+   costflow_Neg <- list(
+     costdfList[["costFlow_NEG"]],
+     costdfList[["costFlow_POCRNA _NEG"]]  # removed the accidental space
+   )
     
  
   

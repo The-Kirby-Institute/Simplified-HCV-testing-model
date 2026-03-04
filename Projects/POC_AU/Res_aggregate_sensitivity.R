@@ -155,7 +155,7 @@ for(cost_type in cost_types){
   #### applied different unit cost of DAA to different cost_type sensitivity analysis 
   unit_costs <- list(
     "fixednvariable" = c(DAA = 35956.37, secline = 44613.66),
-    "total" = c(DAA = 35956.37, secline = 44613.66),
+    "total" = c(DAA = 17978.18, secline = 22306.83),
     "DAAcost_reducquarter" = c(DAA = 26967.27, secline = 33460.24),
     "DAAcost_reduchalf" = c(DAA = 17978.18, secline = 22306.83)
   )
