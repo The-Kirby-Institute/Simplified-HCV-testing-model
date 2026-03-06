@@ -419,6 +419,155 @@ save(Num_box, pop_N, commu_N, prison_N, prisonPWID_N,
      
 )
 
+Resflow_dt <- list()
+Resflow_sc_dt <- list()
+for(scn in names(Sce_flow)){ 
+  Resflow_dt[[scn]] <- list(newInfections = Sce_flow[[scn]]$newInfections,
+                            HCVdeath = Sce_flow[[scn]]$newHCVdeaths,
+                            Treatment = Sce_flow[[scn]]$newTreatment,
+                            Retreat = Sce_flow[[scn]]$newRetreat,
+                            Testing_ab = Sce_flow[[scn]]$newTestingAb,
+                            Testing_RNA = Sce_flow[[scn]]$newTestingAg,
+                            Testing_POCT = Sce_flow[[scn]]$newTestingPOCT, 
+                            Testing_ab_neg = Sce_flow[[scn]]$newTestingAb_neg,
+                            Testing_RNA_neg = Sce_flow[[scn]]$newTestingAg_neg,
+                            Testing_POCT_neg = Sce_flow[[scn]]$newTestingPOCT_neg,
+                            Cured = Sce_flow[[scn]]$newCured, 
+                            Treatment_sc = Sce_flow[[scn]]$newTreatment_sc,
+                            Testing_ab_sc = Sce_flow[[scn]]$newTestingAb_sc,
+                            Testing_RNA_sc = Sce_flow[[scn]]$newTestingAg_sc,
+                            Testing_POCT_sc = Sce_flow[[scn]]$newTestingPOCT_sc, 
+                            Testing_ab_sc_neg = Sce_flow[[scn]]$newTestingAb_sc_neg,
+                            Testing_RNA_sc_neg = Sce_flow[[scn]]$newTestingAg_sc_neg,
+                            Testing_POCT_sc_neg = Sce_flow[[scn]]$newTestingPOCT_sc_neg)
+  
+  
+  Resflow_sc_dt[[scn]] <- list(Treatment_sc = Sce_flow[[scn]]$newTreatment_sc,
+                               Testing_ab_sc = Sce_flow[[scn]]$newTestingAb_sc,
+                               Testing_RNA_sc = Sce_flow[[scn]]$newTestingAg_sc,
+                               Testing_POCT_sc = Sce_flow[[scn]]$newTestingPOCT_sc,
+                               Testing_ab_sc_neg = Sce_flow[[scn]]$newTestingAb_sc_neg,
+                               Testing_RNA_sc_neg = Sce_flow[[scn]]$newTestingAg_sc_neg,
+                               Testing_POCT_sc_neg = Sce_flow[[scn]]$newTestingPOCT_sc_neg
+  )
+  }
 
+save(Num_box, Resflow_dt, Resflow_sc_dt,
+     # file = file.path(OutputFolder,paste0(project_name,"epiRes_timestep_sq" ,".rda"))
+     file = file.path(OutputFolder,paste0("Res_dt",".rda")))
+
+
+#### result aggregate ####
+gc()
+rm(list = ls())
+
+project_name <- "POC_AU"
+
+codefun_path <- paste("/Users/jjwu/Projects/Simplified-HCV-testing-model")
+
+data_path <- paste("/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/", 
+                   project_name, sep = "")
+output_path <- paste("/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/", 
+                     "POC_prisons scale-up", sep = "")
+# Load useful libraries
+
+library("readr")
+library("dplyr")
+library("tidyr")
+library("purrr")
+library("parallel")
+library("pacman")
+library("doMC")
+
+Rcode <- file.path(codefun_path, "03. Code")
+
+DataFolder <- file.path(data_path, "01. DATA/model input" )
+RdaFolder <- file.path(data_path, "02. Output")
+OutputFolder <- file.path(output_path, "02. Output")
+OutputFig <- file.path(paste0(OutputFolder, "/Figs/PrevInc"))
+if (!dir.exists(OutputFig)) {
+  dir.create(OutputFig, recursive = TRUE, showWarnings = FALSE)
+}
+# project specific code path 
+Proj_code <- file.path(codefun_path, paste0("Projects/", project_name))
+
+
+
+load(file.path(RdaFolder, paste0(project_name, ".rda")))
+
+source(file.path(Rcode, "/Functions/plotManuscript.R"))
+source(file.path(Rcode, "/Functions/plotFunctions.R")) 
+source(file.path(Proj_code, "/model_timestep.R")) 
+load(file.path(OutputFolder, paste0("Res_dt", ".rda")))
+
+
+
+View(Resflow_dt$Prison_testing_I$newInfections)
+Resflow_year_pop <- list()
+
+for(x in names(Resflow_dt)){ 
+  Resflow_year_pop[[x]] <- Resflow_dt[[x]]
+  
+}
+
+names(Resflow_year_pop) <- names(Resflow_dt)
+par_col <- c("best")
+for(i in names(Resflow_year_pop)){
+  for(indic in names(Resflow_year_pop[[1]])){
+    Resflow_year_pop[[i]][[indic]] <- Resflow_year_pop[[i]][[indic]]%>%
+      as_tibble()%>%ungroup()%>%arrange(population, year)%>%
+      group_by(year, population)%>%
+      summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))%>%
+      arrange(year)
+  }
+}
+
+Resflow_year_all <- list()
+for(i in names(Resflow_year_pop)){
+  for(indic in names(Resflow_year_pop[[1]])){
+    
+    Resflow_year_all[[i]][[indic]] <- Resflow_year_pop[[i]][[indic]]%>%
+      ungroup()%>%group_by(year)%>%
+      summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))%>%
+      arrange(year)
+    
+  }
+}
+
+# scenarios 
+Resflow_sc_year_pop <- list()
+
+for(x in names(Resflow_dt)){ 
+  Resflow_sc_year_pop[[x]] <- Resflow_sc_dt[[x]]
+  
+}
+
+names(Resflow_sc_year_pop) <- names(Resflow_dt)
+
+
+
+for(i in names(Resflow_sc_year_pop)){
+  for(indic in names(Resflow_sc_year_pop[[1]])){
+    Resflow_sc_year_pop[[i]][[indic]] <- Resflow_sc_year_pop[[i]][[indic]]%>%
+      as_tibble()%>%ungroup()%>%arrange(population, year)%>%
+      group_by(year, population)%>%
+      summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))%>%
+      arrange(year)
+    
+    
+  }
+}
+
+Resflow_sc_year_all <- list()
+for(i in names(Resflow_sc_year_pop)){
+  for(indic in names(Resflow_sc_year_pop[[1]])){
+    
+    Resflow_sc_year_all[[i]][[indic]] <- Resflow_sc_year_pop[[i]][[indic]]%>%
+      ungroup()%>%group_by(year)%>%
+      summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))%>%
+      arrange(year)
+    
+  }
+}
 
 
