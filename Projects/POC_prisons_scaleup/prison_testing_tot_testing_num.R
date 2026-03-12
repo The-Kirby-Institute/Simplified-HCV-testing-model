@@ -1,4 +1,4 @@
-
+endY <- 100
 res_2024 <- HCVMSM(POC_AU, best_estimates, best_est_pop,
        disease_progress, pop_array,
        dfList,  
@@ -9,205 +9,6 @@ res_2024 <- HCVMSM(POC_AU, best_estimates, best_est_pop,
        costflow_Neg = NULL, 
        fc = fs[["2024"]])
 
-test_compartment <- popResults_MidYear(POC_AU, res_2024,
-                   Population = POC_AU$popNames,
-                   Disease_prog = POC_AU$diseaseprogress_Name, 
-                   Cascade = POC_AU$cascade_name, param = NULL, 
-                   endYear = 100)%>%ungroup()%>%
-  mutate(diag_status = ifelse(cascade %in% c("s", "cured") & disease_prog!= "a", "S", 
-                              ifelse(cascade %in% c("undiag") &disease_prog != "a", "U", "diag")),
-         year = year + POC_AU$cabY - 1)%>%
-  group_by(population, year, diag_status)%>%
-  summarise(best = sum(best))%>%filter(year== 2025)
-View(test_compartment)
-fm[["2024"]] <- c(1.1, 1.1, 18.5, 18.5, 1)
-
-12000/(72180*0.1457498+ 2218*1.1 + 336729*0.1457498 + 5866*1.1)
-13000/(5755*2*0.1049667+ 133*2*18.5 + 11237*2*0.1049667 + 59*18.5 + 20287*4*1) 
-
-
-
-
-#### for 2025 #### 
-odd_num_test <- 1
-
-Ccal[[2025]] <- list("C" = 11000/(72180*0.1457498+ 2218*1.1 + 336729*0.1457498 + 5866*1.1),
-                     "P" = 14000/(6191*2*0.1049667+ 618*2*18.5 + 12346*2*0.1049667 + 236*18.5 + 20311*4*1)*0.98)
-frac_test[[2025]] <- frac_test[[2024]]
-
-frac_ab[["2025"]] <- c(unlist(as.numeric(frac_test[[2025]]$C$reflex)),
-                       unlist(as.numeric(frac_test[[2025]]$P$reflex)))
-
-dfList_NP_2025 <- dfList_NP_2024
-for(i in param_var){  
-  dfList_NP_2025[[i]] <- Param_cal(pj = POC_AU, dlist = dfList_NP_2025, index = i, 
-                                   frac_testing = frac_test[[2025]],
-                                   S_Yint = 2025, S_Yend = 2026, r_Yend = 2026, NPlst = NPlst, 
-                                   fp = c(Ccal[[2025]]$C*fm[["2025"]][1], 
-                                          Ccal[[2025]]$C*fm[["2025"]][2], 
-                                          Ccal[[2025]]$P*fm[["2025"]][3], 
-                                          Ccal[[2025]]$P*fm[["2025"]][4], 
-                                          Ccal[[2025]]$P*fm[["2025"]][5]))
-  
-}
-
-for(i in param_var){
-  # begining of 2025
-  b_pt <- (2026 - POC_AU$cabY)/POC_AU$timestep + 1 
-  
-  # length of the time points
-  dim_length <- dim(dfList_NP_2025[[i]])[3]
-  dfList_NP_2025[[i]][, , b_pt: dim_length] <- dfList_NP[[i]][, , b_pt: dim_length]
-} 
-
-# fs[["2024"]][1, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][1, ini_dt:end_dt ]/fm[["2024"]][1]
-# fs[["2024"]][2, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][2, ini_dt:end_dt ]/fm[["2024"]][2]
-# fs[["2024"]][3, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][3, ini_dt:end_dt ]/fm[["2024"]][3]
-# fs[["2024"]][4, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][4, ini_dt:end_dt ]/fm[["2024"]][4]
-# fs[["2024"]][5, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][5, ini_dt:end_dt ]/xfs[["2024"]][[1]][5, ini_dt:end_dt ] 
-
-fs[["2025"]] <- fs[["2024"]]
-fs[["2025"]][1, (ini_dt + 1/POC_AU$timestep): (end_dt + 1/POC_AU$timestep)] <-   fs[["2024"]][1, ini_dt: end_dt]
-fs[["2025"]][2, (ini_dt + 1/POC_AU$timestep): (end_dt + 1/POC_AU$timestep)] <-   fs[["2024"]][2, ini_dt: end_dt]
-fs[["2025"]][3, (ini_dt + 1/POC_AU$timestep): (end_dt + 1/POC_AU$timestep)] <-   fs[["2024"]][3, ini_dt: end_dt]
-fs[["2025"]][4, (ini_dt + 1/POC_AU$timestep): (end_dt + 1/POC_AU$timestep)] <-   fs[["2024"]][4, ini_dt: end_dt]
-fs[["2025"]][5, (ini_dt + 1/POC_AU$timestep): (end_dt + 1/POC_AU$timestep)] <-   fs[["2024"]][5, ini_dt: end_dt]
-
-
-test_t <- HCVMSM(POC_AU, best_estimates, best_est_pop,
-               disease_progress, pop_array,
-               dfList,  
-               param_cascade_sc = dfList_NP_2025, 
-               fib = fib, 
-               modelrun = "UN", proj = "POC_AU", end_Y = endY, 
-               cost = NULL, costflow = NULL, 
-               costflow_Neg = NULL, 
-               fc = fs[["2025"]])
-
-
-
-
-test_compartment <- popResults_MidYear(POC_AU, test_t,
-                                       Population = POC_AU$popNames,
-                                       Disease_prog = POC_AU$diseaseprogress_Name, 
-                                       Cascade = POC_AU$cascade_name, param = NULL, 
-                                       endYear = 100)%>%ungroup()%>%
-  mutate(diag_status = ifelse(cascade %in% c("s", "cured") & disease_prog!= "a", "S", 
-                              ifelse(cascade %in% c("undiag") &disease_prog != "a", "U", "diag")),
-         year = year + POC_AU$cabY - 1)%>%
-  group_by(population, year, diag_status)%>%
-  summarise(best = sum(best))%>%filter(year== 2025)
-
-View(test_compartment)
-
-Ccal[[2025]]
-#### for 2026 #### 
-odd_num_test <- 1
-fm[["2026"]] <- fm[["2025"]]
-Ccal[[2026]] <- list("C" = 11000/(73311*0.1457498+ 1849*1.1 + 340119*0.1457498 + 2999*1.1),
-                     "P" = 14000/(5980*2*0.1049667+ 104*2*15 + 11393*2*0.1049667 + 44*15 + 20287*4*1))
-frac_test[[2026]] <- frac_test[[2025]]
-
-frac_ab[["2026"]] <- c(unlist(as.numeric(frac_test[[2026]]$C$reflex)),
-                       unlist(as.numeric(frac_test[[2026]]$P$reflex)))
-
-dfList_NP_2026 <- dfList_NP_2025
-for(i in param_var){  
-  dfList_NP_2026[[i]] <- Param_cal(pj = POC_AU, dlist = dfList_NP_2025, index = i, 
-                                   frac_testing = frac_test[[2026]],
-                                   S_Yint = 2026, S_Yend = 2027, r_Yend = 2027, NPlst = NPlst, 
-                                   fp = c(Ccal[[2026]]$C*fm[["2026"]][1], 
-                                          Ccal[[2026]]$C*fm[["2026"]][2], 
-                                          Ccal[[2026]]$P*fm[["2026"]][3], 
-                                          Ccal[[2026]]$P*fm[["2026"]][4], 
-                                          Ccal[[2026]]$P*fm[["2026"]][5]))
-  
-}
-
-for(i in param_var){
-  # begining of 2026
-  b_pt <- (2027 - POC_AU$cabY)/POC_AU$timestep + 1 
-  
-  # length of the time points
-  dim_length <- dim(dfList_NP_2026[[i]])[3]
-  dfList_NP_2026[[i]][, , b_pt: dim_length] <- dfList_NP[[i]][, , b_pt: dim_length]
-} 
-
-# fs[["2024"]][1, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][1, ini_dt:end_dt ]/fm[["2024"]][1]
-# fs[["2024"]][2, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][2, ini_dt:end_dt ]/fm[["2024"]][2]
-# fs[["2024"]][3, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][3, ini_dt:end_dt ]/fm[["2024"]][3]
-# fs[["2024"]][4, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][4, ini_dt:end_dt ]/fm[["2024"]][4]
-# fs[["2024"]][5, ini_dt:end_dt ] <-   xfs[["2024"]][[1]][5, ini_dt:end_dt ]/xfs[["2024"]][[1]][5, ini_dt:end_dt ] 
-ini_dt <- (2025 - POC_AU$cabY)/POC_AU$timestep + 1 
-end_dt <- ((2025 + 1 ) - POC_AU$cabY)/POC_AU$timestep
-fs[["2026"]] <- fs[["2025"]]
-fs[["2026"]][1, (ini_dt + 1/POC_AU$timestep ): (end_dt + 1/POC_AU$timestep )] <-   fs[["2025"]][1, ini_dt: end_dt]
-fs[["2026"]][2, (ini_dt + 1/POC_AU$timestep ): (end_dt + 1/POC_AU$timestep )] <-   fs[["2025"]][2, ini_dt: end_dt]
-fs[["2026"]][3, (ini_dt + 1/POC_AU$timestep ): (end_dt + 1/POC_AU$timestep )] <-   fs[["2025"]][3, ini_dt: end_dt]
-fs[["2026"]][4, (ini_dt + 1/POC_AU$timestep ): (end_dt + 1/POC_AU$timestep )] <-   fs[["2025"]][4, ini_dt: end_dt]
-fs[["2026"]][5, (ini_dt + 1/POC_AU$timestep ): (end_dt + 1/POC_AU$timestep )] <-   fs[["2025"]][5, ini_dt: end_dt]
-
-
-test_t <- HCVMSM(POC_AU, best_estimates, best_est_pop,
-                 disease_progress, pop_array,
-                 dfList,  
-                 param_cascade_sc = dfList_NP_2026, 
-                 fib = fib, 
-                 modelrun = "UN", proj = "POC_AU", end_Y = endY, 
-                 cost = NULL, costflow = NULL, 
-                 costflow_Neg = NULL, 
-                 fc = fs[["2026"]])
-
-
-
-
-
-
-test <- list()
-cl_ext <- names(test_t)[c(10:22)]
-for(i in cl_ext){
-  
-  test[[i]] <- modres.flow.t(POC_AU, test_t, endYear = 100, 
-                             allp = i)%>%
-    ungroup()%>%
-    group_by(year, population)%>%
-    summarise(best = sum(best))
-  
-  
-}
-
-test_sq <- list()
-for(i in cl_ext){
-  
-  test_sq[[i]] <- modres.flow.t(POC_AU, Sce_sq, endYear = 100, 
-                                allp = i)%>%
-    ungroup()%>%
-    group_by(year, population)%>%
-    summarise(best = sum(best))
-  
-  
-}
-
-
-test <- dplyr::bind_rows(test, .id = 'index')%>%group_by(year, population)%>%spread(index, best)
-test_sq <- dplyr::bind_rows(test_sq, .id = 'index')%>%group_by(year, population)%>%spread(index, best)
-
-
-test_fscal <- test%>%mutate(Ab = newTestingAb_sc + newTestingAb_sc_neg, 
-                            RNA = (newTestingAg_sc+ newTestingAg_sc_neg + newTestingPOCT_sc + 
-                                     newTestingPOCT_sc_neg ))%>%select(year, population, Ab, 
-                                                                       RNA)%>%
-  mutate(setting = ifelse(population %in% c("C_PWID", "C_fPWID"), "C", "P"))%>%
-  ungroup()%>%
-  select(-c(population))%>%
-  gather(index, value, -c(year, setting))%>%
-  group_by(year, setting, index)%>%summarise(value = sum(value))%>%
-  mutate(scenario = "prisons_testing_I")
-dtp <- c(6667,6667, 11476,11476,20393, 20393, 12000, 13000, 11000, 14000, 10000, 15000,9000, 16000,8000, 17000,7000, 18000 )
-# View(test_fscal%>%filter(year%in% c(7:15)))
-View(test_fscal%>%filter(year%in% c(7:15))%>%group_by(year, setting)%>%
-       summarise(tot_NP_test = sum(value))%>%
-       mutate(year = year + 2015))
 
 ################################################################################
 #                        test 
@@ -296,12 +97,10 @@ calibrate_NP_year <- function(
     su_prev  <- lapply(pj$popNames, function(p) get_SU(pop_prev, p))
     names(su_prev) <- pj$popNames
     
-    # fs_prev_val from previous year
     fs_prev_val <- as.numeric(prev_fs[, ini_dt - 1])
     if (any(!is.finite(fs_prev_val)) | any(fs_prev_val == 0))
       fs_prev_val <- as.numeric(prev_fs[, ini_dt])
     
-    # Compute denoms using fs_prev_val + adj factors
     denom_C <- (su_prev[["C_PWID"]]$S  * fs_prev_val[1] +
                   su_prev[["C_PWID"]]$U  * fm[[yr_chr]][1] +
                   su_prev[["C_fPWID"]]$S * fs_prev_val[2] +
@@ -328,7 +127,7 @@ calibrate_NP_year <- function(
                 Ccal_yr$P * fm[[yr_chr]][4],
                 Ccal_yr$P * fm[[yr_chr]][5])
     
-    # Build dfList_NP
+    # Build dfList_NP for current year only
     dfList_NP_year <- prev_dfList_NP
     for (i in param_var) {
       dfList_NP_year[[i]] <- Param_cal(
@@ -357,12 +156,17 @@ calibrate_NP_year <- function(
       cost = NULL, costflow = NULL, costflow_Neg = NULL, fc = fs_new
     )
     
-    list(model = model_new, dfList_NP = dfList_NP_year,
-         fs = fs_new, Ccal = Ccal_yr, fp_vec = fp_vec,
-         fs_prev_val = fs_prev_val, denom_C = denom_C, denom_P = denom_P)
+    list(model     = model_new,
+         dfList_NP = dfList_NP_year,
+         fs        = fs_new,        # ← pre-xfs fc actually passed to HCVMSM
+         Ccal      = Ccal_yr,
+         fp_vec    = fp_vec,
+         fs_prev_val = fs_prev_val,
+         denom_C   = denom_C,
+         denom_P   = denom_P)
   }
   
-  # ── Joint optimization of adj_C and adj_P ───────────────────────────────────
+  # ── Joint optimization ───────────────────────────────────────────────────────
   if (!is.null(target_C) & !is.null(target_P) &
       (is.null(adj_factor_C) | is.null(adj_factor_P))) {
     
@@ -371,26 +175,19 @@ calibrate_NP_year <- function(
     obj_fn_joint <- function(params) {
       adj_c <- params[1]
       adj_p <- params[2]
-      
       if (adj_c <= 0 | adj_p <= 0) return(1e10)
-      
       res  <- run_model(adj_P = adj_p, adj_C = adj_c)
       tots <- get_test_totals(res$model)
-      
       tot_C <- tots %>% filter(setting == "C") %>% pull(tot)
       tot_P <- tots %>% filter(setting == "P") %>% pull(tot)
-      
       err_C <- (tot_C - target_C)^2 / target_C^2
       err_P <- (tot_P - target_P)^2 / target_P^2
-      
       cat("  adj_C:", round(adj_c, 4), " adj_P:", round(adj_p, 4),
           "→ C:", round(tot_C), "/", target_C,
           " P:", round(tot_P), "/", target_P, "\n")
-      
       err_C + err_P
     }
     
-    # Starting values: use previous year adj_factors if available
     start_C <- ifelse(is.null(adj_factor_C), 1.0,  adj_factor_C)
     start_P <- ifelse(is.null(adj_factor_P), 0.44, adj_factor_P)
     
@@ -407,7 +204,6 @@ calibrate_NP_year <- function(
         " adj_factor_P:", round(adj_factor_P, 4), "===\n")
     
   } else {
-    # Use provided values or defaults
     if (is.null(adj_factor_C)) adj_factor_C <- 1.0
     if (is.null(adj_factor_P)) adj_factor_P <- 0.44
   }
@@ -430,7 +226,7 @@ calibrate_NP_year <- function(
   if (!is.finite(s_bar_C) | s_bar_C == 0) stop(paste("s_bar_C is", s_bar_C))
   if (!is.finite(s_bar_P) | s_bar_P == 0) stop(paste("s_bar_P is", s_bar_P))
   
-  # ── Recalculate fs (xfs/fm — matches original fs_estimate) ──────────────────
+  # ── Recalculate fs ───────────────────────────────────────────────────────────
   fab   <- frac_ab[[yr_chr]]
   n_ab  <- n_ab_np[[yr_chr]]
   cov_C <- final$Ccal$C
@@ -443,6 +239,7 @@ calibrate_NP_year <- function(
   
   cat("xfs values:", xfs_1, xfs_2, xfs_3, xfs_4, "\n")
   
+  # fs_final = post-xfs, used as prev_fs for NEXT year's chain
   fs_final <- final$fs
   fs_final[1, ini_dt:end_dt] <- rep(xfs_1 / fm[[yr_chr]][1], steps)
   fs_final[2, ini_dt:end_dt] <- rep(xfs_2 / fm[[yr_chr]][2], steps)
@@ -468,18 +265,19 @@ calibrate_NP_year <- function(
   
   return(list(
     dfList_NP    = final$dfList_NP,
-    fs           = fs_final,
+    fs           = fs_final,     # post-xfs → feed into next year as prev_fs
+    fc_used      = final$fs,     # ← pre-xfs fc actually passed to HCVMSM
     model        = final$model,
     Ccal         = final$Ccal,
     adj_factor_C = adj_factor_C,
     adj_factor_P = adj_factor_P,
     diagnostics  = list(
-      tot_C       = tot_C,       tot_P    = tot_P,
-      target_C    = target_C,    target_P = target_P,
-      undiag_C    = undiag_C,    undiag_P = undiag_P,
-      s_bar_C     = s_bar_C,     s_bar_P  = s_bar_P,
-      denom_C     = final$denom_C, denom_P = final$denom_P,
-      fp_vec      = final$fp_vec,  Ccal    = final$Ccal,
+      tot_C       = tot_C,         tot_P    = tot_P,
+      target_C    = target_C,      target_P = target_P,
+      undiag_C    = undiag_C,      undiag_P = undiag_P,
+      s_bar_C     = s_bar_C,       s_bar_P  = s_bar_P,
+      denom_C     = final$denom_C, denom_P  = final$denom_P,
+      fp_vec      = final$fp_vec,  Ccal     = final$Ccal,
       fs_prev_val = final$fs_prev_val
     )
   ))
@@ -497,6 +295,7 @@ target_tests <- list(
 )
 
 # ── Define n_ab_np for all years ─────────────────────────────────────────────
+n_ab_np <- list()
 n_ab_np[["2025"]] <- c(11000, 14000)
 n_ab_np[["2026"]] <- c(11000, 14000)
 n_ab_np[["2027"]] <- c(11000, 14000)
@@ -505,6 +304,8 @@ n_ab_np[["2029"]] <- c(11000, 14000)
 n_ab_np[["2030"]] <- c(11000, 14000)
 
 # ── Define fm for all years ───────────────────────────────────────────────────
+fm <- list()
+fm[["2024"]] <- c(1.1, 1.1, 18.5, 18.5, 1)
 fm[["2025"]] <- fm[["2024"]]
 fm[["2026"]] <- fm[["2024"]]
 fm[["2027"]] <- fm[["2024"]]
@@ -534,17 +335,21 @@ frac_ab[["2029"]] <- c(unlist(as.numeric(frac_test[[2029]]$C$reflex)),
 frac_ab[["2030"]] <- c(unlist(as.numeric(frac_test[[2030]]$C$reflex)),
                        unlist(as.numeric(frac_test[[2030]]$P$reflex)))
 
-# ── Storage for results ───────────────────────────────────────────────────────
-res_list     <- list()
-adj_factors  <- list()  # store found adj_factors for inspection
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 1: Reset storage
+# ══════════════════════════════════════════════════════════════════════════════
+res_list    <- list()
+adj_factors <- list()
 
-# ── 2025 ─────────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 2: Run 2025
+# ══════════════════════════════════════════════════════════════════════════════
 cat("\n========== YEAR 2025 ==========\n")
 res_list[["2025"]] <- calibrate_NP_year(
   cal_year       = 2025,
   prev_dfList_NP = dfList_NP_2024,
   prev_fs        = fs[["2024"]],
-  prev_model     = res_2024,          # your existing 2024 NP model
+  prev_model     = res_2024,
   dfList_NP_base = dfList_NP_2024,
   pj             = POC_AU,
   Ccal = Ccal, fm = fm, frac_test = frac_test, NPlst = NPlst,
@@ -554,19 +359,21 @@ res_list[["2025"]] <- calibrate_NP_year(
   dfList = dfList, fib = fib, endY = endY,
   target_C     = target_tests[["2025"]]$C,
   target_P     = target_tests[["2025"]]$P,
-  adj_factor_P = NULL)
+  adj_factor_C = NULL,
+  adj_factor_P = NULL
+)
 
-# Extract and store
-dfList_NP_2025      <- res_list[["2025"]]$dfList_NP
-fs[["2025"]]        <- res_list[["2025"]]$fs
-Ccal[[2025]]        <- res_list[["2025"]]$Ccal
-adj_factors[["2025"]] <- res_list[["2025"]]$adj_factor_P
-cat("2025 adj_factor_P:", adj_factors[["2025"]], "\n")
-cat("2025 diagnostics:\n"); print(res_list[["2025"]]$diagnostics)
+dfList_NP_2025        <- res_list[["2025"]]$dfList_NP
+fs[["2025"]]          <- res_list[["2025"]]$fs
+Ccal[[2025]]          <- res_list[["2025"]]$Ccal
+adj_factors[["2025"]] <- list(C = res_list[["2025"]]$adj_factor_C,
+                              P = res_list[["2025"]]$adj_factor_P)
+cat("adj_C:", adj_factors[["2025"]]$C, " adj_P:", adj_factors[["2025"]]$P, "\n")
+cat("fc_used [1, ini_dt]:", res_list[["2025"]]$fc_used[1, (2025-POC_AU$cabY)/POC_AU$timestep+1], "\n")
 
-adj_factors_C[["2025"]] <- res_list[["2025"]]$adj_factor_C
-adj_factors_P[["2025"]] <- res_list[["2025"]]$adj_factor_P
-# ── 2026 ─────────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 3: Run 2026
+# ══════════════════════════════════════════════════════════════════════════════
 cat("\n========== YEAR 2026 ==========\n")
 res_list[["2026"]] <- calibrate_NP_year(
   cal_year       = 2026,
@@ -582,17 +389,20 @@ res_list[["2026"]] <- calibrate_NP_year(
   dfList = dfList, fib = fib, endY = endY,
   target_C     = target_tests[["2026"]]$C,
   target_P     = target_tests[["2026"]]$P,
-  adj_factor_C = NULL,  # warm start
-  adj_factor_P = NULL)
+  adj_factor_C = NULL,
+  adj_factor_P = NULL
+)
 
 dfList_NP_2026        <- res_list[["2026"]]$dfList_NP
 fs[["2026"]]          <- res_list[["2026"]]$fs
 Ccal[[2026]]          <- res_list[["2026"]]$Ccal
-adj_factors[["2026"]] <- res_list[["2026"]]$adj_factor_P
-cat("2026 adj_factor_P:", adj_factors[["2026"]], "\n")
-cat("2026 diagnostics:\n"); print(res_list[["2026"]]$diagnostics)
+adj_factors[["2026"]] <- list(C = res_list[["2026"]]$adj_factor_C,
+                              P = res_list[["2026"]]$adj_factor_P)
+cat("adj_C:", adj_factors[["2026"]]$C, " adj_P:", adj_factors[["2026"]]$P, "\n")
 
-# ── 2027 ─────────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 4: Run 2027
+# ══════════════════════════════════════════════════════════════════════════════
 cat("\n========== YEAR 2027 ==========\n")
 res_list[["2027"]] <- calibrate_NP_year(
   cal_year       = 2027,
@@ -608,17 +418,20 @@ res_list[["2027"]] <- calibrate_NP_year(
   dfList = dfList, fib = fib, endY = endY,
   target_C     = target_tests[["2027"]]$C,
   target_P     = target_tests[["2027"]]$P,
+  adj_factor_C = NULL,
   adj_factor_P = NULL
 )
 
 dfList_NP_2027        <- res_list[["2027"]]$dfList_NP
 fs[["2027"]]          <- res_list[["2027"]]$fs
 Ccal[[2027]]          <- res_list[["2027"]]$Ccal
-adj_factors[["2027"]] <- res_list[["2027"]]$adj_factor_P
-cat("2027 adj_factor_P:", adj_factors[["2027"]], "\n")
-cat("2027 diagnostics:\n"); print(res_list[["2027"]]$diagnostics)
+adj_factors[["2027"]] <- list(C = res_list[["2027"]]$adj_factor_C,
+                              P = res_list[["2027"]]$adj_factor_P)
+cat("adj_C:", adj_factors[["2027"]]$C, " adj_P:", adj_factors[["2027"]]$P, "\n")
 
-# ── 2028 ─────────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 5: Run 2028
+# ══════════════════════════════════════════════════════════════════════════════
 cat("\n========== YEAR 2028 ==========\n")
 res_list[["2028"]] <- calibrate_NP_year(
   cal_year       = 2028,
@@ -634,17 +447,20 @@ res_list[["2028"]] <- calibrate_NP_year(
   dfList = dfList, fib = fib, endY = endY,
   target_C     = target_tests[["2028"]]$C,
   target_P     = target_tests[["2028"]]$P,
+  adj_factor_C = NULL,
   adj_factor_P = NULL
 )
 
 dfList_NP_2028        <- res_list[["2028"]]$dfList_NP
 fs[["2028"]]          <- res_list[["2028"]]$fs
 Ccal[[2028]]          <- res_list[["2028"]]$Ccal
-adj_factors[["2028"]] <- res_list[["2028"]]$adj_factor_P
-cat("2028 adj_factor_P:", adj_factors[["2028"]], "\n")
-cat("2028 diagnostics:\n"); print(res_list[["2028"]]$diagnostics)
+adj_factors[["2028"]] <- list(C = res_list[["2028"]]$adj_factor_C,
+                              P = res_list[["2028"]]$adj_factor_P)
+cat("adj_C:", adj_factors[["2028"]]$C, " adj_P:", adj_factors[["2028"]]$P, "\n")
 
-# ── 2029 ─────────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 6: Run 2029
+# ══════════════════════════════════════════════════════════════════════════════
 cat("\n========== YEAR 2029 ==========\n")
 res_list[["2029"]] <- calibrate_NP_year(
   cal_year       = 2029,
@@ -660,17 +476,20 @@ res_list[["2029"]] <- calibrate_NP_year(
   dfList = dfList, fib = fib, endY = endY,
   target_C     = target_tests[["2029"]]$C,
   target_P     = target_tests[["2029"]]$P,
+  adj_factor_C = NULL,
   adj_factor_P = NULL
 )
 
 dfList_NP_2029        <- res_list[["2029"]]$dfList_NP
 fs[["2029"]]          <- res_list[["2029"]]$fs
 Ccal[[2029]]          <- res_list[["2029"]]$Ccal
-adj_factors[["2029"]] <- res_list[["2029"]]$adj_factor_P
-cat("2029 adj_factor_P:", adj_factors[["2029"]], "\n")
-cat("2029 diagnostics:\n"); print(res_list[["2029"]]$diagnostics)
+adj_factors[["2029"]] <- list(C = res_list[["2029"]]$adj_factor_C,
+                              P = res_list[["2029"]]$adj_factor_P)
+cat("adj_C:", adj_factors[["2029"]]$C, " adj_P:", adj_factors[["2029"]]$P, "\n")
 
-# ── 2030 ─────────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 7: Run 2030
+# ══════════════════════════════════════════════════════════════════════════════
 cat("\n========== YEAR 2030 ==========\n")
 res_list[["2030"]] <- calibrate_NP_year(
   cal_year       = 2030,
@@ -686,28 +505,90 @@ res_list[["2030"]] <- calibrate_NP_year(
   dfList = dfList, fib = fib, endY = endY,
   target_C     = target_tests[["2030"]]$C,
   target_P     = target_tests[["2030"]]$P,
+  adj_factor_C = NULL,
   adj_factor_P = NULL
 )
 
 dfList_NP_2030        <- res_list[["2030"]]$dfList_NP
 fs[["2030"]]          <- res_list[["2030"]]$fs
 Ccal[[2030]]          <- res_list[["2030"]]$Ccal
-adj_factors[["2030"]] <- res_list[["2030"]]$adj_factor_P
-cat("2030 adj_factor_P:", adj_factors[["2030"]], "\n")
-cat("2030 diagnostics:\n"); print(res_list[["2030"]]$diagnostics)
+adj_factors[["2030"]] <- list(C = res_list[["2030"]]$adj_factor_C,
+                              P = res_list[["2030"]]$adj_factor_P)
+cat("adj_C:", adj_factors[["2030"]]$C, " adj_P:", adj_factors[["2030"]]$P, "\n")
 
-# ── Summary of all adj_factors and testing numbers ───────────────────────────
-cat("\n========== SUMMARY ==========\n")
-summary_df <- data.frame(
-  year       = 2025:2026,
-  adj_factor = unlist(adj_factors),
-  tot_C      = sapply(res_list, function(r) r$diagnostics$tot_C),
-  target_C   = sapply(target_tests, function(t) t$C),
-  tot_P      = sapply(res_list, function(r) r$diagnostics$tot_P),
-  target_P   = sapply(target_tests, function(t) t$P),
-  pct_diff_C = sapply(res_list, function(r) 
-    round((r$diagnostics$tot_C - r$diagnostics$target_C)/r$diagnostics$target_C*100, 2)),
-  pct_diff_P = sapply(res_list, function(r) 
-    round((r$diagnostics$tot_P - r$diagnostics$target_P)/r$diagnostics$target_P*100, 2))
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 8: Build combined fc and dfList_NP
+# ══════════════════════════════════════════════════════════════════════════════
+cat("\n========== BUILDING COMBINED MODEL ==========\n")
+
+fc_combined      <- fs[["2024"]]
+dfList_NP_combined <- dfList_NP_2024
+
+for (yr in c("2025","2026","2027","2028","2029","2030")) {
+  yr_num <- as.numeric(yr)
+  ini_dt <- (yr_num - POC_AU$cabY) / POC_AU$timestep + 1
+  end_dt <- ((yr_num + 1) - POC_AU$cabY) / POC_AU$timestep
+  
+  # fc_used: pre-xfs fc actually passed to HCVMSM for this year
+  fc_combined[, ini_dt:end_dt] <- res_list[[yr]]$fc_used[, ini_dt:end_dt]
+  
+  # dfList_NP: only this year's slot
+  for (i in param_var) {
+    dfList_NP_combined[[i]][, , ini_dt:end_dt] <-
+      res_list[[yr]]$dfList_NP[[i]][, , ini_dt:end_dt]
+  }
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 9: Run combined model
+# ══════════════════════════════════════════════════════════════════════════════
+model_NP_combined <- HCVMSM(
+  POC_AU, best_estimates, best_est_pop, disease_progress, pop_array, dfList,
+  param_cascade_sc = dfList_NP_combined, fib = fib,
+  modelrun = "UN", proj = "POC_AU", end_Y = endY,
+  cost = NULL, costflow = NULL, costflow_Neg = NULL,
+  fc = fc_combined
 )
-print(summary_df)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 10: Verify combined model testing numbers
+# ══════════════════════════════════════════════════════════════════════════════
+targets <- data.frame(
+  cal_yr  = rep(2025:2030, each = 2),
+  setting = rep(c("C","P"), 6),
+  target  = rep(c(11000, 14000), 6)
+)
+
+
+get_NP_testing_check <- function(model, label) {
+  cl_ext <- c("newTestingAb_sc","newTestingAg_sc","newTestingPOCT_sc",
+              "newTestingAb_sc_neg","newTestingAg_sc_neg","newTestingPOCT_sc_neg")
+  
+  tflow <- list()
+  for (i in cl_ext) {
+    tflow[[i]] <- modres.flow.t(POC_AU, model, endYear = 100, allp = i) %>%
+      ungroup() %>%
+      group_by(year, population) %>%
+      summarise(best = sum(best), .groups = "drop")
+  }
+  
+  dplyr::bind_rows(tflow, .id = "index") %>%
+    group_by(year, population) %>%
+    spread(index, best) %>%
+    filter(year %in% c(10:15)) %>%   # 2025-2030
+    mutate(
+      Ab  = rowSums(cbind(newTestingAb_sc,  newTestingAb_sc_neg),  na.rm = TRUE),
+      RNA = rowSums(cbind(newTestingAg_sc,  newTestingAg_sc_neg,
+                          newTestingPOCT_sc, newTestingPOCT_sc_neg), na.rm = TRUE),
+      setting = ifelse(population %in% c("C_PWID","C_fPWID"), "C", "P"),
+      cal_yr  = year + POC_AU$cabY
+    ) %>%
+    group_by(cal_yr, setting) %>%
+    summarise(tot = sum(Ab + RNA, na.rm = TRUE), .groups = "drop") %>%
+    mutate(source = label)
+}
+
+get_NP_testing_check(model_NP_combined, "combined") %>%
+  left_join(targets, by = c("cal_yr","setting")) %>%
+  mutate(pct_diff = round((tot - target)/target*100, 1)) %>%
+  print()
