@@ -283,25 +283,128 @@ calibrate_NP_year <- function(
   ))
 }
 
+# ── function to simulate the model and optimise adjusting factors in sequnce ──
+run_NP_scenario <- function(
+    scenario_name,
+    target_tests,        # named list: list("2025"=list(C=,P=), ..., "2030"=list(C=,P=))
+    pj, fs_base,         # fs[["2024"]]
+    prev_model_base,     # res_2024
+    dfList_NP_base,      # dfList_NP_2024
+    Ccal, fm, frac_test, NPlst, frac_ab, param_var,
+    best_estimates, best_est_pop, disease_progress,
+    pop_array, dfList, fib, endY
+) {
+  cat("\n══════════════════════════════════════════\n")
+  cat("SCENARIO:", scenario_name, "\n")
+  cat("══════════════════════════════════════════\n")
+  
+  years <- as.character(2025:2030)
+  
+  # ── Build n_ab_np from targets ──────────────────────────────────────────────
+  n_ab_np_scen <- list()
+  for (yr in years) {
+    n_ab_np_scen[[yr]] <- c(target_tests[[yr]]$C, target_tests[[yr]]$P)
+  }
+  
+  # ── Storage ──────────────────────────────────────────────────────────────────
+  res_list    <- list()
+  adj_factors <- list()
+  fs_scen     <- fs_base  # start fresh from 2024 base
+  prev_dfList <- dfList_NP_base
+  prev_fs     <- fs_base[["2024"]]
+  prev_model  <- prev_model_base
+  
+  # ── Run each year sequentially ───────────────────────────────────────────────
+  for (yr in years) {
+    cat("\n========== SCENARIO:", scenario_name, "— YEAR", yr, "==========\n")
+    
+    res <- calibrate_NP_year(
+      cal_year       = as.numeric(yr),
+      prev_dfList_NP = prev_dfList,
+      prev_fs        = prev_fs,
+      prev_model     = prev_model,
+      dfList_NP_base = prev_dfList,
+      pj             = pj,
+      Ccal = Ccal, fm = fm, frac_test = frac_test, NPlst = NPlst,
+      n_ab_np  = n_ab_np_scen, frac_ab = frac_ab, param_var = param_var,
+      best_estimates = best_estimates, best_est_pop = best_est_pop,
+      disease_progress = disease_progress, pop_array = pop_array,
+      dfList = dfList, fib = fib, endY = endY,
+      target_C     = target_tests[[yr]]$C,
+      target_P     = target_tests[[yr]]$P,
+      adj_factor_C = NULL,
+      adj_factor_P = NULL
+    )
+    
+    res_list[[yr]]    <- res
+    adj_factors[[yr]] <- list(C = res$adj_factor_C, P = res$adj_factor_P)
+    fs_scen[[yr]]     <- res$fs
+    
+    cat("adj_C:", round(res$adj_factor_C, 4),
+        " adj_P:", round(res$adj_factor_P, 4), "\n")
+    
+    # ── Chain to next year ──────────────────────────────────────────────────
+    prev_dfList <- res$dfList_NP
+    prev_fs     <- res$fs
+    prev_model  <- res$model
+  }
+  
+  # ── Build combined fc and dfList_NP ─────────────────────────────────────────
+  cat("\n========== BUILDING COMBINED MODEL:", scenario_name, "==========\n")
+  
+  fc_combined       <- fs_base[["2024"]]
+  dfList_NP_combined <- dfList_NP_base
+  
+  for (yr in years) {
+    yr_num <- as.numeric(yr)
+    ini_dt <- (yr_num - pj$cabY) / pj$timestep + 1
+    end_dt <- ((yr_num + 1) - pj$cabY) / pj$timestep
+    
+    fc_combined[, ini_dt:end_dt] <- res_list[[yr]]$fc_used[, ini_dt:end_dt]
+    
+    for (i in param_var) {
+      dfList_NP_combined[[i]][, , ini_dt:end_dt] <-
+        res_list[[yr]]$dfList_NP[[i]][, , ini_dt:end_dt]
+    }
+  }
+  
+  # ── Run combined model ───────────────────────────────────────────────────────
+  model_combined <- HCVMSM(
+    pj, best_estimates, best_est_pop, disease_progress, pop_array, dfList,
+    param_cascade_sc = dfList_NP_combined, fib = fib,
+    modelrun = "UN", proj = "POC_AU", end_Y = endY,
+    cost = NULL, costflow = NULL, costflow_Neg = NULL,
+    fc = fc_combined
+  )
+  
+  # ── Verify ───────────────────────────────────────────────────────────────────
+  targets_df <- data.frame(
+    cal_yr  = rep(2025:2030, each = 2),
+    setting = rep(c("C","P"), 6),
+    target  = unlist(lapply(years, function(yr)
+      c(target_tests[[yr]]$C, target_tests[[yr]]$P)))
+  )
+  
+  cat("\n=== Verification:", scenario_name, "===\n")
+  chk <- get_NP_testing_check(model_combined, scenario_name) %>%
+    left_join(targets_df, by = c("cal_yr","setting")) %>%
+    mutate(pct_diff = round((tot - target)/target*100, 1))
+  print(chk)
+  
+  # ── Return ───────────────────────────────────────────────────────────────────
+  return(list(
+    model          = model_combined,
+    res_list       = res_list,
+    adj_factors    = adj_factors,
+    fs             = fs_scen,
+    dfList_NP      = dfList_NP_combined,
+    fc_combined    = fc_combined,
+    verification   = chk
+  ))
+} 
 
-# ── Define testing targets per year ──────────────────────────────────────────
-target_tests <- list(
-  "2025" = list(C = 11000, P = 14000),
-  "2026" = list(C = 11000, P = 14000),
-  "2027" = list(C = 11000, P = 14000),
-  "2028" = list(C = 11000, P = 14000),
-  "2029" = list(C = 11000, P = 14000),
-  "2030" = list(C = 11000, P = 14000)
-)
 
-# ── Define n_ab_np for all years ─────────────────────────────────────────────
-n_ab_np <- list()
-n_ab_np[["2025"]] <- c(11000, 14000)
-n_ab_np[["2026"]] <- c(11000, 14000)
-n_ab_np[["2027"]] <- c(11000, 14000)
-n_ab_np[["2028"]] <- c(11000, 14000)
-n_ab_np[["2029"]] <- c(11000, 14000)
-n_ab_np[["2030"]] <- c(11000, 14000)
+
 
 # ── Define fm for all years ───────────────────────────────────────────────────
 fm <- list()
@@ -335,260 +438,120 @@ frac_ab[["2029"]] <- c(unlist(as.numeric(frac_test[[2029]]$C$reflex)),
 frac_ab[["2030"]] <- c(unlist(as.numeric(frac_test[[2030]]$C$reflex)),
                        unlist(as.numeric(frac_test[[2030]]$P$reflex)))
 
-# ══════════════════════════════════════════════════════════════════════════════
-# STEP 1: Reset storage
-# ══════════════════════════════════════════════════════════════════════════════
-res_list    <- list()
-adj_factors <- list()
 
-# ══════════════════════════════════════════════════════════════════════════════
-# STEP 2: Run 2025
-# ══════════════════════════════════════════════════════════════════════════════
-cat("\n========== YEAR 2025 ==========\n")
-res_list[["2025"]] <- calibrate_NP_year(
-  cal_year       = 2025,
-  prev_dfList_NP = dfList_NP_2024,
-  prev_fs        = fs[["2024"]],
-  prev_model     = res_2024,
+# ── Scenario 1: sustained ─────────────────────────────────────────────────────
+scen1 <- run_NP_scenario(
+  scenario_name  = "sustained",
+  target_tests   = list(
+    "2025" = list(C = 11000, P = 14000),
+    "2026" = list(C = 11000, P = 14000),
+    "2027" = list(C = 11000, P = 14000),
+    "2028" = list(C = 11000, P = 14000),
+    "2029" = list(C = 11000, P = 14000),
+    "2030" = list(C = 11000, P = 14000)
+  ),
+  pj = POC_AU, fs_base = fs, prev_model_base = res_2024,
   dfList_NP_base = dfList_NP_2024,
-  pj             = POC_AU,
   Ccal = Ccal, fm = fm, frac_test = frac_test, NPlst = NPlst,
-  n_ab_np = n_ab_np, frac_ab = frac_ab, param_var = param_var,
+  frac_ab = frac_ab, param_var = param_var,
   best_estimates = best_estimates, best_est_pop = best_est_pop,
   disease_progress = disease_progress, pop_array = pop_array,
-  dfList = dfList, fib = fib, endY = endY,
-  target_C     = target_tests[["2025"]]$C,
-  target_P     = target_tests[["2025"]]$P,
-  adj_factor_C = NULL,
-  adj_factor_P = NULL
+  dfList = dfList, fib = fib, endY = endY
 )
 
-dfList_NP_2025        <- res_list[["2025"]]$dfList_NP
-fs[["2025"]]          <- res_list[["2025"]]$fs
-Ccal[[2025]]          <- res_list[["2025"]]$Ccal
-adj_factors[["2025"]] <- list(C = res_list[["2025"]]$adj_factor_C,
-                              P = res_list[["2025"]]$adj_factor_P)
-cat("adj_C:", adj_factors[["2025"]]$C, " adj_P:", adj_factors[["2025"]]$P, "\n")
-cat("fc_used [1, ini_dt]:", res_list[["2025"]]$fc_used[1, (2025-POC_AU$cabY)/POC_AU$timestep+1], "\n")
-
-# ══════════════════════════════════════════════════════════════════════════════
-# STEP 3: Run 2026
-# ══════════════════════════════════════════════════════════════════════════════
-cat("\n========== YEAR 2026 ==========\n")
-res_list[["2026"]] <- calibrate_NP_year(
-  cal_year       = 2026,
-  prev_dfList_NP = dfList_NP_2025,
-  prev_fs        = fs[["2025"]],
-  prev_model     = res_list[["2025"]]$model,
-  dfList_NP_base = dfList_NP_2025,
-  pj             = POC_AU,
+# ── Scenario 2: prison shift ──────────────────────────────────────────────────
+scen2 <- run_NP_scenario(
+  scenario_name  = "prison_shift",
+  target_tests   = list(
+    "2025" = list(C = 11000, P = 14000),
+    "2026" = list(C = 10000, P = 15000),
+    "2027" = list(C =  9000, P = 16000),
+    "2028" = list(C =  8000, P = 17000),
+    "2029" = list(C =  7000, P = 18000),
+    "2030" = list(C =  6000, P = 19000)
+  ),
+  pj = POC_AU, fs_base = fs, prev_model_base = res_2024,
+  dfList_NP_base = dfList_NP_2024,
   Ccal = Ccal, fm = fm, frac_test = frac_test, NPlst = NPlst,
-  n_ab_np = n_ab_np, frac_ab = frac_ab, param_var = param_var,
+  frac_ab = frac_ab, param_var = param_var,
   best_estimates = best_estimates, best_est_pop = best_est_pop,
   disease_progress = disease_progress, pop_array = pop_array,
-  dfList = dfList, fib = fib, endY = endY,
-  target_C     = target_tests[["2026"]]$C,
-  target_P     = target_tests[["2026"]]$P,
-  adj_factor_C = NULL,
-  adj_factor_P = NULL
+  dfList = dfList, fib = fib, endY = endY
 )
 
-dfList_NP_2026        <- res_list[["2026"]]$dfList_NP
-fs[["2026"]]          <- res_list[["2026"]]$fs
-Ccal[[2026]]          <- res_list[["2026"]]$Ccal
-adj_factors[["2026"]] <- list(C = res_list[["2026"]]$adj_factor_C,
-                              P = res_list[["2026"]]$adj_factor_P)
-cat("adj_C:", adj_factors[["2026"]]$C, " adj_P:", adj_factors[["2026"]]$P, "\n")
-
-# ══════════════════════════════════════════════════════════════════════════════
-# STEP 4: Run 2027
-# ══════════════════════════════════════════════════════════════════════════════
-cat("\n========== YEAR 2027 ==========\n")
-res_list[["2027"]] <- calibrate_NP_year(
-  cal_year       = 2027,
-  prev_dfList_NP = dfList_NP_2026,
-  prev_fs        = fs[["2026"]],
-  prev_model     = res_list[["2026"]]$model,
-  dfList_NP_base = dfList_NP_2026,
-  pj             = POC_AU,
+# ── Scenario 3: prison shift ──────────────────────────────────────────────────
+scen3 <- run_NP_scenario(
+  scenario_name  = "scale_up",
+  target_tests   = list(
+    "2025" = list(C = 11000, P = 14000),
+    "2026" = list(C = 11000, P = 14000),
+    "2027" = list(C = 13750, P = 17500),
+    "2028" = list(C = 16500, P = 21000),
+    "2029" = list(C = 19250, P = 24500),
+    "2030" = list(C = 22000, P = 28000)
+  ),
+  pj = POC_AU, fs_base = fs, prev_model_base = res_2024,
+  dfList_NP_base = dfList_NP_2024,
   Ccal = Ccal, fm = fm, frac_test = frac_test, NPlst = NPlst,
-  n_ab_np = n_ab_np, frac_ab = frac_ab, param_var = param_var,
+  frac_ab = frac_ab, param_var = param_var,
   best_estimates = best_estimates, best_est_pop = best_est_pop,
   disease_progress = disease_progress, pop_array = pop_array,
-  dfList = dfList, fib = fib, endY = endY,
-  target_C     = target_tests[["2027"]]$C,
-  target_P     = target_tests[["2027"]]$P,
-  adj_factor_C = NULL,
-  adj_factor_P = NULL
+  dfList = dfList, fib = fib, endY = endY
 )
 
-dfList_NP_2027        <- res_list[["2027"]]$dfList_NP
-fs[["2027"]]          <- res_list[["2027"]]$fs
-Ccal[[2027]]          <- res_list[["2027"]]$Ccal
-adj_factors[["2027"]] <- list(C = res_list[["2027"]]$adj_factor_C,
-                              P = res_list[["2027"]]$adj_factor_P)
-cat("adj_C:", adj_factors[["2027"]]$C, " adj_P:", adj_factors[["2027"]]$P, "\n")
-
-# ══════════════════════════════════════════════════════════════════════════════
-# STEP 5: Run 2028
-# ══════════════════════════════════════════════════════════════════════════════
-cat("\n========== YEAR 2028 ==========\n")
-res_list[["2028"]] <- calibrate_NP_year(
-  cal_year       = 2028,
-  prev_dfList_NP = dfList_NP_2027,
-  prev_fs        = fs[["2027"]],
-  prev_model     = res_list[["2027"]]$model,
-  dfList_NP_base = dfList_NP_2027,
-  pj             = POC_AU,
+# ── Scenario 4: prison shift scale-up ──────────────────────────────────────────────────
+scen4 <- run_NP_scenario(
+  scenario_name  = "prison_shift_scale_up",
+  target_tests   = list(
+    "2025" = list(C = 11000, P = 14000),
+    "2026" = list(C = 11000, P = 14000),
+    "2027" = list(C = 11000, P = 20250),
+    "2028" = list(C = 11000, P = 26500),
+    "2029" = list(C = 11000, P = 32750),
+    "2030" = list(C = 11000, P = 39000)
+  ),
+  pj = POC_AU, fs_base = fs, prev_model_base = res_2024,
+  dfList_NP_base = dfList_NP_2024,
   Ccal = Ccal, fm = fm, frac_test = frac_test, NPlst = NPlst,
-  n_ab_np = n_ab_np, frac_ab = frac_ab, param_var = param_var,
+  frac_ab = frac_ab, param_var = param_var,
   best_estimates = best_estimates, best_est_pop = best_est_pop,
   disease_progress = disease_progress, pop_array = pop_array,
-  dfList = dfList, fib = fib, endY = endY,
-  target_C     = target_tests[["2028"]]$C,
-  target_P     = target_tests[["2028"]]$P,
-  adj_factor_C = NULL,
-  adj_factor_P = NULL
+  dfList = dfList, fib = fib, endY = endY
 )
 
-dfList_NP_2028        <- res_list[["2028"]]$dfList_NP
-fs[["2028"]]          <- res_list[["2028"]]$fs
-Ccal[[2028]]          <- res_list[["2028"]]$Ccal
-adj_factors[["2028"]] <- list(C = res_list[["2028"]]$adj_factor_C,
-                              P = res_list[["2028"]]$adj_factor_P)
-cat("adj_C:", adj_factors[["2028"]]$C, " adj_P:", adj_factors[["2028"]]$P, "\n")
 
-# ══════════════════════════════════════════════════════════════════════════════
-# STEP 6: Run 2029
-# ══════════════════════════════════════════════════════════════════════════════
-cat("\n========== YEAR 2029 ==========\n")
-res_list[["2029"]] <- calibrate_NP_year(
-  cal_year       = 2029,
-  prev_dfList_NP = dfList_NP_2028,
-  prev_fs        = fs[["2028"]],
-  prev_model     = res_list[["2028"]]$model,
-  dfList_NP_base = dfList_NP_2028,
-  pj             = POC_AU,
+# ── Scenario 5: community shift scale-up ──────────────────────────────────────────────────
+scen5 <- run_NP_scenario(
+  scenario_name  = "community_shift_scale_up",
+  target_tests   = list(
+    "2025" = list(C = 11000, P = 14000),
+    "2026" = list(C = 11000, P = 14000),
+    "2027" = list(C = 17250, P = 14000),
+    "2028" = list(C = 23500, P = 14000),
+    "2029" = list(C = 29750, P = 14000),
+    "2030" = list(C = 36000, P = 14000)
+  ),
+  pj = POC_AU, fs_base = fs, prev_model_base = res_2024,
+  dfList_NP_base = dfList_NP_2024,
   Ccal = Ccal, fm = fm, frac_test = frac_test, NPlst = NPlst,
-  n_ab_np = n_ab_np, frac_ab = frac_ab, param_var = param_var,
+  frac_ab = frac_ab, param_var = param_var,
   best_estimates = best_estimates, best_est_pop = best_est_pop,
   disease_progress = disease_progress, pop_array = pop_array,
-  dfList = dfList, fib = fib, endY = endY,
-  target_C     = target_tests[["2029"]]$C,
-  target_P     = target_tests[["2029"]]$P,
-  adj_factor_C = NULL,
-  adj_factor_P = NULL
+  dfList = dfList, fib = fib, endY = endY
 )
-
-dfList_NP_2029        <- res_list[["2029"]]$dfList_NP
-fs[["2029"]]          <- res_list[["2029"]]$fs
-Ccal[[2029]]          <- res_list[["2029"]]$Ccal
-adj_factors[["2029"]] <- list(C = res_list[["2029"]]$adj_factor_C,
-                              P = res_list[["2029"]]$adj_factor_P)
-cat("adj_C:", adj_factors[["2029"]]$C, " adj_P:", adj_factors[["2029"]]$P, "\n")
-
-# ══════════════════════════════════════════════════════════════════════════════
-# STEP 7: Run 2030
-# ══════════════════════════════════════════════════════════════════════════════
-cat("\n========== YEAR 2030 ==========\n")
-res_list[["2030"]] <- calibrate_NP_year(
-  cal_year       = 2030,
-  prev_dfList_NP = dfList_NP_2029,
-  prev_fs        = fs[["2029"]],
-  prev_model     = res_list[["2029"]]$model,
-  dfList_NP_base = dfList_NP_2029,
-  pj             = POC_AU,
-  Ccal = Ccal, fm = fm, frac_test = frac_test, NPlst = NPlst,
-  n_ab_np = n_ab_np, frac_ab = frac_ab, param_var = param_var,
-  best_estimates = best_estimates, best_est_pop = best_est_pop,
-  disease_progress = disease_progress, pop_array = pop_array,
-  dfList = dfList, fib = fib, endY = endY,
-  target_C     = target_tests[["2030"]]$C,
-  target_P     = target_tests[["2030"]]$P,
-  adj_factor_C = NULL,
-  adj_factor_P = NULL
-)
-
-dfList_NP_2030        <- res_list[["2030"]]$dfList_NP
-fs[["2030"]]          <- res_list[["2030"]]$fs
-Ccal[[2030]]          <- res_list[["2030"]]$Ccal
-adj_factors[["2030"]] <- list(C = res_list[["2030"]]$adj_factor_C,
-                              P = res_list[["2030"]]$adj_factor_P)
-cat("adj_C:", adj_factors[["2030"]]$C, " adj_P:", adj_factors[["2030"]]$P, "\n")
-
-# ══════════════════════════════════════════════════════════════════════════════
-# STEP 8: Build combined fc and dfList_NP
-# ══════════════════════════════════════════════════════════════════════════════
-cat("\n========== BUILDING COMBINED MODEL ==========\n")
-
-fc_combined      <- fs[["2024"]]
-dfList_NP_combined <- dfList_NP_2024
-
-for (yr in c("2025","2026","2027","2028","2029","2030")) {
-  yr_num <- as.numeric(yr)
-  ini_dt <- (yr_num - POC_AU$cabY) / POC_AU$timestep + 1
-  end_dt <- ((yr_num + 1) - POC_AU$cabY) / POC_AU$timestep
-  
-  # fc_used: pre-xfs fc actually passed to HCVMSM for this year
-  fc_combined[, ini_dt:end_dt] <- res_list[[yr]]$fc_used[, ini_dt:end_dt]
-  
-  # dfList_NP: only this year's slot
-  for (i in param_var) {
-    dfList_NP_combined[[i]][, , ini_dt:end_dt] <-
-      res_list[[yr]]$dfList_NP[[i]][, , ini_dt:end_dt]
-  }
-}
-
-# ══════════════════════════════════════════════════════════════════════════════
-# STEP 9: Run combined model
-# ══════════════════════════════════════════════════════════════════════════════
-model_NP_combined <- HCVMSM(
-  POC_AU, best_estimates, best_est_pop, disease_progress, pop_array, dfList,
-  param_cascade_sc = dfList_NP_combined, fib = fib,
-  modelrun = "UN", proj = "POC_AU", end_Y = endY,
-  cost = NULL, costflow = NULL, costflow_Neg = NULL,
-  fc = fc_combined
-)
-
-# ══════════════════════════════════════════════════════════════════════════════
-# STEP 10: Verify combined model testing numbers
-# ══════════════════════════════════════════════════════════════════════════════
-targets <- data.frame(
-  cal_yr  = rep(2025:2030, each = 2),
-  setting = rep(c("C","P"), 6),
-  target  = rep(c(11000, 14000), 6)
+# ── Add to all_scenarios ──────────────────────────────────────────────────────
+all_scenarios <- list(
+  "Status quo"   = Sce_sq,
+  "sustained"    = scen1$model,
+  "prison_shift" = scen2$model,
+  "scale_up"     = scen3$model,
+  "prison_shift_scale_up" = scen4$model,
+  "community_shift_scale_up" = scen5$model
 )
 
 
-get_NP_testing_check <- function(model, label) {
-  cl_ext <- c("newTestingAb_sc","newTestingAg_sc","newTestingPOCT_sc",
-              "newTestingAb_sc_neg","newTestingAg_sc_neg","newTestingPOCT_sc_neg")
-  
-  tflow <- list()
-  for (i in cl_ext) {
-    tflow[[i]] <- modres.flow.t(POC_AU, model, endYear = 100, allp = i) %>%
-      ungroup() %>%
-      group_by(year, population) %>%
-      summarise(best = sum(best), .groups = "drop")
-  }
-  
-  dplyr::bind_rows(tflow, .id = "index") %>%
-    group_by(year, population) %>%
-    spread(index, best) %>%
-    filter(year %in% c(10:15)) %>%   # 2025-2030
-    mutate(
-      Ab  = rowSums(cbind(newTestingAb_sc,  newTestingAb_sc_neg),  na.rm = TRUE),
-      RNA = rowSums(cbind(newTestingAg_sc,  newTestingAg_sc_neg,
-                          newTestingPOCT_sc, newTestingPOCT_sc_neg), na.rm = TRUE),
-      setting = ifelse(population %in% c("C_PWID","C_fPWID"), "C", "P"),
-      cal_yr  = year + POC_AU$cabY
-    ) %>%
-    group_by(cal_yr, setting) %>%
-    summarise(tot = sum(Ab + RNA, na.rm = TRUE), .groups = "drop") %>%
-    mutate(source = label)
-}
 
-get_NP_testing_check(model_NP_combined, "combined") %>%
-  left_join(targets, by = c("cal_yr","setting")) %>%
-  mutate(pct_diff = round((tot - target)/target*100, 1)) %>%
-  print()
+# get_NP_testing_check(model_NP_combined, "combined") %>%
+#  left_join(targets, by = c("cal_yr","setting")) %>%
+#  mutate(pct_diff = round((tot - target)/target*100, 1)) %>%
+#  print()

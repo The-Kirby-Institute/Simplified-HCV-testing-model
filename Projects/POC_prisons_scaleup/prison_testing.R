@@ -100,11 +100,13 @@ names(costdfList) <- c(gsub("^|.csv", "", files)) # ^: from beginning, \ end bef
 
 cost_state <- costdfList$state
 costflow <- list()
+
 costflow[[1]] <- costdfList$costFlow
 costflow[[2]] <- costdfList$costFlow_POCRNA
 
 costflow_Neg <- list()
 costflow_Neg[[1]] <- costdfList$costFlow_NEG
+
 costflow_Neg[[2]] <- costdfList$`costFlow_POCRNA _NEG`
 
 ###############################################################################
@@ -2026,3 +2028,248 @@ View(test_fscal%>%filter(year%in% c(7:15))%>%group_by(year, setting)%>%
 test%>%mutate(setting = ifelse(population %in% POC_AU$popNames[3:5], "P", "C"))%>%
   group_by(setting, year)%>%summarise(best = sum(newTreatment_sc))%>%
   filter(year%in% c(7:12))
+
+
+
+
+
+#── 1. testing function ──────────────────────────────────────
+rcalibrate_NP_year <- function(
+    cal_year,          
+    prev_dfList_NP,    
+    prev_fs,           
+    prev_model,        
+    dfList_NP_base,    
+    pj,                
+    Ccal, fm, frac_test, NPlst,
+    n_ab_np, frac_ab,
+    param_var,
+    best_estimates, best_est_pop, disease_progress,
+    pop_array, dfList, fib, endY
+) {
+  
+  yr_chr  <- as.character(cal_year)
+  # scale_p <- 1 / pj$timestep
+  
+  steps   <- 1 / pj$timestep
+  ini_dt  <- (cal_year - pj$cabY) / pj$timestep + 1
+  end_dt  <- ((cal_year + 1) - pj$cabY) / pj$timestep
+  
+  # ── Helper: extract per-population S and U at a given calendar year ───────
+  extract_pop_US <- function(model, at_year) {
+    popResults_MidYear(
+      pj, model,
+      Population   = pj$popNames,
+      Disease_prog = pj$diseaseprogress_Name,
+      Cascade      = pj$cascade_name,
+      param        = NULL,
+      endYear      = 100
+    ) %>%
+      ungroup() %>%
+      mutate(
+        # Force character to avoid factor comparison warnings
+        cascade      = as.character(cascade),
+        disease_prog = as.character(disease_prog),
+        diag_status  = ifelse(cascade %in% c("s","cured") & disease_prog != "a", "S",
+                              ifelse(cascade %in% c("undiag")    & disease_prog != "a", "U", "diag")),
+        cal_yr       = year + pj$cabY - 1
+      ) %>%
+      filter(cal_yr == at_year & diag_status %in% c("U","S")) %>%
+      group_by(population, diag_status) %>%
+      summarise(best = sum(best), .groups = "drop") %>%
+      pivot_wider(
+        names_from  = diag_status,
+        values_from = best,
+        values_fill = 0
+      ) %>%
+      mutate(
+        population = as.character(population), 
+        S = as.numeric(S),
+        U = as.numeric(U)
+      )
+  }
+  
+  # ── Helper: pull S and U for one population ───────────────────────────────
+  get_SU <- function(pop_data, pop_name) {
+    row <- pop_data %>% filter(population == pop_name)
+    if (nrow(row) == 0) {
+      warning(paste("Population", pop_name, "not found in model output at year", cal_year))
+      return(list(S = 0, U = 0))
+    }
+    list(S = as.numeric(row$S), U = as.numeric(row$U))
+  }
+  
+  # ── 1. Extract per-pop U and S from PREVIOUS year's NP model ──────────────
+  pop_prev <- extract_pop_US(prev_model, at_year = cal_year)
+  su_prev  <- lapply(pj$popNames, function(p) get_SU(pop_prev, p))
+  names(su_prev) <- pj$popNames
+  # debug 
+  cat("=== DEBUG pop_prev inside function ===\n")
+  print(pop_prev)
+  cat("nrow pop_prev:", nrow(pop_prev), "\n")
+  cat("unique cal_yr in extract:", unique(
+    popResults_MidYear(pj, prev_model,
+                       Population = pj$popNames, Disease_prog = pj$diseaseprogress_Name,
+                       Cascade = pj$cascade_name, param = NULL, endYear = 100) %>%
+      mutate(cal_yr = year + pj$cabY - 1) %>%
+      pull(cal_yr) %>% unique() %>% head(20)
+  ), "\n")
+  cat("su_prev P_PWID S:", su_prev[["P_PWID"]]$S, "\n")
+  cat("su_prev P_PWID U:", su_prev[["P_PWID"]]$U, "\n")
+  cat("su_prev P_nPWID S:", su_prev[["P_nPWID"]]$S, "\n")
+  cat("su_prev P_nPWID U:", su_prev[["P_nPWID"]]$U, "\n")
+  
+  
+  
+  # ── 2. Get previous year's fs values with safety fallback ─────────────────
+  fs_prev_val <- as.numeric(prev_fs[, ini_dt - 1])
+  
+  if (any(!is.finite(fs_prev_val)) | any(fs_prev_val == 0)) {
+    warning(paste("fs_prev_val has non-finite or zero values at year", cal_year,
+                  "- falling back to ini_dt"))
+    fs_prev_val <- as.numeric(prev_fs[, ini_dt])
+  }
+  
+  # ── 3. Recompute Ccal dynamically from NP model populations ───────────────
+  # Community: no timestep scaling
+  denom_C <- su_prev[["C_PWID"]]$S  * fs_prev_val[1] + 
+    su_prev[["C_PWID"]]$U  * fm[[yr_chr]][1] +
+    su_prev[["C_fPWID"]]$S * fs_prev_val[2] + 
+    su_prev[["C_fPWID"]]$U * fm[[yr_chr]][2]
+  
+  # Prison: all pops scaled by 1/timestep
+  denom_P <- su_prev[["P_PWID"]]$S  * fs_prev_val[3] * 2 +
+    su_prev[["P_PWID"]]$U  * fm[[yr_chr]][3] * 2 +
+    su_prev[["P_fPWID"]]$S * fs_prev_val[4] * 2 +
+    su_prev[["P_fPWID"]]$U * fm[[yr_chr]][4] * 2 +
+    (su_prev[["P_nPWID"]]$S + su_prev[["P_nPWID"]]$U) * fm[[yr_chr]][5] * 4
+  
+  # Safety check on denominators
+  if (!is.finite(denom_C) | denom_C == 0) 
+    stop(paste("denom_C is", denom_C, "at year", cal_year, "- check su_prev and fs_prev_val"))
+  if (!is.finite(denom_P) | denom_P == 0) 
+    stop(paste("denom_P is", denom_P, "at year", cal_year, "- check su_prev and fs_prev_val"))
+  
+  Ccal[[cal_year]] <- list(
+    C = as.numeric(n_ab_np[[yr_chr]][1]) / denom_C,
+    P = as.numeric(n_ab_np[[yr_chr]][2]) / denom_P
+  )
+  
+  fp_vec <- c(Ccal[[cal_year]]$C * fm[[yr_chr]][1],
+              Ccal[[cal_year]]$C * fm[[yr_chr]][2],
+              Ccal[[cal_year]]$P * fm[[yr_chr]][3],
+              Ccal[[cal_year]]$P * fm[[yr_chr]][4],
+              Ccal[[cal_year]]$P * fm[[yr_chr]][5])
+  
+  # ── 4. Build dfList_NP for this year ──────────────────────────────────────
+  dfList_NP_year <- prev_dfList_NP
+  
+  for (i in param_var) {
+    dfList_NP_year[[i]] <- Param_cal(
+      pj           = pj,
+      dlist        = dfList_NP_year,
+      index        = i,
+      frac_testing = frac_test[[cal_year]],
+      S_Yint       = cal_year,
+      S_Yend       = cal_year + 1,
+      r_Yend       = cal_year + 1,
+      NPlst        = NPlst,
+      fp           = fp_vec
+    )
+  }
+  
+  # Reset values after scenario window back to baseline
+  for (i in param_var) {
+    b_pt       <- ((cal_year + 1) - pj$cabY) / pj$timestep + 1
+    dim_length <- dim(dfList_NP_year[[i]])[3]
+    dfList_NP_year[[i]][, , b_pt:dim_length] <- dfList_NP_base[[i]][, , b_pt:dim_length]
+  }
+  
+  # ── 5. Initialize fs by shifting previous year's values forward one year ──
+  prev_ini <- ini_dt - steps
+  prev_end <- end_dt - steps
+  
+  fs_new <- prev_fs
+  for (pop in 1:pj$npops) {
+    fs_new[pop, ini_dt:end_dt] <- prev_fs[pop, prev_ini:prev_end]
+  }
+  
+  # ── 6. First HCVMSM run with initial fs ───────────────────────────────────
+  model_new <- HCVMSM(
+    pj, best_estimates, best_est_pop,
+    disease_progress, pop_array, dfList,
+    param_cascade_sc = dfList_NP_year,
+    fib      = fib,
+    modelrun = "UN",
+    proj     = "POC_AU",
+    end_Y    = endY,
+    cost          = NULL,
+    costflow      = NULL,
+    costflow_Neg  = NULL,
+    fc = fs_new
+  )
+  
+  # ── 7. Extract U and S from NEW model at cal_year ─────────────────────────
+  pop_new <- extract_pop_US(model_new, at_year = cal_year)
+  su_new  <- lapply(pj$popNames, function(p) get_SU(pop_new, p))
+  names(su_new) <- pj$popNames
+  
+  # Aggregate to setting level for fs recalculation
+  undiag_C <- su_new[["C_PWID"]]$U  + su_new[["C_fPWID"]]$U
+  undiag_P <- su_new[["P_PWID"]]$U  + su_new[["P_fPWID"]]$U  + su_new[["P_nPWID"]]$U
+  s_bar_C  <- su_new[["C_PWID"]]$S  + su_new[["C_fPWID"]]$S
+  s_bar_P  <- su_new[["P_PWID"]]$S  + su_new[["P_fPWID"]]$S  + su_new[["P_nPWID"]]$S
+  
+  # Safety checks
+  if (!is.finite(s_bar_C) | s_bar_C == 0) 
+    stop(paste("s_bar_C is", s_bar_C, "at year", cal_year))
+  if (!is.finite(s_bar_P) | s_bar_P == 0) 
+    stop(paste("s_bar_P is", s_bar_P, "at year", cal_year))
+  
+  # ── 8. Recalculate fs using NP model populations ──────────────────────────
+  fab  <- frac_ab[[yr_chr]]
+  n_ab <- n_ab_np[[yr_chr]]
+  cov_C <- Ccal[[cal_year]]$C
+  cov_P <- Ccal[[cal_year]]$P
+  
+  fs_new[1, ini_dt:end_dt] <- rep(
+    (as.numeric(n_ab[1]) / (cov_C * fab[1]) - fp_vec[1] * undiag_C) / s_bar_C, steps)
+  
+  fs_new[2, ini_dt:end_dt] <- rep(
+    (as.numeric(n_ab[1]) / (cov_C * fab[1]) - fp_vec[2] * undiag_C) / s_bar_C, steps)
+  
+  fs_new[3, ini_dt:end_dt] <- rep(
+    (as.numeric(n_ab[2]) / (cov_P * fab[2]) - fp_vec[3] * undiag_P) / s_bar_P, steps)
+  
+  fs_new[4, ini_dt:end_dt] <- rep(
+    (as.numeric(n_ab[2]) / (cov_P * fab[2]) - fp_vec[4] * undiag_P) / s_bar_P, steps)
+  
+  fs_new[5, ini_dt:end_dt] <- rep(1, steps)  # pop 5 hardcoded per original logic
+  
+  # ── 9. Return everything ──────────────────────────────────────────────────
+  return(list(
+    dfList_NP   = dfList_NP_year,
+    fs          = fs_new,
+    model       = model_new,
+    Ccal        = Ccal[[cal_year]],
+    diagnostics = list(
+      undiag_C    = undiag_C,   undiag_P    = undiag_P,
+      s_bar_C     = s_bar_C,    s_bar_P     = s_bar_P,
+      denom_C     = denom_C,    denom_P     = denom_P,
+      fs_prev_val = fs_prev_val,
+      fp_vec      = fp_vec,
+      Ccal        = Ccal[[cal_year]]
+    )
+  ))
+}
+
+res_2025 <- calibrate_NP_year(
+  cal_year = 2025, prev_dfList_NP = dfList_NP_2024,
+  prev_fs = fs[["2024"]], prev_model = res_2024,
+  dfList_NP_base = dfList_NP_2024, pj = POC_AU,
+  Ccal = Ccal, fm = fm, frac_test = frac_test, NPlst = NPlst,
+  n_ab_np = n_ab_np, frac_ab = frac_ab, param_var = param_var,
+  best_estimates = best_estimates, best_est_pop = best_est_pop,
+  disease_progress = disease_progress, pop_array = pop_array,
+  dfList = dfList, fib = fib, endY = endY
+)
