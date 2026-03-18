@@ -17,7 +17,7 @@ rm(list = ls())
 gc()
 project_name <- "POC_AU"
 
-codefun_path <- paste("/Users/jjwu/Documents/Simplified-HCV-testing-model")
+codefun_path <- paste("/Users/jjwu/Projects/Simplified-HCV-testing-model")
 
 data_path <- paste("/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/", 
                    project_name, sep = "")
@@ -3074,9 +3074,9 @@ incre_plot_sens[[1]] <- incre_plot_sens[[1]] +
     legend.title = element_text(size = 16),
     legend.spacing.y = unit(0.5, "cm")     # spacing between legend items
   ) + theme(legend.position = "right") + 
-  scale_y_continuous(limit = c(-20000000, 80000000), 
-                     breaks = seq(-20000000, 80000000, 10000000),
-                     labels = seq(-20000000, 80000000,  10000000)/1000000)
+  scale_y_continuous(limit = c(-40000000, 80000000), 
+                     breaks = seq(-40000000, 80000000, 10000000),
+                     labels = seq(-40000000, 80000000,  10000000)/1000000)
 
 get_legend_manual <- function(p) {
   tmp <- ggplot_gtable(ggplot_build(p))
@@ -3134,8 +3134,8 @@ plots_no_legend <- lapply(incre_plot_sens, function(p) {
 })
 
 incre_plot_sens[[1]] <- incre_plot_sens[[1]] + ggtitle("")
-ggsave(file=file.path(OutputFig, paste0("costsaving_category_maintext.png")), 
-       incre_plot_sens[[1]],  width = 12, height = 8, bg = "white", dpi = 300) 
+ggsave(file=file.path(OutputFig%>%dirname(), paste0("costsaving_category_maintext.png")), 
+       incre_plot_sens[[1]],  width = 13, height = 8, bg = "white", dpi = 300) 
 
 
 

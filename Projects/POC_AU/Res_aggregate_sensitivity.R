@@ -11,7 +11,7 @@ tic <- proc.time()
 
 project_name <- "POC_AU"
 
-codefun_path <- paste("/Users/jjwu/Documents/Simplified-HCV-testing-model")
+codefun_path <- paste("/Users/jjwu/Projects/Simplified-HCV-testing-model")
 
 data_path <- paste("/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/", 
                    project_name, sep = "")

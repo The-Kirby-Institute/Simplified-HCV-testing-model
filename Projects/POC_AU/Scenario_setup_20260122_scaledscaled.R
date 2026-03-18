@@ -9,7 +9,7 @@ library(grid)
 library(readxl)
 project_name <- "POC_AU"
 
-codefun_path <- paste("/Users/jjwu/Documents/Simplified-HCV-testing-model")
+codefun_path <- paste("/Users/jjwu/Projects/Simplified-HCV-testing-model")
 
 data_path <- paste("/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/", 
                    project_name, sep = "")
@@ -68,40 +68,8 @@ source(file.path(Rcode, "/Functions/check_steady.R"))
  costflow_Neg[[1]] <- costdfList$costFlow_NEG
  costflow_Neg[[2]] <- costdfList$`costFlow_POCRNA _NEG`
 
-#### sensitivity total cost(including program cost) ####
-###################### debug required ##########################################
-files <- list.files(path = paste0(DataFolder, 
-                                  "/cost", sep =  ""), pattern = '*.csv')
 
-# parameter sets for cost data 
-# +- 10% 
- costdfList <- list()
- costdfList <- lapply(files, function(f) {
-  
-  df <- read.csv(file.path(paste0(DataFolder, "/cost/", f, sep = "")), header = TRUE)
-  
-  df <- df[, -1]
-  
-  df <- df%>%as_tibble()
-  
-  df <- as.matrix(df, nrow = npops, ncol = length(.) + 1)
-  
- })
-
- names(costdfList) <- c(gsub("^|.csv", "", files)) # ^: from beginning, \ end before .csv
-
-
- cost_state <- costdfList$state
- costflow <- list()
- costflow[[1]] <- costdfList$costFlow
- costflow[[2]] <- costdfList$costFlow_POCRNA
-
- costflow_Neg <- list()
- costflow_Neg[[1]] <- costdfList$costFlow_NEG
- costflow_Neg[[2]] <- costdfList$`costFlow_POCRNA _NEG`
-
- ###############################################################################
- 
+ costflow[[1]]
  endY <- 100
 
 param_dfList <- lapply(dfList, function(x) x*0)

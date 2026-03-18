@@ -3,7 +3,7 @@ gc()
 project_name <- "POC_AU"
 options(digits = 15)
 
-codefun_path <- paste("/Users/jjwu/Documents/Simplified-HCV-testing-model")
+codefun_path <- paste("/Users/jjwu/Projects/Simplified-HCV-testing-model")
 
 data_path <- paste("/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/", 
                    project_name, sep = "")
@@ -73,7 +73,7 @@ gc()
 #### cost sensitivity #####
 cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
 
-for (cost_type in cost_types[2:4]) {
+for (cost_type in cost_types) {
   
   tic <- proc.time()
   param_sq <- list()
