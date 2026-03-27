@@ -151,6 +151,33 @@ HCVMSM_cpp <- function(HCV, parama, initialPop, disease_progress,
     is_POC_AU      = isTRUE(proj == "POC_AU")
   )
   
+  dimnames(cpp_res$allPops) <- list(
+    POC_AU$popNames,
+    POC_AU$component_name,
+    NULL
+  )
+  comp_names <- HCV$component_name
+  pop_names  <- HCV$popNames
+  
+  dimnames(cpp_res$allPops) <- list(pop_names, comp_names, NULL)
+  rownames(cpp_res$newS)              <- pop_names
+  rownames(cpp_res$newInfections)     <- pop_names
+  rownames(cpp_res$newHCVdeaths)      <- pop_names
+  rownames(cpp_res$newTreatment)      <- pop_names
+  rownames(cpp_res$newRetreat)        <- pop_names
+  rownames(cpp_res$newCured)          <- pop_names
+  rownames(cpp_res$newtreatfailed)    <- pop_names
+  rownames(cpp_res$newreinfection)    <- pop_names
+  rownames(cpp_res$newEntry)          <- pop_names
+  rownames(cpp_res$newDeath)          <- pop_names
+  rownames(cpp_res$newLeave)          <- pop_names
+  rownames(cpp_res$newTestingAb_sc)      <- pop_names
+  rownames(cpp_res$newTestingAg_sc)      <- pop_names
+  rownames(cpp_res$newTestingPOCT_sc)    <- pop_names
+  rownames(cpp_res$newTreatment_sc)      <- pop_names
+  rownames(cpp_res$newTestingAb_sc_neg)  <- pop_names
+  rownames(cpp_res$newTestingAg_sc_neg)  <- pop_names
+  rownames(cpp_res$newTestingPOCT_sc_neg)<- pop_names
   # ── Stub zero matrices for unused outputs ─────────────────────────────────
   zero_mat   <- matrix(0, nrow = npops, ncol = npts)
   zero_arr3  <- array(0, c(npops, npops, npts))

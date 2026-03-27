@@ -275,11 +275,11 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
   popArray <- array(0, c(npops, npops, npts), dimnames = list(popNames, popNames))
   
   # pop transition in each compartment 
-  newarray_state <- array(0, c(ncomponent, npops, npops, npts), 
-                          dimnames = list(componentName, popNames, popNames))
+  # newarray_state <- array(0, c(ncomponent, npops, npops, npts), 
+  #                        dimnames = list(componentName, popNames, popNames))
   
   
-  newarray <- popArray
+  # newarray <- popArray
   
   ####demographic paramaeters####
   # entry 
@@ -2070,378 +2070,378 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
     #### in and out flow #### 
     # each state in and out flow 
     
-    newarray_state["s", , , t] <- pop_array[, , t]*oldPop[,"s"]
-    newarray_state["a_undiag", , , t] <- pop_array[, , t]*oldPop[,"a_undiag"]
-    newarray_state["f0_undiag", , , t] <- pop_array[, , t]*oldPop[,"f0_undiag"]
-    newarray_state["f1_undiag", , , t] <- pop_array[, , t]*oldPop[,"f1_undiag"]
-    newarray_state["f2_undiag", , , t] <- pop_array[, , t]*oldPop[,"f2_undiag"]
-    newarray_state["f3_undiag", , , t] <- pop_array[, , t]*oldPop[,"f3_undiag"]
-    newarray_state["f4_undiag", , , t] <- pop_array[, , t]*oldPop[,"f4_undiag"]
-    newarray_state["dc_undiag", , , t] <- pop_array[, , t]*oldPop[,"dc_undiag"]
-    newarray_state["hcc_undiag", , , t] <- pop_array[, , t]*oldPop[,"hcc_undiag"]
-    newarray_state["lt_undiag", , , t] <- pop_array[, , t]*oldPop[,"lt_undiag"]
-    newarray_state["plt_undiag", , , t] <- pop_array[, , t]*oldPop[,"plt_undiag"]
+    # newarray_state["s", , , t] <- pop_array[, , t]*oldPop[,"s"]
+    # newarray_state["a_undiag", , , t] <- pop_array[, , t]*oldPop[,"a_undiag"]
+    # newarray_state["f0_undiag", , , t] <- pop_array[, , t]*oldPop[,"f0_undiag"]
+    # newarray_state["f1_undiag", , , t] <- pop_array[, , t]*oldPop[,"f1_undiag"]
+    # newarray_state["f2_undiag", , , t] <- pop_array[, , t]*oldPop[,"f2_undiag"]
+    # newarray_state["f3_undiag", , , t] <- pop_array[, , t]*oldPop[,"f3_undiag"]
+    # newarray_state["f4_undiag", , , t] <- pop_array[, , t]*oldPop[,"f4_undiag"]
+    # newarray_state["dc_undiag", , , t] <- pop_array[, , t]*oldPop[,"dc_undiag"]
+    # newarray_state["hcc_undiag", , , t] <- pop_array[, , t]*oldPop[,"hcc_undiag"]
+    # newarray_state["lt_undiag", , , t] <- pop_array[, , t]*oldPop[,"lt_undiag"]
+    # newarray_state["plt_undiag", , , t] <- pop_array[, , t]*oldPop[,"plt_undiag"]
     
-    newarray_state["a_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"a_diag_ab"]
-    newarray_state["f0_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"f0_diag_ab"]
-    newarray_state["f1_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"f1_diag_ab"]
-    newarray_state["f2_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"f2_diag_ab"]
-    newarray_state["f3_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"f3_diag_ab"]
-    newarray_state["f4_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"f4_diag_ab"]
-    newarray_state["dc_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"dc_diag_ab"]
-    newarray_state["hcc_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"hcc_diag_ab"]
-    newarray_state["lt_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"lt_diag_ab"]
-    newarray_state["plt_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"plt_diag_ab"]
+    # newarray_state["a_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"a_diag_ab"]
+    # newarray_state["f0_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"f0_diag_ab"]
+    # newarray_state["f1_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"f1_diag_ab"]
+    # newarray_state["f2_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"f2_diag_ab"]
+    # newarray_state["f3_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"f3_diag_ab"]
+    # newarray_state["f4_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"f4_diag_ab"]
+    # newarray_state["dc_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"dc_diag_ab"]
+    # newarray_state["hcc_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"hcc_diag_ab"]
+    # newarray_state["lt_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"lt_diag_ab"]
+    # newarray_state["plt_diag_ab", , , t] <- pop_array[, , t]*oldPop[,"plt_diag_ab"]
     
-    newarray_state["a_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"a_diag_RNA"]
-    newarray_state["f0_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"f0_diag_RNA"]
-    newarray_state["f1_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"f1_diag_RNA"]
-    newarray_state["f2_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"f2_diag_RNA"]
-    newarray_state["f3_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"f3_diag_RNA"]
-    newarray_state["f4_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"f4_diag_RNA"]
-    newarray_state["dc_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"dc_diag_RNA"]
-    newarray_state["hcc_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"hcc_diag_RNA"]
-    newarray_state["lt_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"lt_diag_RNA"]
-    newarray_state["plt_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"plt_diag_RNA"]
+    # newarray_state["a_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"a_diag_RNA"]
+    # newarray_state["f0_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"f0_diag_RNA"]
+    # newarray_state["f1_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"f1_diag_RNA"]
+    # newarray_state["f2_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"f2_diag_RNA"]
+    # newarray_state["f3_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"f3_diag_RNA"]
+    # newarray_state["f4_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"f4_diag_RNA"]
+    # newarray_state["dc_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"dc_diag_RNA"]
+    # newarray_state["hcc_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"hcc_diag_RNA"]
+    # newarray_state["lt_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"lt_diag_RNA"]
+    # newarray_state["plt_diag_RNA", , , t] <- pop_array[, , t]*oldPop[,"plt_diag_RNA"]
     
-    newarray_state["a_treat", , , t] <- pop_array[, , t]*oldPop[,"a_treat"]
-    newarray_state["f0_treat" , , , t] <- pop_array[, , t]*oldPop[,"f0_treat"]
-    newarray_state["f1_treat" , , , t] <- pop_array[, , t]*oldPop[,"f1_treat"]
-    newarray_state["f2_treat", , , t] <- pop_array[, , t]*oldPop[,"f2_treat"]
-    newarray_state["f3_treat", , , t] <- pop_array[, , t]*oldPop[,"f3_treat"]
-    newarray_state["f4_treat", , , t] <- pop_array[, , t]*oldPop[,"f4_treat"]
-    newarray_state["dc_treat", , , t] <- pop_array[, , t]*oldPop[,"dc_treat"]
-    newarray_state["hcc_treat", , , t] <- pop_array[, , t]*oldPop[,"hcc_treat"]
-    newarray_state["lt_treat", , , t] <- pop_array[, , t]*oldPop[,"lt_treat"]
-    newarray_state["plt_treat", , , t ] <- pop_array[, , t]*oldPop[,"plt_treat"]
+    # newarray_state["a_treat", , , t] <- pop_array[, , t]*oldPop[,"a_treat"]
+    # newarray_state["f0_treat" , , , t] <- pop_array[, , t]*oldPop[,"f0_treat"]
+    # newarray_state["f1_treat" , , , t] <- pop_array[, , t]*oldPop[,"f1_treat"]
+    # newarray_state["f2_treat", , , t] <- pop_array[, , t]*oldPop[,"f2_treat"]
+    # newarray_state["f3_treat", , , t] <- pop_array[, , t]*oldPop[,"f3_treat"]
+    # newarray_state["f4_treat", , , t] <- pop_array[, , t]*oldPop[,"f4_treat"]
+    # newarray_state["dc_treat", , , t] <- pop_array[, , t]*oldPop[,"dc_treat"]
+    # newarray_state["hcc_treat", , , t] <- pop_array[, , t]*oldPop[,"hcc_treat"]
+    # newarray_state["lt_treat", , , t] <- pop_array[, , t]*oldPop[,"lt_treat"]
+    # newarray_state["plt_treat", , , t ] <- pop_array[, , t]*oldPop[,"plt_treat"]
     
-    newarray_state["a_treat_f", , , t] <- pop_array[, , t]*oldPop[,"a_treat_f"]
-    newarray_state["f0_treat_f", , , t] <- pop_array[, , t]*oldPop[,"f0_treat_f"]
-    newarray_state["f1_treat_f", , , t] <- pop_array[, , t]*oldPop[,"f1_treat_f"]
-    newarray_state["f2_treat_f", , , t] <- pop_array[, , t]*oldPop[,"f2_treat_f"]
-    newarray_state["f3_treat_f" , , , t] <- pop_array[, , t]*oldPop[,"f3_treat_f"]
-    newarray_state["f4_treat_f", , , t] <- pop_array[, , t]*oldPop[,"f4_treat_f"]
-    newarray_state["dc_treat_f", , , t] <- pop_array[, , t]*oldPop[,"dc_treat_f"]
-    newarray_state["hcc_treat_f", , , t] <- pop_array[, , t]*oldPop[,"hcc_treat_f"]
-    newarray_state["lt_treat_f", , , t] <- pop_array[, , t]*oldPop[,"lt_treat_f"]
-    newarray_state["plt_treat_f", , , t] <- pop_array[, , t]*oldPop[,"plt_treat_f"]
+    # newarray_state["a_treat_f", , , t] <- pop_array[, , t]*oldPop[,"a_treat_f"]
+    # newarray_state["f0_treat_f", , , t] <- pop_array[, , t]*oldPop[,"f0_treat_f"]
+    # newarray_state["f1_treat_f", , , t] <- pop_array[, , t]*oldPop[,"f1_treat_f"]
+    # newarray_state["f2_treat_f", , , t] <- pop_array[, , t]*oldPop[,"f2_treat_f"]
+    # newarray_state["f3_treat_f" , , , t] <- pop_array[, , t]*oldPop[,"f3_treat_f"]
+    # newarray_state["f4_treat_f", , , t] <- pop_array[, , t]*oldPop[,"f4_treat_f"]
+    # newarray_state["dc_treat_f", , , t] <- pop_array[, , t]*oldPop[,"dc_treat_f"]
+    # newarray_state["hcc_treat_f", , , t] <- pop_array[, , t]*oldPop[,"hcc_treat_f"]
+    # newarray_state["lt_treat_f", , , t] <- pop_array[, , t]*oldPop[,"lt_treat_f"]
+    # newarray_state["plt_treat_f", , , t] <- pop_array[, , t]*oldPop[,"plt_treat_f"]
     
-    newarray_state["a_cured", , , t] <- pop_array[, , t]*oldPop[,"a_cured"]
-    newarray_state["f0_cured", , , t] <- pop_array[, , t]*oldPop[,"f0_cured"]
-    newarray_state["f1_cured", , , t] <- pop_array[, , t]*oldPop[,"f1_cured"]
-    newarray_state["f2_cured", , , t] <- pop_array[, , t]*oldPop[,"f2_cured"]
-    newarray_state["f3_cured", , , t] <- pop_array[, , t]*oldPop[,"f3_cured"]
-    newarray_state["f4_cured", , , t] <- pop_array[, , t]*oldPop[,"f4_cured"]
-    newarray_state["dc_cured", , , t] <- pop_array[, , t]*oldPop[,"dc_cured"]
-    newarray_state["hcc_cured", , , t] <- pop_array[, , t]*oldPop[,"hcc_cured"]
-    newarray_state["lt_cured", , , t] <- pop_array[, , t]*oldPop[,"lt_cured"]
-    newarray_state["plt_cured", , , t] <- pop_array[, , t]*oldPop[,"plt_cured"]
+    # newarray_state["a_cured", , , t] <- pop_array[, , t]*oldPop[,"a_cured"]
+    # newarray_state["f0_cured", , , t] <- pop_array[, , t]*oldPop[,"f0_cured"]
+    # newarray_state["f1_cured", , , t] <- pop_array[, , t]*oldPop[,"f1_cured"]
+    # newarray_state["f2_cured", , , t] <- pop_array[, , t]*oldPop[,"f2_cured"]
+    # newarray_state["f3_cured", , , t] <- pop_array[, , t]*oldPop[,"f3_cured"]
+    # newarray_state["f4_cured", , , t] <- pop_array[, , t]*oldPop[,"f4_cured"]
+    # newarray_state["dc_cured", , , t] <- pop_array[, , t]*oldPop[,"dc_cured"]
+    # newarray_state["hcc_cured", , , t] <- pop_array[, , t]*oldPop[,"hcc_cured"]
+    # newarray_state["lt_cured", , , t] <- pop_array[, , t]*oldPop[,"lt_cured"]
+    # newarray_state["plt_cured", , , t] <- pop_array[, , t]*oldPop[,"plt_cured"]
     
     
     
     # pop-array 
-    newarray[ , , t] <- 
-      (pop_array[, , t]*oldPop[, "s"] + 
-         pop_array[, , t]*oldPop[, "a_undiag"] + 
-         pop_array[, , t]*oldPop[, "f0_undiag"] + 
-         pop_array[, , t]*oldPop[, "f1_undiag"] + 
-         pop_array[, , t]*oldPop[, "f2_undiag"] + 
-         pop_array[, , t]*oldPop[, "f3_undiag"] + 
-         pop_array[, , t]*oldPop[, "f4_undiag"] + 
-         pop_array[, , t]*oldPop[, "dc_undiag"] +  
-         pop_array[, , t]*oldPop[, "hcc_undiag"] + 
-         pop_array[, , t]*oldPop[, "lt_undiag"] +  
-         pop_array[, , t]*oldPop[, "plt_undiag"] + 
-         pop_array[, , t]*oldPop[, "a_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "f0_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "f1_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "f2_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "f3_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "f4_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "dc_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "hcc_diag_ab"]+ 
-         pop_array[, , t]*oldPop[, "lt_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "plt_diag_ab"] + 
-         pop_array[, , t]*oldPop[, "a_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "f0_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "f1_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "f2_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "f3_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "f4_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "dc_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "hcc_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "lt_diag_RNA"] + 
-         pop_array[, , t]*oldPop[, "plt_diag_RNA"] +
-         pop_array[, , t]*oldPop[, "a_treat"] + 
-         pop_array[, , t]*oldPop[, "f0_treat"] + 
-         pop_array[, , t]*oldPop[, "f1_treat"] + 
-         pop_array[, , t]*oldPop[, "f2_treat"] + 
-         pop_array[, , t]*oldPop[, "f3_treat"] + 
-         pop_array[, , t]*oldPop[, "f4_treat"] + 
-         pop_array[, , t]*oldPop[, "dc_treat"] + 
-         pop_array[, , t]*oldPop[, "hcc_treat"] + 
-         pop_array[, , t]*oldPop[, "lt_treat"] + 
-         pop_array[, , t]*oldPop[, "plt_treat"] + 
-         pop_array[, , t]*oldPop[, "a_treat_f"] + 
-         pop_array[, , t]*oldPop[, "f0_treat_f"] + 
-         pop_array[, , t]*oldPop[, "f1_treat_f"] + 
-         pop_array[, , t]*oldPop[, "f2_treat_f"] + 
-         pop_array[, , t]*oldPop[, "f3_treat_f"] + 
-         pop_array[, , t]*oldPop[, "f4_treat_f"] + 
-         pop_array[, , t]*oldPop[, "dc_treat_f"] + 
-         pop_array[, , t]*oldPop[, "hcc_treat_f"] + 
-         pop_array[, , t]*oldPop[, "lt_treat_f"] + 
-         pop_array[, , t]*oldPop[, "plt_treat_f"] + 
-         pop_array[, , t]*oldPop[, "a_cured"] + 
-         pop_array[, , t]*oldPop[, "f0_cured"] + 
-         pop_array[, , t]*oldPop[, "f1_cured"] + 
-         pop_array[, , t]*oldPop[, "f2_cured"] + 
-         pop_array[, , t]*oldPop[, "f3_cured"] + 
-         pop_array[, , t]*oldPop[, "f4_cured"] + 
-         pop_array[, , t]*oldPop[, "dc_cured"] + 
-         pop_array[, , t]*oldPop[, "hcc_cured"] + 
-         pop_array[, , t]*oldPop[, "lt_cured"] + 
-         pop_array[, , t]*oldPop[, "plt_cured"])
-  #### in and out flow bewtween subpops ####  
-    
-    inflow_hcv[, t] <- 
-      colSums(pop_array[, , t]*oldPop[, "a_undiag"])  + 
-      colSums(pop_array[, , t]*oldPop[, "f0_undiag"]) +
-      colSums(pop_array[, , t]*oldPop[, "f1_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f2_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f3_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f4_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "dc_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "hcc_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "lt_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "plt_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "a_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f0_diag_ab"]) +
-      colSums(pop_array[, , t]*oldPop[, "f1_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f2_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f3_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f4_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "dc_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "hcc_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "lt_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "plt_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "a_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f0_diag_RNA"]) +
-      colSums(pop_array[, , t]*oldPop[, "f1_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f2_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f3_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f4_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "dc_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "hcc_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "lt_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "plt_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "a_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f0_treat"]) +
-      colSums(pop_array[, , t]*oldPop[, "f1_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f2_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f3_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f4_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "dc_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "hcc_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "lt_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "plt_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "a_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f0_treat_f"]) +
-      colSums(pop_array[, , t]*oldPop[, "f1_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f2_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f3_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f4_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "dc_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "hcc_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "lt_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "plt_treat_f"]) 
-      
-    
-    #
-    
-    inflow[, t]<- 
-      colSums(pop_array[, , t]*oldPop[, "s"])  + 
-      colSums(pop_array[, , t]*oldPop[, "a_undiag"])  + 
-      colSums(pop_array[, , t]*oldPop[, "f0_undiag"]) +
-      colSums(pop_array[, , t]*oldPop[, "f1_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f2_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f3_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f4_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "dc_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "hcc_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "lt_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "plt_undiag"]) + 
-      colSums(pop_array[, , t]*oldPop[, "a_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f0_diag_ab"]) +
-      colSums(pop_array[, , t]*oldPop[, "f1_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f2_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f3_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f4_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "dc_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "hcc_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "lt_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "plt_diag_ab"]) + 
-      colSums(pop_array[, , t]*oldPop[, "a_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f0_diag_RNA"]) +
-      colSums(pop_array[, , t]*oldPop[, "f1_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f2_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f3_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f4_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "dc_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "hcc_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "lt_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "plt_diag_RNA"]) + 
-      colSums(pop_array[, , t]*oldPop[, "a_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f0_treat"]) +
-      colSums(pop_array[, , t]*oldPop[, "f1_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f2_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f3_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f4_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "dc_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "hcc_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "lt_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "plt_treat"]) + 
-      colSums(pop_array[, , t]*oldPop[, "a_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f0_treat_f"]) +
-      colSums(pop_array[, , t]*oldPop[, "f1_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f2_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f3_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f4_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "dc_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "hcc_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "lt_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "plt_treat_f"]) + 
-      colSums(pop_array[, , t]*oldPop[, "a_cured"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f0_cured"]) +
-      colSums(pop_array[, , t]*oldPop[, "f1_cured"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f2_cured"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f3_cured"]) + 
-      colSums(pop_array[, , t]*oldPop[, "f4_cured"]) + 
-      colSums(pop_array[, , t]*oldPop[, "dc_cured"]) + 
-      colSums(pop_array[, , t]*oldPop[, "hcc_cured"]) + 
-      colSums(pop_array[, , t]*oldPop[, "lt_cured"]) + 
-      colSums(pop_array[, , t]*oldPop[, "plt_cured"]) 
-    #
-    
-    outflow[, t]<- 
-      rowSums(pop_array[, , t]*oldPop[, "s"])  + 
-      rowSums(pop_array[, , t]*oldPop[, "a_undiag"])  + 
-      rowSums(pop_array[, , t]*oldPop[, "f0_undiag"]) +
-      rowSums(pop_array[, , t]*oldPop[, "f1_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f2_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f3_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f4_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "dc_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "hcc_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "lt_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "plt_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "a_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f0_diag_ab"]) +
-      rowSums(pop_array[, , t]*oldPop[, "f1_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f2_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f3_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f4_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "dc_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "hcc_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "lt_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "plt_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "a_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f0_diag_RNA"]) +
-      rowSums(pop_array[, , t]*oldPop[, "f1_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f2_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f3_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f4_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "dc_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "hcc_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "lt_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "plt_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "a_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f0_treat"]) +
-      rowSums(pop_array[, , t]*oldPop[, "f1_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f2_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f3_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f4_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "dc_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "hcc_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "lt_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "plt_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "a_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f0_treat_f"]) +
-      rowSums(pop_array[, , t]*oldPop[, "f1_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f2_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f3_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f4_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "dc_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "hcc_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "lt_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "plt_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "a_cured"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f0_cured"]) +
-      rowSums(pop_array[, , t]*oldPop[, "f1_cured"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f2_cured"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f3_cured"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f4_cured"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "dc_cured"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "hcc_cured"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "lt_cured"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "plt_cured"]) 
-    
-    outflow_hcv[, t]<- 
-      rowSums(pop_array[, , t]*oldPop[, "a_undiag"])  + 
-      rowSums(pop_array[, , t]*oldPop[, "f0_undiag"]) +
-      rowSums(pop_array[, , t]*oldPop[, "f1_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f2_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f3_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f4_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "dc_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "hcc_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "lt_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "plt_undiag"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "a_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f0_diag_ab"]) +
-      rowSums(pop_array[, , t]*oldPop[, "f1_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f2_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f3_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f4_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "dc_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "hcc_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "lt_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "plt_diag_ab"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "a_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f0_diag_RNA"]) +
-      rowSums(pop_array[, , t]*oldPop[, "f1_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f2_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f3_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f4_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "dc_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "hcc_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "lt_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "plt_diag_RNA"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "a_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f0_treat"]) +
-      rowSums(pop_array[, , t]*oldPop[, "f1_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f2_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f3_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f4_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "dc_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "hcc_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "lt_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "plt_treat"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "a_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f0_treat_f"]) +
-      rowSums(pop_array[, , t]*oldPop[, "f1_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f2_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f3_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "f4_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "dc_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "hcc_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "lt_treat_f"]) + 
-      rowSums(pop_array[, , t]*oldPop[, "plt_treat_f"]) 
-    
-    
-    #### cost ####
-    if (!is.null(cost) & proj != "POC_AU"){ 
-      costPops[, , t] <- allPops[, , t]*cost$state[,]
+  #   newarray[ , , t] <- 
+  #     (pop_array[, , t]*oldPop[, "s"] + 
+  #        pop_array[, , t]*oldPop[, "a_undiag"] + 
+  #        pop_array[, , t]*oldPop[, "f0_undiag"] + 
+  #        pop_array[, , t]*oldPop[, "f1_undiag"] + 
+  #        pop_array[, , t]*oldPop[, "f2_undiag"] + 
+  #        pop_array[, , t]*oldPop[, "f3_undiag"] + 
+  #        pop_array[, , t]*oldPop[, "f4_undiag"] + 
+  #        pop_array[, , t]*oldPop[, "dc_undiag"] +  
+  #        pop_array[, , t]*oldPop[, "hcc_undiag"] + 
+  #        pop_array[, , t]*oldPop[, "lt_undiag"] +  
+  #        pop_array[, , t]*oldPop[, "plt_undiag"] + 
+  #        pop_array[, , t]*oldPop[, "a_diag_ab"] + 
+  #        pop_array[, , t]*oldPop[, "f0_diag_ab"] + 
+  #        pop_array[, , t]*oldPop[, "f1_diag_ab"] + 
+  #        pop_array[, , t]*oldPop[, "f2_diag_ab"] + 
+  #        pop_array[, , t]*oldPop[, "f3_diag_ab"] + 
+  #        pop_array[, , t]*oldPop[, "f4_diag_ab"] + 
+  #        pop_array[, , t]*oldPop[, "dc_diag_ab"] + 
+  #        pop_array[, , t]*oldPop[, "hcc_diag_ab"]+ 
+  #        pop_array[, , t]*oldPop[, "lt_diag_ab"] + 
+  #        pop_array[, , t]*oldPop[, "plt_diag_ab"] + 
+  #        pop_array[, , t]*oldPop[, "a_diag_RNA"] + 
+  #        pop_array[, , t]*oldPop[, "f0_diag_RNA"] + 
+  #        pop_array[, , t]*oldPop[, "f1_diag_RNA"] + 
+  #        pop_array[, , t]*oldPop[, "f2_diag_RNA"] + 
+  #        pop_array[, , t]*oldPop[, "f3_diag_RNA"] + 
+  #        pop_array[, , t]*oldPop[, "f4_diag_RNA"] + 
+  #        pop_array[, , t]*oldPop[, "dc_diag_RNA"] + 
+  #        pop_array[, , t]*oldPop[, "hcc_diag_RNA"] + 
+  #        pop_array[, , t]*oldPop[, "lt_diag_RNA"] + 
+  #        pop_array[, , t]*oldPop[, "plt_diag_RNA"] +
+  #        pop_array[, , t]*oldPop[, "a_treat"] + 
+  #        pop_array[, , t]*oldPop[, "f0_treat"] + 
+  #        pop_array[, , t]*oldPop[, "f1_treat"] + 
+  #        pop_array[, , t]*oldPop[, "f2_treat"] + 
+  #        pop_array[, , t]*oldPop[, "f3_treat"] + 
+  #        pop_array[, , t]*oldPop[, "f4_treat"] + 
+  #        pop_array[, , t]*oldPop[, "dc_treat"] + 
+  #        pop_array[, , t]*oldPop[, "hcc_treat"] + 
+  #        pop_array[, , t]*oldPop[, "lt_treat"] + 
+  #        pop_array[, , t]*oldPop[, "plt_treat"] + 
+  #        pop_array[, , t]*oldPop[, "a_treat_f"] + 
+  #        pop_array[, , t]*oldPop[, "f0_treat_f"] + 
+  #        pop_array[, , t]*oldPop[, "f1_treat_f"] + 
+  #        pop_array[, , t]*oldPop[, "f2_treat_f"] + 
+  #        pop_array[, , t]*oldPop[, "f3_treat_f"] + 
+  #        pop_array[, , t]*oldPop[, "f4_treat_f"] + 
+  #        pop_array[, , t]*oldPop[, "dc_treat_f"] + 
+  #        pop_array[, , t]*oldPop[, "hcc_treat_f"] + 
+  #        pop_array[, , t]*oldPop[, "lt_treat_f"] + 
+  #        pop_array[, , t]*oldPop[, "plt_treat_f"] + 
+  #        pop_array[, , t]*oldPop[, "a_cured"] + 
+  #        pop_array[, , t]*oldPop[, "f0_cured"] + 
+  #        pop_array[, , t]*oldPop[, "f1_cured"] + 
+  #        pop_array[, , t]*oldPop[, "f2_cured"] + 
+  #        pop_array[, , t]*oldPop[, "f3_cured"] + 
+  #        pop_array[, , t]*oldPop[, "f4_cured"] + 
+  #        pop_array[, , t]*oldPop[, "dc_cured"] + 
+  #        pop_array[, , t]*oldPop[, "hcc_cured"] + 
+  #        pop_array[, , t]*oldPop[, "lt_cured"] + 
+  #        pop_array[, , t]*oldPop[, "plt_cured"])
+  # #### in and out flow bewtween subpops ####  
+  #   
+  #   inflow_hcv[, t] <- 
+  #     colSums(pop_array[, , t]*oldPop[, "a_undiag"])  + 
+  #     colSums(pop_array[, , t]*oldPop[, "f0_undiag"]) +
+  #     colSums(pop_array[, , t]*oldPop[, "f1_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f2_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f3_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f4_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "dc_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "hcc_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "lt_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "plt_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "a_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f0_diag_ab"]) +
+  #     colSums(pop_array[, , t]*oldPop[, "f1_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f2_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f3_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f4_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "dc_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "hcc_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "lt_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "plt_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "a_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f0_diag_RNA"]) +
+  #     colSums(pop_array[, , t]*oldPop[, "f1_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f2_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f3_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f4_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "dc_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "hcc_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "lt_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "plt_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "a_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f0_treat"]) +
+  #     colSums(pop_array[, , t]*oldPop[, "f1_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f2_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f3_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f4_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "dc_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "hcc_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "lt_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "plt_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "a_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f0_treat_f"]) +
+  #     colSums(pop_array[, , t]*oldPop[, "f1_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f2_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f3_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f4_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "dc_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "hcc_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "lt_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "plt_treat_f"]) 
+  #     
+  #   
+  #   #
+  #   
+  #   inflow[, t]<- 
+  #     colSums(pop_array[, , t]*oldPop[, "s"])  + 
+  #     colSums(pop_array[, , t]*oldPop[, "a_undiag"])  + 
+  #     colSums(pop_array[, , t]*oldPop[, "f0_undiag"]) +
+  #     colSums(pop_array[, , t]*oldPop[, "f1_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f2_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f3_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f4_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "dc_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "hcc_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "lt_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "plt_undiag"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "a_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f0_diag_ab"]) +
+  #     colSums(pop_array[, , t]*oldPop[, "f1_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f2_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f3_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f4_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "dc_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "hcc_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "lt_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "plt_diag_ab"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "a_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f0_diag_RNA"]) +
+  #     colSums(pop_array[, , t]*oldPop[, "f1_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f2_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f3_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f4_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "dc_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "hcc_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "lt_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "plt_diag_RNA"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "a_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f0_treat"]) +
+  #     colSums(pop_array[, , t]*oldPop[, "f1_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f2_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f3_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f4_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "dc_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "hcc_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "lt_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "plt_treat"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "a_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f0_treat_f"]) +
+  #     colSums(pop_array[, , t]*oldPop[, "f1_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f2_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f3_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f4_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "dc_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "hcc_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "lt_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "plt_treat_f"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "a_cured"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f0_cured"]) +
+  #     colSums(pop_array[, , t]*oldPop[, "f1_cured"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f2_cured"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f3_cured"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "f4_cured"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "dc_cured"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "hcc_cured"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "lt_cured"]) + 
+  #     colSums(pop_array[, , t]*oldPop[, "plt_cured"]) 
+  #   #
+  #   
+  #   outflow[, t]<- 
+  #     rowSums(pop_array[, , t]*oldPop[, "s"])  + 
+  #     rowSums(pop_array[, , t]*oldPop[, "a_undiag"])  + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f0_undiag"]) +
+  #     rowSums(pop_array[, , t]*oldPop[, "f1_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f2_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f3_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f4_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "dc_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "hcc_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "lt_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "plt_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "a_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f0_diag_ab"]) +
+  #     rowSums(pop_array[, , t]*oldPop[, "f1_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f2_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f3_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f4_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "dc_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "hcc_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "lt_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "plt_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "a_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f0_diag_RNA"]) +
+  #     rowSums(pop_array[, , t]*oldPop[, "f1_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f2_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f3_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f4_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "dc_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "hcc_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "lt_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "plt_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "a_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f0_treat"]) +
+  #     rowSums(pop_array[, , t]*oldPop[, "f1_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f2_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f3_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f4_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "dc_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "hcc_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "lt_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "plt_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "a_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f0_treat_f"]) +
+  #     rowSums(pop_array[, , t]*oldPop[, "f1_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f2_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f3_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f4_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "dc_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "hcc_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "lt_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "plt_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "a_cured"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f0_cured"]) +
+  #     rowSums(pop_array[, , t]*oldPop[, "f1_cured"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f2_cured"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f3_cured"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f4_cured"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "dc_cured"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "hcc_cured"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "lt_cured"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "plt_cured"]) 
+  #   
+  #   outflow_hcv[, t]<- 
+  #     rowSums(pop_array[, , t]*oldPop[, "a_undiag"])  + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f0_undiag"]) +
+  #     rowSums(pop_array[, , t]*oldPop[, "f1_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f2_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f3_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f4_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "dc_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "hcc_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "lt_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "plt_undiag"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "a_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f0_diag_ab"]) +
+  #     rowSums(pop_array[, , t]*oldPop[, "f1_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f2_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f3_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f4_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "dc_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "hcc_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "lt_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "plt_diag_ab"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "a_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f0_diag_RNA"]) +
+  #     rowSums(pop_array[, , t]*oldPop[, "f1_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f2_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f3_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f4_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "dc_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "hcc_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "lt_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "plt_diag_RNA"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "a_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f0_treat"]) +
+  #     rowSums(pop_array[, , t]*oldPop[, "f1_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f2_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f3_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f4_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "dc_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "hcc_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "lt_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "plt_treat"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "a_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f0_treat_f"]) +
+  #     rowSums(pop_array[, , t]*oldPop[, "f1_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f2_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f3_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "f4_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "dc_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "hcc_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "lt_treat_f"]) + 
+  #     rowSums(pop_array[, , t]*oldPop[, "plt_treat_f"]) 
+  #   
+  #   
+  #   #### cost ####
+     if (!is.null(cost) & proj != "POC_AU"){ 
+       costPops[, , t] <- allPops[, , t]*cost$state[,]
       
       costTestingAb[, t] <- (costflow[,"ctau_ab", t]*newTestingAb[, t]) + 
         (costflow_Neg[,"ctau_ab", t]*((oldPop[, "s"] + oldPop[, "a_cured"])*tau_ab_dt[, "f0", t]))
@@ -2558,12 +2558,12 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                     newtreatfailed = newtreatfailed,
                     newreinfection = newreinfection,
                     newreinfection_chronic = newreinfection_chronic, 
-                    newpop_tran = newarray,
-                    newpop_tranState = newarray_state,
-                    inflow = inflow,
-                    inflow_hcv = inflow_hcv,
-                    outflow = outflow,
-                    outflow_hcv = outflow_hcv, 
+                    # newpop_tran = newarray,
+                    # newpop_tranState = newarray_state,
+                    # inflow = inflow,
+                    # inflow_hcv = inflow_hcv,
+                    # outflow = outflow,
+                    # outflow_hcv = outflow_hcv, 
                     death_hcv = death_hcv,
                     HCVdeathState = HCVdeathState,
                     newDeathState = newDeathState,
@@ -2605,12 +2605,12 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                     newCured = newCured,
                     newreinfection = newreinfection,
                     newreinfection_chronic = newreinfection_chronic,
-                    newpop_tran = newarray,
-                    newpop_tranState = newarray_state,
-                    inflow = inflow,
-                    inflow_hcv = inflow_hcv,
-                    outflow = outflow,
-                    outflow_hcv = outflow_hcv, 
+                    # newpop_tran = newarray,
+                    # newpop_tranState = newarray_state,
+                    # inflow = inflow,
+                    # inflow_hcv = inflow_hcv,
+                    # outflow = outflow,
+                    # outflow_hcv = outflow_hcv, 
                     death_hcv = death_hcv,
                     HCVdeathState = HCVdeathState,
                     newDeathState = newDeathState,
@@ -2651,12 +2651,12 @@ HCVMSM <- function(HCV, parama, initialPop, disease_progress,
                     newtreatfailed = newtreatfailed,
                     newreinfection = newreinfection,
                     newreinfection_chronic = newreinfection_chronic,
-                    newpop_tran = newarray,
-                    newpop_tranState = newarray_state,
-                    inflow = inflow,
-                    inflow_hcv = inflow_hcv,
-                    outflow = outflow,
-                    outflow_hcv = outflow_hcv, 
+                    # newpop_tran = newarray,
+                    # newpop_tranState = newarray_state,
+                    # inflow = inflow,
+                    # inflow_hcv = inflow_hcv,
+                    # outflow = outflow,
+                    # outflow_hcv = outflow_hcv, 
                     death_hcv = death_hcv,
                     HCVdeathState = HCVdeathState,
                     newDeathState = newDeathState)

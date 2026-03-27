@@ -35,7 +35,7 @@ Proj_code <- file.path(codefun_path, paste0("Projects/", project_name))
 
 
 load(file.path(RdaFolder, paste0(project_name, ".rda")))
-load(file.path(OutputFolder, paste0("Simulations", ".rda")))
+load(file.path(OutputFolder, paste0("testing_simulations", ".rda")))
 source(file.path(Rcode, "/Functions/plotManuscript.R"))
 source(file.path(Rcode, "/Functions/plotFunctions.R")) 
 source(file.path(Proj_code, "/model_timestep.R")) 
@@ -45,13 +45,13 @@ source(file.path(Proj_code, "/model_timestep.R"))
 
 #### epi outcomes ####  
 
-all_scenarios <- c(list("Status quo" = Sce_sq), Sce_np)
+
 
 # the flow here is only for epi 
 epi_only <- TRUE
 
 if(isTRUE(epi_only)){ 
-  indicator_flow <- Sce_sq[!names(Sce_sq) %in% c("allPops", "newpop_tran", 
+  indicator_flow <- all_scenarios$`Status quo`[!names(all_scenarios$`Status quo`) %in% c("allPops", "newpop_tran", 
                                                  "newpop_tranState", "HCVdeathState",
                                                  "newDeathState", "death_hcv", 
                                                  "costPops", "QALYPops",
@@ -61,7 +61,7 @@ if(isTRUE(epi_only)){
                                                  "costTestingAb_sc", "costTestingAg_sc",
                                                  "costTestingPOCT_sc", "costTreatment_sc")]
 } else { 
-  indicator_flow <- Sce_sq[!names(Sce_sq) %in% c("allPops", "newpop_tran", 
+  indicator_flow <- all_scenarios$`Status quo`[!names(all_scenarios$`Status quo`) %in% c("allPops", "newpop_tran", 
                                                  "newpop_tranState", "HCVdeathState",
                                                  "newDeathState", "death_hcv")]
 }
@@ -120,9 +120,15 @@ tempPrevRNA_subpop <- list()
 
 HCVInc_subpop <- list()
 
+all_scenarios_x <- list("Status quo" = all_scenarios$`Status quo`, 
+                      "sustained" = all_scenarios$sustained$model,
+                      "prison_shift" = all_scenarios$prison_shift$model,
+                      "scale_up" = all_scenarios$scale_up$model,
+                      "prison_shift_scale_up" = all_scenarios$prison_shift_scale_up$model,
+                      "community_shift_scale_up" = all_scenarios$community_shift_scale_up$model)
 
 for (name in names(all_scenarios)) { 
-  Num_box[[name]] <- modres.t(POC_AU, all_scenarios[[name]], endYear = 100)%>%
+  Num_box[[name]] <- modres.t(POC_AU, all_scenarios_x[[name]], endYear = 100)%>%
     tibble::as_tibble() 
   #par_Num_box <- lapply(param_sq, function(x) modres.t(POC_AU, x, endYear = 100)%>%
   #                        tibble::as_tibble()%>%select(best))
@@ -204,7 +210,7 @@ for(name in names(all_scenarios)){
   Sce_flow[[name]] <- list()
   for(x in names(indicator_flow)){ 
     
-    Sce_flow[[name]][[x]] <- modres.flow.t(POC_AU, all_scenarios[[name]], endYear = endY, 
+    Sce_flow[[name]][[x]] <- modres.flow.t(POC_AU, all_scenarios_x[[name]], endYear = endY, 
                                            allp = x)
     # par_Sce_flow <- lapply(param_sq, 
     #                       function(x) lapply(names(indicator_flow), 
@@ -264,6 +270,7 @@ for(i in names(Num_box)){
   
   
   # incidence 
+  
   HCVInc_subpop[[i]] <- cbind(timestep = pop_N[[i]]$timestep,
                               population = POC_AU$popNames,
                               as.data.frame(100*Sce_flow[[i]]$newInfections[, par_col] / 
@@ -274,6 +281,192 @@ for(i in names(Num_box)){
 
 
 #### HCV incidence by setting #### 
+HCVInfect_subpop <- list()
+N_subpops <- list()
+for(i in names(all_scenarios)){ 
+  
+  HCVInfect_subpop[[i]] <- indicatorResults(POC_AU, all_scenarios_x[[i]], "newInfections", 
+                                       pop=POC_AU$popNames,
+                                       paramR = NULL, range = NULL,
+                                       endY = endY)
+  
+  N_subpops[[i]] <- popResults_MidYear(POC_AU, all_scenarios_x$`Status quo`,
+                                       Population = POC_AU$popNames,
+                                       Disease_prog = NULL, 
+                                       Cascade = NULL, param = NULL, 
+                                       endYear = endY)%>%ungroup() 
+  }
+
+c_pops <- c("C_PWID", "C_fPWID")
+p_pops <- c("P_PWID", "P_fPWID", "P_nPWID")
+
+compute_incidence_annual <- function(scenario_name) {
+  
+  HCVInfect_subpop[[scenario_name]] %>%
+    mutate(population = as.character(population)) %>%
+    left_join(
+      N_subpops[[scenario_name]] %>% 
+        mutate(population = as.character(population)) %>%
+        rename(pop_n = best),
+      by = c("year", "population")
+    ) %>%
+    mutate(
+      cal_year  = year + POC_AU$cabY - 1,
+      setting   = ifelse(population %in% c_pops, "Community", "Prison"),
+      denom     = ifelse(population %in% p_pops, 2 * pop_n, pop_n),
+      inc_100py = 100 * best / denom,
+      scenario  = scenario_name
+    ) %>%
+    select(cal_year, population, setting, 
+           infections = best, pop_n, denom, inc_100py, scenario)
+}
+
+# ── Apply to all scenarios ────────────────────────────────────────────────────
+inc_annual <- bind_rows(lapply(scenario_names, compute_incidence_annual))
+
+
+r# ══════════════════════════════════════════════════════════════════════════════
+# STEP 1: Compute thresholds
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Threshold 1: 2/100py for C_PWID and P_PWID
+pwid_pops      <- c("C_PWID", "P_PWID")
+other_pops     <- c("C_fPWID", "P_fPWID", "P_nPWID")
+threshold_pwid <- 2
+
+# Threshold 2: 80% reduction from 2016 baseline for other pops
+thresholds_other <- inc_annual %>%
+  filter(scenario == "Status quo", cal_year == 2015,
+         population %in% other_pops) %>%
+  select(population, baseline = inc_100py) %>%
+  mutate(threshold_80 = baseline * 0.20)
+
+cat("=== 80% reduction thresholds ===\n")
+print(thresholds_other)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 2: Plot settings
+# ══════════════════════════════════════════════════════════════════════════════
+
+scenario_colors <- c(
+  "Status quo"               = "#999999",
+  "sustained"                = "#E69F00",
+  "prison_shift"             = "#56B4E9",
+  "scale_up"                 = "#009E73",
+  "prison_shift_scale_up"    = "#F0E442",
+  "community_shift_scale_up" = "#0072B2"
+)
+
+scenario_labels <- c(
+  "Status quo"               = "Status Quo",
+  "sustained"                = "Sustained",
+  "prison_shift"             = "Prison Shift",
+  "scale_up"                 = "Scale Up",
+  "prison_shift_scale_up"    = "Prison Shift + Scale Up",
+  "community_shift_scale_up" = "Community Shift + Scale Up"
+)
+
+pop_labels <- c(
+  "C_PWID"  = "Community PWID",
+  "P_PWID"  = "Prison PWID",
+  "C_fPWID" = "Community fPWID",
+  "P_fPWID" = "Prison fPWID",
+  "P_nPWID" = "Prison non-PWID"
+)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 3: Plot PWID — 2/100py threshold
+# ══════════════════════════════════════════════════════════════════════════════
+p_pwid <- inc_annual %>%
+  filter(population %in% pwid_pops,
+         cal_year >= 2015) %>%
+  mutate(
+    population = factor(population,
+                        levels = pwid_pops,
+                        labels = pop_labels[pwid_pops]),
+    scenario   = factor(scenario,
+                        levels = names(scenario_labels),
+                        labels = unname(scenario_labels))
+  ) %>%
+  ggplot(aes(x = cal_year, y = inc_100py, colour = scenario)) +
+  geom_line(size = 0.8) +
+  geom_hline(yintercept = threshold_pwid,
+             linetype = "dashed", colour = "red", size = 0.7) +
+  annotate("text", x = 2016, y = threshold_pwid * 1.08,
+           label = "2/100py target", colour = "red",
+           hjust = 0, size = 3) +
+  facet_wrap(~ population, scales = "free_y", ncol = 2) +
+  scale_colour_manual(values = unname(scenario_colors)) +
+  scale_x_continuous(limits = c(2015, 2030),
+                     breaks = seq(2015, 2030, 2)) +
+  labs(
+    title  = "HCV Incidence — High Risk PWID Populations",
+    x      = "Year",
+    y      = "Incidence per 100 person-years",
+    colour = "Scenario"
+  ) +
+  theme_Publication_facet() +
+  theme(legend.position = "bottom",
+        legend.text     = element_text(size = 8))
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 4: Plot other pops — 80% reduction threshold
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Build threshold lines data for geom_line
+threshold_lines <- thresholds_other %>%
+  select(population, threshold_80) %>%
+  crossing(cal_year = 2015:2030) %>%
+  mutate(population = factor(population,
+                             levels = other_pops,
+                             labels = pop_labels[other_pops]))
+
+p_other <- inc_annual %>%
+  filter(population %in% other_pops,
+         cal_year >= 2015) %>%
+  mutate(
+    population = factor(population,
+                        levels = other_pops,
+                        labels = pop_labels[other_pops]),
+    scenario   = factor(scenario,
+                        levels = names(scenario_labels),
+                        labels = unname(scenario_labels))
+  ) %>%
+  ggplot(aes(x = cal_year, y = inc_100py, colour = scenario)) +
+  geom_line(size = 0.8) +
+  geom_line(data = threshold_lines,
+            aes(x = cal_year, y = threshold_80),
+            linetype = "dashed", colour = "red",
+            size = 0.7, inherit.aes = FALSE) +
+  geom_text(data = threshold_lines %>% filter(cal_year == 2016),
+            aes(x = cal_year, y = threshold_80 * 1.08,
+                label = "80% reduction target"),
+            colour = "red", hjust = 0, size = 3,
+            inherit.aes = FALSE) +
+  facet_wrap(~ population, scales = "free_y", ncol = 3) +
+  scale_colour_manual(values = unname(scenario_colors)) +
+  scale_x_continuous(limits = c(2015, 2030),
+                     breaks = seq(2015, 2030, 2)) +
+  labs(
+    title  = "HCV Incidence — Other Populations (80% Reduction Target)",
+    x      = "Year",
+    y      = "Incidence per 100 person-years",
+    colour = "Scenario"
+  ) +
+  theme_Publication_facet() +
+  theme(legend.position = "bottom",
+        legend.text     = element_text(size = 8))
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STEP 5: Print and save
+# ══════════════════════════════════════════════════════════════════════════════
+print(p_pwid)
+print(p_other)
+
+ggsave(file.path(OutputFig, "incidence_PWID.png"),
+       p_pwid,  width = 10, height = 6, dpi = 300, bg = "white")
+ggsave(file.path(OutputFig, "incidence_other.png"),
+       p_other, width = 12, height = 6, dpi = 300, bg = "white")
 
 
 
@@ -423,6 +616,125 @@ save(Num_box, pop_N, commu_N, prison_N, prisonPWID_N,
      file = file.path(OutputFolder,paste0("epiRes_timestep",".rda"))
      
 )
+
+#### incidence plots ####
+aggregate_annual <- function(data, scenario_name) {
+  data %>%
+    mutate(
+      cal_year = floor(timestep) + POC_AU$cabY - 1,  # convert to calendar year
+      setting  = ifelse(population %in% c("C_PWID","C_fPWID"), "Community", "Prison")
+    ) %>%
+    group_by(cal_year, population, setting) %>%
+    summarise(best = sum(best, na.rm = TRUE), .groups = "drop") %>%
+    mutate(scenario = scenario_name)
+}
+
+# Apply to all scenarios
+inc_annual <- bind_rows(
+  aggregate_annual(HCVInc_subpop$`Status quo`,             "Status quo"),
+  aggregate_annual(HCVInc_subpop$sustained,                "Sustained"),
+  aggregate_annual(HCVInc_subpop$prison_shift,             "Prison shift"),
+  aggregate_annual(HCVInc_subpop$scale_up,                 "Scale up"),
+  aggregate_annual(HCVInc_subpop$prison_shift_scale_up,    "Prison shift + Scale up"),
+  aggregate_annual(HCVInc_subpop$community_shift_scale_up, "Community shift + Scale up")
+)
+
+inc_annual %>% filter(scenario == "Status quo") %>% 
+  group_by(cal_year, population) %>% 
+  summarise(best = sum(best)) %>% 
+  filter(cal_year %in% 2015:2020) %>% print()
+
+
+threshold_pwid <- 2  # per 100 person years
+
+# ── Threshold 2: 80% reduction from 2015 for other pops ──────────────────────
+baseline_2015 <- inc_annual %>%
+  filter(scenario == "Status quo", cal_year == 2015) %>%  # first full year
+  select(population, setting, baseline = best)
+
+thresholds_other <- baseline_2015 %>%
+  mutate(threshold_80 = baseline * 0.20)   # 80% reduction = 20% of baseline
+
+pwid_pops  <- c("C_PWID", "P_PWID")
+other_pops <- c("C_fPWID", "P_fPWID", "P_nPWID")
+
+scenario_colors <- c(
+  "Status quo"               = "#999999",
+  "Sustained"                = "#E69F00",
+  "Prison shift"             = "#56B4E9",
+  "Scale up"                 = "#009E73",
+  "Prison shift + Scale up"  = "#F0E442",
+  "Community shift + Scale up" = "#0072B2"
+)
+
+pop_labels <- c(
+  "C_PWID"   = "Community PWID",
+  "C_fPWID"  = "Community fPWID",
+  "P_PWID"   = "Prison PWID",
+  "P_fPWID"  = "Prison fPWID",
+  "P_nPWID"  = "Prison non-PWID"
+)
+
+# ── Plot PWID (2/100py threshold) ─────────────────────────────────────────────
+p_pwid <- inc_annual %>%
+  filter(population %in% pwid_pops) %>%
+  mutate(population = factor(population, 
+                             levels = pwid_pops, 
+                             labels = pop_labels[pwid_pops])) %>%
+  ggplot(aes(x = cal_year, y = best, colour = scenario)) +
+  geom_line(size = 0.8) +
+  geom_hline(yintercept = threshold_pwid, linetype = "dashed", 
+             colour = "red", size = 0.7) +
+  annotate("text", x = 2016, y = threshold_pwid * 1.1, 
+           label = "2/100py threshold", colour = "red", 
+           hjust = 0, size = 3) +
+  facet_wrap(~ population, scales = "free_y", ncol = 2) +
+  scale_colour_manual(values = scenario_colors) +
+  scale_x_continuous(breaks = seq(2015, 2040, 2)) +
+  labs(
+    title   = "HCV Incidence — High Risk PWID Populations",
+    x       = "Year",
+    y       = "Incidence per 100 person-years",
+    colour  = "Scenario"
+  ) +
+  theme_Publication_facet() +
+  theme(legend.position = "bottom")
+
+# ── Plot other pops (80% reduction threshold) ─────────────────────────────────
+p_other <- inc_annual %>%
+  filter(population %in% other_pops) %>%
+  left_join(thresholds_other %>% select(population, threshold_80), 
+            by = "population") %>%
+  mutate(population = factor(population,
+                             levels = other_pops,
+                             labels = pop_labels[other_pops])) %>%
+  ggplot(aes(x = cal_year, y = best, colour = scenario)) +
+  geom_line(size = 0.8) +
+  geom_line(aes(y = threshold_80), linetype = "dashed", 
+            colour = "red", size = 0.7) +
+  annotate("text", x = 2016, y = NA,   # will auto-position per facet
+           label = "80% reduction", colour = "red", size = 3) +
+  facet_wrap(~ population, scales = "free_y", ncol = 3) +
+  scale_colour_manual(values = scenario_colors) +
+  scale_x_continuous(breaks = seq(2015, 2030, 2)) +
+  labs(
+    title   = "HCV Incidence — Other Populations",
+    x       = "Year",
+    y       = "Annual incidence",
+    colour  = "Scenario"
+  ) +
+  theme_Publication_facet() +
+  theme(legend.position = "bottom")
+
+# ── Print ─────────────────────────────────────────────────────────────────────
+print(p_pwid)
+print(p_other)
+
+# ── Save ──────────────────────────────────────────────────────────────────────
+ggsave(file.path(OutputFig, "incidence_PWID.png"),    p_pwid,  width=10, height=6, dpi=300, bg="white")
+ggsave(file.path(OutputFig, "incidence_other.png"),   p_other, width=12, height=6, dpi=300, bg="white")
+
+
 
 Resflow_dt <- list()
 Resflow_sc_dt <- list()
@@ -585,21 +897,21 @@ tempPrevRNA_setting_bind_mid <- tempPrevRNA_setting_bind_mid%>%filter(setting%in
                           labels = c("Community", "Prison")))%>%
   mutate(scenario = factor(scenario, 
                            levels = unique(tempPrevRNA_setting_bind_mid$scenario),
-                           labels = c("Status Quo", "Prison_testing_I",
-                                      "Prison_testing_II", 
-                                      "Prison_testing_III",
-                                      "Program sustained",
-                                      "Program scale-up")))
+                           labels = c("Status Quo", "Program sustained",
+                                      "Prison_focused",
+                                      "Program scale-up",
+                                      "Program scale-up: Prison focused", 
+                                      "Program scale-up: Community focused")))
 
 
 col_pal <- c(paletteer_d("nationalparkcolors::Acadia"))
 #### RNA prevalence ####
 RNA_prev <- list()
-lab_name <- c("Status Quo", "Prison_testing_I",
-              "Prison_testing_II", 
-              "Prison_testing_III",
-              "Program sustained",
-              "Program scale-up")
+lab_name <- c("Status Quo", "Program sustained",
+              "Prison_focused",
+              "Program scale-up",
+              "Program scale-up: Prison focused", 
+              "Program scale-up: Community focused")
 
 for(i in lab_name){
   RNA_prev[[i]] <- ggplot(tempPrevRNA_setting_bind_mid%>%
@@ -1006,11 +1318,11 @@ for(i in names(Resflow_year_all)){
 #### generating plots
 
 ##### new infection by setting ####
-lab_name <- c("Status Quo", "Prison_testing_I",
-              "Prison_testing_II", 
-              "Prison_testing_III",
-              "Program sustained",
-              "Program scale-up")
+lab_name <- c("Status Quo", "Program sustained",
+              "Prison_focused",
+              "Program scale-up",
+              "Program scale-up: Prison focused", 
+              "Program scale-up: Community focused")
 newinf_setting <- list()
 names(Resflow_year_setting) <- lab_name 
 col_pal <- c(paletteer_d("nationalparkcolors::Acadia"))
@@ -1121,8 +1433,11 @@ library(grid)
 library(htmltools)
 
 # define order
-scenarios <- c("Status Quo", "Prison_testing_I", "Prison_testing_II", 
-               "Prison_testing_III", "Program sustained", "Program scale-up")
+scenarios <- c("Status Quo", "Program sustained",
+               "Prison_focused",
+               "Program scale-up",
+               "Program scale-up: Prison focused", 
+               "Program scale-up: Community focused")
 
 indicators <- c("tot_testing_setting", "PrevRNA_setting", 
                 "newinf_setting", "treatment_setting")
@@ -1194,3 +1509,6 @@ html_out <- tags$html(
 )
 
 save_html(html_out, file = file.path(OutputFig%>%dirname(), "panel_all.html"))
+
+
+

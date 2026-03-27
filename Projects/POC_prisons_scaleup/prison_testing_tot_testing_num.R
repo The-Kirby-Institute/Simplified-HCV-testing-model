@@ -1,12 +1,11 @@
 endY <- 100
-res_2024 <- HCVMSM(POC_AU, best_estimates, best_est_pop,
+res_2024 <- HCVMSM_cpp(POC_AU, best_estimates, best_est_pop,
        disease_progress, pop_array,
        dfList,  
        param_cascade_sc = dfList_NP_2024, 
        fib = fib, 
        modelrun = "UN", proj = "POC_AU", end_Y = endY, 
-       cost = NULL, costflow = NULL, 
-       costflow_Neg = NULL, 
+       
        fc = fs[["2024"]])
 
 
@@ -37,7 +36,7 @@ calibrate_NP_year <- function(
   
   # ── Helper: extract per-population S and U ──────────────────────────────────
   extract_pop_US <- function(model, at_year) {
-    popResults_MidYear(
+    result <- popResults_MidYear(
       pj, model,
       Population   = pj$popNames,
       Disease_prog = pj$diseaseprogress_Name,
@@ -54,10 +53,30 @@ calibrate_NP_year <- function(
       ) %>%
       filter(cal_yr == at_year & diag_status %in% c("U","S")) %>%
       group_by(population, diag_status) %>%
-      summarise(best = sum(best), .groups = "drop") %>%
-      pivot_wider(names_from = diag_status, values_from = best, values_fill = 0) %>%
+      summarise(best = sum(best), .groups = "drop")
+    
+    # ── Diagnostic: check what diag_status values exist ─────────────────────
+    cat("diag_status values at year", at_year, ":", 
+        unique(result$diag_status), "\n")
+    cat("n rows:", nrow(result), "\n")
+    
+    result <- result %>%
+      pivot_wider(names_from = diag_status, values_from = best, values_fill = 0)
+    
+    # ── Add missing S/U columns if pivot_wider didn't create them ───────────
+    if (!"S" %in% names(result)) {
+      cat("WARNING: S column missing — adding zeros\n")
+      result$S <- 0
+    }
+    if (!"U" %in% names(result)) {
+      cat("WARNING: U column missing — adding zeros\n")
+      result$U <- 0
+    }
+    
+    result %>%
       mutate(population = as.character(population),
-             S = as.numeric(S), U = as.numeric(U))
+             S = as.numeric(S),
+             U = as.numeric(U))
   }
   
   get_SU <- function(pop_data, pop_name) {
@@ -149,11 +168,11 @@ calibrate_NP_year <- function(
     }
     
     # Run model
-    model_new <- HCVMSM(
+    model_new <- HCVMSM_cpp(
       pj, best_estimates, best_est_pop, disease_progress, pop_array, dfList,
       param_cascade_sc = dfList_NP_year, fib = fib,
       modelrun = "UN", proj = "POC_AU", end_Y = endY,
-      cost = NULL, costflow = NULL, costflow_Neg = NULL, fc = fs_new
+      fc_sc = fs_new
     )
     
     list(model     = model_new,
@@ -367,14 +386,40 @@ run_NP_scenario <- function(
         res_list[[yr]]$dfList_NP[[i]][, , ini_dt:end_dt]
     }
   }
-  
+  # ── check np testing  ───────────────────────────────────────────────────────
+  get_NP_testing_check <- function(model, label) {
+    cl_ext <- c("newTestingAb_sc","newTestingAg_sc","newTestingPOCT_sc",
+                "newTestingAb_sc_neg","newTestingAg_sc_neg","newTestingPOCT_sc_neg")
+    
+    tflow <- list()
+    for (i in cl_ext) {
+      tflow[[i]] <- modres.flow.t(POC_AU, model, endYear = 100, allp = i) %>%
+        ungroup() %>%
+        group_by(year, population) %>%
+        summarise(best = sum(best), .groups = "drop")
+    }
+    
+    dplyr::bind_rows(tflow, .id = "index") %>%
+      group_by(year, population) %>%
+      spread(index, best) %>%
+      filter(year %in% c(10:15)) %>%   # 2025-2030
+      mutate(
+        Ab  = rowSums(cbind(newTestingAb_sc,  newTestingAb_sc_neg),  na.rm = TRUE),
+        RNA = rowSums(cbind(newTestingAg_sc,  newTestingAg_sc_neg,
+                            newTestingPOCT_sc, newTestingPOCT_sc_neg), na.rm = TRUE),
+        setting = ifelse(population %in% c("C_PWID","C_fPWID"), "C", "P"),
+        cal_yr  = year + POC_AU$cabY
+      ) %>%
+      group_by(cal_yr, setting) %>%
+      summarise(tot = sum(Ab + RNA, na.rm = TRUE), .groups = "drop") %>%
+      mutate(source = label)
+  }
   # ── Run combined model ───────────────────────────────────────────────────────
-  model_combined <- HCVMSM(
+  model_combined <- HCVMSM_cpp(
     pj, best_estimates, best_est_pop, disease_progress, pop_array, dfList,
     param_cascade_sc = dfList_NP_combined, fib = fib,
     modelrun = "UN", proj = "POC_AU", end_Y = endY,
-    cost = NULL, costflow = NULL, costflow_Neg = NULL,
-    fc = fc_combined
+    fc_sc = fc_combined
   )
   
   # ── Verify ───────────────────────────────────────────────────────────────────
@@ -409,6 +454,7 @@ run_NP_scenario <- function(
 # ── Define fm for all years ───────────────────────────────────────────────────
 fm <- list()
 fm[["2024"]] <- c(1.1, 1.1, 18.5, 18.5, 1)
+
 fm[["2025"]] <- fm[["2024"]]
 fm[["2026"]] <- fm[["2024"]]
 fm[["2027"]] <- fm[["2024"]]
@@ -542,14 +588,16 @@ scen5 <- run_NP_scenario(
 # ── Add to all_scenarios ──────────────────────────────────────────────────────
 all_scenarios <- list(
   "Status quo"   = Sce_sq,
-  "sustained"    = scen1$model,
-  "prison_shift" = scen2$model,
-  "scale_up"     = scen3$model,
-  "prison_shift_scale_up" = scen4$model,
-  "community_shift_scale_up" = scen5$model
+  "sustained"    = scen1,
+  "prison_shift" = scen2,
+  "scale_up"     = scen3,
+  "prison_shift_scale_up" = scen4,
+  "community_shift_scale_up" = scen5
 )
 
-
+save(all_scenarios,
+     file = file.path(OutputFolder,
+                      paste0("testing_simulations",".rda")))
 
 # get_NP_testing_check(model_NP_combined, "combined") %>%
 #  left_join(targets, by = c("cal_yr","setting")) %>%
