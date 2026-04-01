@@ -27,10 +27,12 @@ library("doMC")
 Rcode <- file.path(codefun_path, "03. Code")
 
 DataFolder <- file.path(data_path, "01. DATA/model input" )
-OutputFolder <- file.path(data_path, "02. Output")
+RDAFolder <- file.path(data_path, "02. Output" )
+OutputFolder <- file.path(codefun_path, "Projects/POC_AU/Output")
+OutputFig <- file.path(codefun_path, "Projects/POC_AU/Figs")
 # project specific code path 
 Proj_code <- file.path(codefun_path, paste0("projects/", project_name))
-load(file.path(OutputFolder, paste0(project_name, ".rda")))
+load(file.path(RDAFolder, paste0(project_name, ".rda")))
 source(file.path(Rcode, "/Functions/plotManuscript.R"))
 source(file.path(Rcode, "/Functions/plotFunctions.R")) 
 source(file.path(Proj_code, "/model_timestep.R")) 
@@ -45,7 +47,7 @@ for(scn in sce_name){
     
     load(file.path(OutputFolder, paste0(project_name, "param_sc_",scn ,"_", cost_type, ".rda")))
     
-    load(file.path(OutputFolder, paste0(project_name, "Simulations_", cost_type,".rda")))
+    load(file.path(RDAFolder, paste0(project_name, "Simulations_", cost_type,".rda")))
     
     indicator_flow <- Sce_sq[!names(Sce_sq)%in% c("allPops", "newpop_tran", 
                                                   "newpop_tranState", "HCVdeathState",

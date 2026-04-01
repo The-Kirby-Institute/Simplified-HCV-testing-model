@@ -25,13 +25,14 @@ library(dplyr)
 Rcode <- file.path(codefun_path, "03. Code")
 
 DataFolder <- file.path(data_path, "01. DATA/model input" )
-OutputFolder <- file.path(data_path, "02. Output")
-OutputFig <- file.path(OutputFolder, "Figs")
+RDAFolder <- file.path(data_path, "02. Output")
+OutputFolder <- file.path(codefun_path, "Projects/POC_AU/Output")
+OutputFig <- file.path(codefun_path, "Projects/POC_AU/Figs")
 
-load(file.path(OutputFolder, paste0(project_name, ".rda")))
+load(file.path(RDAFolder, paste0(project_name, ".rda")))
 
-load(file.path(OutputFolder, paste0(project_name, "param.rda")))
-load(file.path(OutputFolder, paste0(project_name, "paramDflist.rda")))
+load(file.path(RDAFolder, paste0(project_name, "param.rda")))
+load(file.path(RDAFolder, paste0(project_name, "paramDflist.rda")))
 
 source(file.path(Rcode, "/Functions/HCV_model.R"))
 
@@ -65,7 +66,7 @@ gc()
 cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
 
 ##### scenarios ##### 
-load(file.path(OutputFolder, paste0(project_name, "scenario_cascade.rda")))
+load(file.path(RDAFolder, paste0(project_name, "scenario_cascade.rda")))
 
 sce_name <- names(scenario_cascade)
 rm(scenario_cascade)
@@ -77,7 +78,7 @@ trim_pt <- 100*(1/POC_AU$timestep)
 
 # check whether any parameter >=1 : which_ones <- which(sapply(1:1000, function(i) any(scenario_p[[i]]$tau_ab >= 1)))
 # by scenarios 
-load(file.path(OutputFolder, paste0(project_name,"param_scenario_",sce_name[1], ".rda"))) 
+load(file.path(RDAFolder, paste0(project_name,"param_scenario_",sce_name[1], ".rda"))) 
 
 scenario_p <- lapply(scenario_p, function(x) lapply(x, function(y)y[, , c(1:trim_pt)]))
 gc()
@@ -85,7 +86,7 @@ param_scenario <- list()
 
 for(cost_type in cost_types){ 
   tic <- proc.time()
-  load(file.path(OutputFolder, paste0(project_name, "param_cost_", cost_type,".rda")))
+  load(file.path(RDAFolder, paste0(project_name, "param_cost_", cost_type,".rda")))
   param_scenario <- list()
   endY <- 100
   for(x in 1:1000){
@@ -112,7 +113,7 @@ for(cost_type in cost_types){
 }
 
 ####Scenario 2 ####
-load(file.path(OutputFolder, paste0(project_name,"param_scenario_",sce_name[2], ".rda"))) 
+load(file.path(RDAFolder, paste0(project_name,"param_scenario_",sce_name[2], ".rda"))) 
 
 scenario_p <- lapply(scenario_p, function(x) lapply(x, function(y)y[, , c(1:trim_pt)]))
 gc()
@@ -120,7 +121,7 @@ param_scenario <- list()
 
 for(cost_type in cost_types){ 
   tic <- proc.time()
-  load(file.path(OutputFolder, paste0(project_name, "param_cost_", cost_type,".rda")))
+  load(file.path(RDAFolder, paste0(project_name, "param_cost_", cost_type,".rda")))
   param_scenario <- list()
   endY <- 100
   for(x in 1:1000){
@@ -147,7 +148,7 @@ for(cost_type in cost_types){
 }
 
 ####Scenario 3 ####
-load(file.path(OutputFolder, paste0(project_name,"param_scenario_",sce_name[3], ".rda"))) 
+load(file.path(RDAFolder, paste0(project_name,"param_scenario_",sce_name[3], ".rda"))) 
 
 scenario_p <- lapply(scenario_p, function(x) lapply(x, function(y)y[, , c(1:trim_pt)]))
 gc()
@@ -155,7 +156,7 @@ param_scenario <- list()
 
 for(cost_type in cost_types){ 
   tic <- proc.time()
-  load(file.path(OutputFolder, paste0(project_name, "param_cost_", cost_type,".rda")))
+  load(file.path(RDAFolder, paste0(project_name, "param_cost_", cost_type,".rda")))
   param_scenario <- list()
   endY <- 100
   for(x in 1:1000){
@@ -183,7 +184,7 @@ for(cost_type in cost_types){
 
 
 ####Scenario 4 ####
-load(file.path(OutputFolder, paste0(project_name,"param_scenario_",sce_name[4], ".rda"))) 
+load(file.path(RDAFolder, paste0(project_name,"param_scenario_",sce_name[4], ".rda"))) 
 
 scenario_p <- lapply(scenario_p, function(x) lapply(x, function(y)y[, , c(1:trim_pt)]))
 gc()
@@ -191,7 +192,7 @@ param_scenario <- list()
 
 for(cost_type in cost_types){ 
   tic <- proc.time()
-  load(file.path(OutputFolder, paste0(project_name, "param_cost_", cost_type,".rda")))
+  load(file.path(RDAFolder, paste0(project_name, "param_cost_", cost_type,".rda")))
   param_scenario <- list()
   endY <- 100
   for(x in 1:1000){

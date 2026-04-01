@@ -37,8 +37,9 @@ library("writexl")
 urrTime <- format(Sys.time(), "%Y-%m-%d_%H-%M-%S")
 Rcode <- file.path(codefun_path, "03. Code")
 DataFolder <- file.path(data_path, "01. DATA/model input" )
-OutputFolder <- file.path(data_path, "02. Output")
-OutputFig <- file.path(OutputFolder, "Figs", urrTime)
+RDAFolder <- file.path(data_path, "02. Output" )
+OutputFolder <- file.path(codefun_path, "Projects/POC_AU/Output")
+OutputFig <- file.path(codefun_path, "Projects/POC_AU/Figs")
 OutputFig_y_cum_avert <- file.path(OutputFig, "y_cum_avert")
 # Create directory if it doesn't exist
 if (!dir.exists(OutputFig)) {
@@ -47,7 +48,7 @@ if (!dir.exists(OutputFig)) {
 if (!dir.exists(OutputFig_y_cum_avert)) {
   dir.create(OutputFig_y_cum_avert, recursive = TRUE)
 }
-load(file.path(OutputFolder, paste0(project_name, ".rda")))
+load(file.path(RDAFolder, paste0(project_name, ".rda")))
 source(file.path(Rcode, "/Functions/plotManuscript.R"))
 source(file.path(Rcode, "/Functions/plotFunctions.R")) 
 source(file.path(codefun_path, "/Projects/POC_AU/figtable_code.R"))

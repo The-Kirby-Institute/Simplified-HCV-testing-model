@@ -24,13 +24,14 @@ library(dplyr)
 Rcode <- file.path(codefun_path, "03. Code")
 
 DataFolder <- file.path(data_path, "01. DATA/model input" )
-OutputFolder <- file.path(data_path, "02. Output")
-OutputFig <- file.path(OutputFolder, "Figs")
+RDAFolder <- file.path(data_path, "02. Output" )
+OutputFolder <- file.path(codefun_path, "Projects/POC_AU/Output")
+OutputFig <- file.path(codefun_path, "Projects/POC_AU/Figs")
 
-load(file.path(OutputFolder, paste0(project_name, ".rda")))
+load(file.path(RDAFolder, paste0(project_name, ".rda")))
 
-load(file.path(OutputFolder, paste0(project_name, "param.rda")))
-load(file.path(OutputFolder, paste0(project_name, "paramDflist.rda")))
+load(file.path(RDAFolder, paste0(project_name, "param.rda")))
+load(file.path(RDAFolder, paste0(project_name, "paramDflist.rda")))
 
 source(file.path(Rcode, "/Functions/HCV_model.R"))
 
@@ -77,7 +78,7 @@ for (cost_type in cost_types) {
   
   tic <- proc.time()
   param_sq <- list()
-  load(file.path(OutputFolder, paste0(project_name, "param_cost_", cost_type,".rda")))
+  load(file.path(RDAFolder, paste0(project_name, "param_cost_", cost_type,".rda")))
   for(x in 1:1000){
     param_sq[[x]] <- HCVMSM(POC_AU, Param_estimates[[x]], Param_Pops[[x]],
                             Param_disease_progress[[x]], param_poparray[[x]],
