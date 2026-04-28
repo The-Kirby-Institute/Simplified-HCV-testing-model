@@ -61,7 +61,7 @@ sce_level <- c("sq", "dfList_NP_2024", "dfList_NPPhaseII",
 sce_label <- c("(1) No national program", "(2) Foundational implementation", 
                "(3) Program succession", "(4) Program sustained", 
                "(5) Program scale-up")
-cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
+cost_types <- c("fixednvariable", "total", "DAAcost_reduchalf")
 
 load(file.path(OutputFolder, paste0(project_name, "Res_flowcost_",cost_types[1],".rda")))
 load(file.path(OutputFolder, paste0(project_name, "Res_numbox_",cost_types[1],".rda")))
@@ -1541,7 +1541,7 @@ names(Resflowcost_dt) <- tools::file_path_sans_ext(name_file)
 Rescost_year_all <- list()
 Rescost_disyear_all <- list()
 # Rescost_year_all$cost_type[1:4]$list_name
-for(i in c("DAAcost_reduchalf","DAAcost_reducquarter" ,"fixednvariable" ,"total")){
+for(i in c("DAAcost_reduchalf" ,"fixednvariable" ,"total")){
   Rescost_year_all[[i]] <- list()
   Rescost_disyear_all[[i]] <- list()
   for(n in list_name){
@@ -1554,266 +1554,134 @@ for(i in c("DAAcost_reduchalf","DAAcost_reducquarter" ,"fixednvariable" ,"total"
 
 
 cost_y_categories <- list()
-# drop off the Cost_treatment part 
-# the following is the validated formula. 
-# extract treatment, treatment sc, retreat
-unit_costs <- list(
-  "fixednvariable" = c(DAA = 35956.37, secline = 44613.66),
-  "total" = c(DAA = 35956.37, secline = 44613.66),
-  "DAAcost_reducquarter" = c(DAA = 26967.27, secline = 33460.24),
-  "DAAcost_reduchalf" = c(DAA = 17978.18, secline = 22306.83)
-)
-eta_cost <- lapply(unit_costs, function(x){
-  a <-  x+884.37
-  
-  return(a)}
-)
-
-Treatlist <- list()
-Treatlist <- list(treat = Resflow_all_lst$Resflow_year$Treatment[, c("scenario", "year",  par_col)],
-                  retreat = Resflow_all_lst$Resflow_year$Retreat[, c("scenario", "year",  par_col)],
-                  treat_sc = Resflow_all_lst$Resflow_year$Treatment_sc[, c("scenario", "year",  par_col)])
-Treatlist[["treat_sc"]][is.na(Treatlist[["treat_sc"]])] <- 0
-cost_TreatOther <- list()
-cost_TreatOther <- lapply(1:length(names(eta_cost)), function(x){
-  a <-cbind(year = Treatlist[["treat"]]$year,
-            scenario = Treatlist[["treat"]]$scenario, 
-            as.data.frame(eta_cost[[x]][1]*Treatlist[["treat"]][, par_col] + eta_cost[[x]][1]*Treatlist[["treat_sc"]][ ,par_col])-
-              (unit_costs[[x]][1]*Treatlist[["treat"]][, par_col] + unit_costs[[x]][1]*Treatlist[["treat_sc"]][ ,par_col]))
-  return(a)}
-)
-names(cost_TreatOther) <- names(eta_cost)
-
-cost_RetreatOther <- list()
-cost_RetreatOther <- lapply(1:length(names(eta_cost)), function(x){
-  a <- cbind(year = Treatlist[["retreat"]]$year,
-             scenario = Treatlist[["retreat"]]$scenario, 
-             as.data.frame(eta_cost[[x]][2]*Treatlist[["retreat"]][, par_col] -
-                             unit_costs[[x]][2]*Treatlist[["retreat"]][, par_col] ))
-  return(a)}
-)
-names(cost_RetreatOther) <- names(eta_cost)
-
-cost_TreatOtherx <- list()
-cost_RetreatOtherx <- list()
-for(i in names(cost_TreatOther)){ 
-  for(n in unique(cost_TreatOther[[1]]$scenario)){ 
-    
-    cost_TreatOtherx[[i]][[n]] <- cost_TreatOther[[i]]%>%filter(scenario == n)
-    cost_RetreatOtherx[[i]][[n]] <- cost_RetreatOther[[i]]%>%filter(scenario == n)
-    
-  }
-  
-} 
-
-disy_cost_TreatOtherx <- list()
-disy_cost_RetreatOtherx <- list()
-for(i in names(cost_TreatOtherx)){ 
-  for(n in names(cost_TreatOtherx[[1]])){ 
-    
-    disy_cost_TreatOtherx[[i]][[n]] <- cost_TreatOtherx[[i]][[n]]%>%
-      as.data.frame()%>%
-      ungroup()%>%
-      mutate(id = year - POC_AU$simY, 
-             discount = ifelse(id>=0, (1 + AUdiscount)^id, NA))%>%
-      mutate(across(c(par_col), ~./discount,
-                    .names = "{col}"))
-    
-    disy_cost_RetreatOtherx[[i]][[n]] <- cost_RetreatOtherx[[i]][[n]]%>%
-      as.data.frame()%>%
-      ungroup()%>%
-      mutate(id = year - POC_AU$simY, 
-             discount = ifelse(id>=0, (1 + AUdiscount)^id, NA))%>%
-      mutate(across(c(par_col), ~./discount,
-                    .names = "{col}"))
-    
-    
-  }
-}
-for(i in names(Rescost_year_all)){ 
-  for(n in names(Rescost_year_all[[1]])){
-    Rescost_year_all[[i]][[n]]$cost_POCT[is.na(Rescost_year_all[[i]][[n]]$cost_POCT)]  <- 0
-
-    cost_y_categories[[i]][[n]][["Diagnosis"]] <- cbind(
-      year = Rescost_year_all[[i]][[n]]$cost_ab$year, 
-      as.data.frame(Rescost_year_all[[i]][[n]]$cost_ab[, par_col],
-                    Rescost_year_all[[i]][[n]]$cost_RNA[, par_col],
-                    Rescost_year_all[[i]][[n]]$cost_POCT[, par_col]))
-
-    cost_y_categories[[i]][[n]][["Diagnosis"]][cost_y_categories[[i]][[n]][["Diagnosis"]] == 0] <- NA 
-    cost_y_categories[[i]][[n]][["Diagnosis"]] <- cost_y_categories[[i]][[n]][["Diagnosis"]]%>%
-      popResults_range(POC_AU, ., Population = NULL, end_Y = endY-1)
- 
-    cost_y_categories[[i]][[n]][["Treatment_cap"]] <- Rescost_year_all[[i]][[n]]$cost_totalDAA_Cap
-    cost_y_categories[[i]][[n]][["Treatment_cap"]][cost_y_categories[[i]][[n]][["Treatment_cap"]] == 0] <- NA
-    cost_y_categories[[i]][[n]][["Treatment"]] <- Rescost_year_all[[i]][[n]]$cost_totalDAA
-    cost_y_categories[[i]][[n]][["Treatment"]][cost_y_categories[[i]][[n]][["Treatment"]] == 0] <- NA
-    
-    cost_y_categories[[i]][[n]][["Treatment_cap"]] <- cost_y_categories[[i]][[n]][["Treatment_cap"]]%>%
-      popResults_range(POC_AU, ., Population = NULL, end_Y = endY-1)
-    
-    cost_y_categories[[i]][[n]][["Treatment"]] <- cost_y_categories[[i]][[n]][["Treatment"]]%>%
-      popResults_range(POC_AU, ., Population = NULL, end_Y = endY-1)
-
-   
-    Rescost_year_all[[i]][[n]]$cost_compartment[is.na(Rescost_year_all[[i]][[n]]$cost_compartment)]  <- 0
-    Rescost_year_all[[i]][[n]]$cost_Cured[Rescost_year_all[[i]][[n]]$cost_Cured <0 ] <- 0
-    cost_TreatOtherx[[i]][[n]][cost_TreatOtherx[[i]][[n]] <0 ] <- 0
-    cost_RetreatOtherx[[i]][[n]][cost_RetreatOtherx[[i]][[n]] <0 ] <- 0
-    
-    cost_y_categories[[i]][[n]][["Management"]] <- cbind(
-      year = Rescost_year_all[[i]][[n]]$cost_compartment$year, 
-      as.data.frame(Rescost_year_all[[i]][[n]]$cost_compartment[, par_col] + 
-                      Rescost_year_all[[i]][[n]]$cost_Cured[, par_col] +
-                      cost_TreatOtherx[[i]][[n]][, par_col] + 
-                      cost_RetreatOtherx[[i]][[n]][, par_col])) 
-    
-   
-    cost_y_categories[[i]][[n]][["Management"]][cost_y_categories[[i]][[n]][["Management"]] == 0] <- NA  
-    cost_y_categories[[i]][[n]][["Management"]] <- cost_y_categories[[i]][[n]][["Management"]]%>%
-      popResults_range(POC_AU, ., Population = NULL, end_Y = endY-1)
-   
-    cost_y_categories[[i]][[n]] <- cost_y_categories[[i]][[n]]%>%
-      dplyr::bind_rows(., .id = "Categories")
-    
-    }
-  }
-#### recalculate Rescost 
-for(i in names(Rescost_year_all)){ 
-  for(n in names(Rescost_year_all[[1]])){
-    
-    Rescost_year_all[[i]][[n]][["cost_TreatOther"]] <- cost_TreatOtherx[[i]][[n]]%>%select(-scenario)
-    Rescost_year_all[[i]][[n]][["cost_RetreatOther"]] <- cost_RetreatOtherx[[i]][[n]]%>%select(-scenario)
-    for(m in names(Rescost_year_all[[i]][[n]])){
-      Rescost_year_all[[i]][[n]][[m]][is.na(Rescost_year_all[[i]][[n]][[m]])] <- 0
-    }
-   
-    Rescost_year_all[[i]][[n]][["cost_total"]] <- cbind(year =Rescost_year_all[[i]][[n]]$cost_totalDAA$year,
-            as.data.frame(Rescost_year_all[[i]][[n]][["cost_compartment"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][[n]][["cost_ab"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][[n]][["cost_RNA"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][[n]][["cost_POCT"]][, c(par_col)] +
-                            Rescost_year_all[[i]][[n]][["cost_totalDAA"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][[n]][["cost_TreatOther"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][[n]][["cost_RetreatOther"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][[n]][["cost_Cured"]][, c(par_col)]))
-    
-    Rescost_year_all[[i]][[n]][["cost_total_Cap"]] <- 
-      cbind(year =Rescost_year_all[[i]][[n]]$cost_totalDAA$year,
-            as.data.frame(Rescost_year_all[[i]][[n]][["cost_compartment"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][[n]][["cost_ab"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][[n]][["cost_RNA"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][[n]][["cost_POCT"]][, c(par_col)] +
-                            Rescost_year_all[[i]][[n]][["cost_totalDAA_Cap"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][[n]][["cost_TreatOther"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][[n]][["cost_RetreatOther"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][[n]][["cost_Cured"]][, c(par_col)]))
-  }
-  }
-
-View(Rescost)
 cost_disyear_categories <- list()
-
-
-for(i in names(Rescost_year_all)){
-  for(n in names(Rescost_year_all[[1]])){
-    Rescost_disyear_all[[i]][[n]]$cost_ab[is.na(Rescost_disyear_all[[i]][[n]]$cost_ab)]  <- 0
-    Rescost_disyear_all[[i]][[n]]$cost_RNA[is.na(Rescost_disyear_all[[i]][[n]]$cost_RNA)]  <- 0
-    Rescost_disyear_all[[i]][[n]]$cost_POCT[is.na(Rescost_disyear_all[[i]][[n]]$cost_POCT)]  <- 0
+for (i in names(Rescost_year_all)) {
+  for (n in names(Rescost_year_all[[i]])) {
     
+    yr_obj  <- Rescost_year_all[[i]][[n]]
+    dis_obj <- Rescost_disyear_all[[i]][[n]]
+    
+    # ---- NA / negative cleanup, once up front ----
+    cost_cols_to_clean <- c("cost_ab", "cost_RNA", "cost_POCT",
+                            "cost_compartment", "cost_Cured",
+                            "cost_TreatOther", "cost_RetreatOther",
+                            "cost_fibroscan", "cost_totalDAA",
+                            "cost_totalDAA_Cap")
+    
+    for (col_name in cost_cols_to_clean) {
+      yr_obj [[col_name]][is.na(yr_obj [[col_name]])] <- 0
+      dis_obj[[col_name]][is.na(dis_obj[[col_name]])] <- 0
+    }
+    
+    yr_obj $cost_Cured       [yr_obj $cost_Cured        < 0] <- 0
+    dis_obj$cost_Cured       [dis_obj$cost_Cured        < 0] <- 0
+    yr_obj $cost_TreatOther  [yr_obj $cost_TreatOther   < 0] <- 0
+    dis_obj$cost_TreatOther  [dis_obj$cost_TreatOther   < 0] <- 0
+    yr_obj $cost_RetreatOther[yr_obj $cost_RetreatOther < 0] <- 0
+    dis_obj$cost_RetreatOther[dis_obj$cost_RetreatOther < 0] <- 0
+    
+    # ============================================================
+    # Undiscounted yearly categories
+    # ============================================================
+    # Diagnosis = ab + RNA + POCT  (was previously only cost_ab — bug fixed)
+    cost_y_categories[[i]][[n]][["Diagnosis"]] <- cbind(
+      year = yr_obj$cost_ab$year,
+      as.data.frame(
+        yr_obj$cost_ab  [, par_col] +
+          yr_obj$cost_RNA [, par_col] +
+          yr_obj$cost_POCT[, par_col]
+      )
+    )
+    cost_y_categories[[i]][[n]][["Diagnosis"]][cost_y_categories[[i]][[n]][["Diagnosis"]] == 0] <- NA
+    cost_y_categories[[i]][[n]][["Diagnosis"]] <- cost_y_categories[[i]][[n]][["Diagnosis"]] %>%
+      popResults_range(POC_AU, ., Population = NULL, end_Y = endY - 1)
+    
+    # Treatment (capped)
+    cost_y_categories[[i]][[n]][["Treatment_cap"]] <- yr_obj$cost_totalDAA_Cap
+    cost_y_categories[[i]][[n]][["Treatment_cap"]][cost_y_categories[[i]][[n]][["Treatment_cap"]] == 0] <- NA
+    cost_y_categories[[i]][[n]][["Treatment_cap"]] <- cost_y_categories[[i]][[n]][["Treatment_cap"]] %>%
+      popResults_range(POC_AU, ., Population = NULL, end_Y = endY - 1)
+    
+    # Treatment (uncapped)
+    cost_y_categories[[i]][[n]][["Treatment"]] <- yr_obj$cost_totalDAA
+    cost_y_categories[[i]][[n]][["Treatment"]][cost_y_categories[[i]][[n]][["Treatment"]] == 0] <- NA
+    cost_y_categories[[i]][[n]][["Treatment"]] <- cost_y_categories[[i]][[n]][["Treatment"]] %>%
+      popResults_range(POC_AU, ., Population = NULL, end_Y = endY - 1)
+    
+    # Management = compartment + Cured + TreatOther + RetreatOther + fibroscan
+    cost_y_categories[[i]][[n]][["Management"]] <- cbind(
+      year = yr_obj$cost_compartment$year,
+      as.data.frame(
+        yr_obj$cost_compartment  [, par_col] +
+          yr_obj$cost_Cured        [, par_col] +
+          yr_obj$cost_TreatOther   [, par_col] +
+          yr_obj$cost_RetreatOther [, par_col] +
+          yr_obj$cost_fibroscan    [, par_col]
+      )
+    )
+    cost_y_categories[[i]][[n]][["Management"]][cost_y_categories[[i]][[n]][["Management"]] == 0] <- NA
+    cost_y_categories[[i]][[n]][["Management"]] <- cost_y_categories[[i]][[n]][["Management"]] %>%
+      popResults_range(POC_AU, ., Population = NULL, end_Y = endY - 1)
+    
+    cost_y_categories[[i]][[n]] <- cost_y_categories[[i]][[n]] %>%
+      dplyr::bind_rows(.id = "Categories")
+    
+    # ============================================================
+    # Discounted yearly categories
+    # ============================================================
     cost_disyear_categories[[i]][[n]][["Diagnosis"]] <- cbind(
-      year = Rescost_disyear_all[[i]][[n]]$cost_ab$year, 
-      as.data.frame(Rescost_disyear_all[[i]][[n]]$cost_ab[, par_col] + 
-                      Rescost_disyear_all[[i]][[n]]$cost_RNA[, par_col] +
-                      Rescost_disyear_all[[i]][[n]]$cost_POCT[, par_col]))
+      year = dis_obj$cost_ab$year,
+      as.data.frame(
+        dis_obj$cost_ab  [, par_col] +
+          dis_obj$cost_RNA [, par_col] +
+          dis_obj$cost_POCT[, par_col]
+      )
+    )
+    cost_disyear_categories[[i]][[n]][["Diagnosis"]][cost_disyear_categories[[i]][[n]][["Diagnosis"]] == 0] <- NA
+    cost_disyear_categories[[i]][[n]][["Diagnosis"]] <- cost_disyear_categories[[i]][[n]][["Diagnosis"]] %>%
+      popResults_range(POC_AU, ., Population = NULL, end_Y = endY - 1)
     
-    cost_disyear_categories[[i]][[n]][["Diagnosis"]][cost_disyear_categories[[i]][[n]][["Diagnosis"]] == 0] <- NA  
-    
-    cost_disyear_categories[[i]][[n]][["Diagnosis"]] <-  cost_disyear_categories[[i]][[n]][["Diagnosis"]]%>%
-      popResults_range(POC_AU, ., Population = NULL, end_Y = endY-1)
-    
-    
-    cost_disyear_categories[[i]][[n]][["Treatment_cap"]] <- Rescost_disyear_all[[i]][[n]]$cost_totalDAA_Cap
+    cost_disyear_categories[[i]][[n]][["Treatment_cap"]] <- dis_obj$cost_totalDAA_Cap
     cost_disyear_categories[[i]][[n]][["Treatment_cap"]][cost_disyear_categories[[i]][[n]][["Treatment_cap"]] == 0] <- NA
+    cost_disyear_categories[[i]][[n]][["Treatment_cap"]] <- cost_disyear_categories[[i]][[n]][["Treatment_cap"]] %>%
+      popResults_range(POC_AU, ., Population = NULL, end_Y = endY - 1)
     
-    cost_disyear_categories[[i]][[n]][["Treatment_cap"]] <- cost_disyear_categories[[i]][[n]][["Treatment_cap"]]%>%
-      popResults_range(POC_AU, ., Population = NULL, end_Y = endY-1)
-    
-    cost_disyear_categories[[i]][[n]][["Treatment"]] <- Rescost_disyear_all[[i]][[n]]$cost_totalDAA
+    cost_disyear_categories[[i]][[n]][["Treatment"]] <- dis_obj$cost_totalDAA
     cost_disyear_categories[[i]][[n]][["Treatment"]][cost_disyear_categories[[i]][[n]][["Treatment"]] == 0] <- NA
-    
-    cost_disyear_categories[[i]][[n]][["Treatment"]] <- cost_disyear_categories[[i]][[n]][["Treatment"]]%>%
-      popResults_range(POC_AU, ., Population = NULL, end_Y = endY-1)
-    
-    Rescost_disyear_all[[i]][[n]]$cost_compartment[is.na(Rescost_disyear_all[[i]][[n]]$cost_compartment)]  <- 0
-    Rescost_disyear_all[[i]][[n]]$cost_Cured[Rescost_disyear_all[[i]][[n]]$cost_Cured <0 ] <- 0
-    disy_cost_TreatOtherx[[i]][[n]][disy_cost_TreatOtherx[[i]][[n]] <0 ] <- 0
-    disy_cost_RetreatOtherx[[i]][[n]][disy_cost_RetreatOtherx[[i]][[n]] <0 ] <- 0
+    cost_disyear_categories[[i]][[n]][["Treatment"]] <- cost_disyear_categories[[i]][[n]][["Treatment"]] %>%
+      popResults_range(POC_AU, ., Population = NULL, end_Y = endY - 1)
     
     cost_disyear_categories[[i]][[n]][["Management"]] <- cbind(
-      year = Rescost_disyear_all[[i]][[n]]$cost_compartment$year, 
-      as.data.frame(Rescost_disyear_all[[i]][[n]]$cost_compartment[, par_col] + 
-                      Rescost_disyear_all[[i]][[n]]$cost_Cured[, par_col] +
-                      disy_cost_TreatOtherx[[i]][[n]][, par_col] + 
-                      disy_cost_RetreatOtherx[[i]][[n]][, par_col]))
-    
-    
+      year = dis_obj$cost_compartment$year,
+      as.data.frame(
+        dis_obj$cost_compartment  [, par_col] +
+          dis_obj$cost_Cured        [, par_col] +
+          dis_obj$cost_TreatOther   [, par_col] +
+          dis_obj$cost_RetreatOther [, par_col] +
+          dis_obj$cost_fibroscan    [, par_col]
+      )
+    )
     cost_disyear_categories[[i]][[n]][["Management"]][cost_disyear_categories[[i]][[n]][["Management"]] == 0] <- NA
+    cost_disyear_categories[[i]][[n]][["Management"]] <- cost_disyear_categories[[i]][[n]][["Management"]] %>%
+      popResults_range(POC_AU, ., Population = NULL, end_Y = endY - 1)
     
-    cost_disyear_categories[[i]][[n]][["Management"]] <- cost_disyear_categories[[i]][[n]][["Management"]]%>%
-      popResults_range(POC_AU, ., Population = NULL, end_Y = endY-1)
-    
-    cost_disyear_categories[[i]][[n]] <- cost_disyear_categories[[i]][[n]]%>%
-      dplyr::bind_rows(., .id = "Categories")
+    cost_disyear_categories[[i]][[n]] <- cost_disyear_categories[[i]][[n]] %>%
+      dplyr::bind_rows(.id = "Categories")
   }
 }
 
-
-for(i in names(Rescost_year_all)){ 
-  for(n in names(Rescost_year_all[[1]])){
-    
-    Rescost_disyear_all[[i]][[n]][["cost_TreatOther"]] <- disy_cost_TreatOtherx[[i]][[n]]
-    Rescost_disyear_all[[i]][[n]][["RetreatOther"]] <- disy_cost_RetreatOtherx[[i]][[n]]
-    
-    for(m in names(Rescost_year_all[[i]][[n]])){
-      Rescost_disyear_all[[i]][[n]][[m]][is.na(Rescost_disyear_all[[i]][[n]][[m]])] <- 0
-    }
-    Rescost_disyear_all[[i]][[n]][["cost_TreatOther"]][]
-    Rescost_disyear_all[[i]][[n]][["cost_total"]] <- 
-      cbind(year =Rescost_disyear_all[[i]][[n]]$cost_totalDAA$year,
-            as.data.frame(Rescost_disyear_all[[i]][[n]][["cost_compartment"]][, c(par_col)] + 
-                            Rescost_disyear_all[[i]][[n]][["cost_ab"]][, c(par_col)] + 
-                            Rescost_disyear_all[[i]][[n]][["cost_RNA"]][, c(par_col)] + 
-                            Rescost_disyear_all[[i]][[n]][["cost_POCT"]][, c(par_col)] +
-                            Rescost_disyear_all[[i]][[n]][["cost_totalDAA"]][, c(par_col)] + 
-                            Rescost_disyear_all[[i]][[n]][["cost_TreatOther"]][, c(par_col)] + 
-                            Rescost_disyear_all[[i]][[n]][["cost_RetreatOther"]][, c(par_col)] + 
-                            Rescost_disyear_all[[i]][[n]][["cost_Cured"]][, c(par_col)]))
-    
-    Rescost_disyear_all[[i]][[n]][["cost_total_Cap"]] <- 
-      cbind(year =Rescost_disyear_all[[i]][[n]]$cost_totalDAA$year,
-            as.data.frame(Rescost_disyear_all[[i]][[n]][["cost_compartment"]][, c(par_col)] + 
-                            Rescost_disyear_all[[i]][[n]][["cost_ab"]][, c(par_col)] + 
-                            Rescost_disyear_all[[i]][[n]][["cost_RNA"]][, c(par_col)] + 
-                            Rescost_disyear_all[[i]][[n]][["cost_POCT"]][, c(par_col)] +
-                            Rescost_disyear_all[[i]][[n]][["cost_totalDAA_Cap"]][, c(par_col)] + 
-                            Rescost_disyear_all[[i]][[n]][["cost_TreatOther"]][, c(par_col)] + 
-                            Rescost_disyear_all[[i]][[n]][["cost_RetreatOther"]][, c(par_col)] + 
-                            Rescost_disyear_all[[i]][[n]][["cost_Cured"]][, c(par_col)]))
-  }
-}
-
-
+# ============================================================
+# Cross-scenario aggregation (discounted)
+# ============================================================
 y_cost_disyear_categories <- list()
-
-for(i in names(cost_disyear_categories)){
-  y_cost_disyear_categories[[i]] <- cost_disyear_categories[[i]]%>%
-    dplyr::bind_rows(., .id = "scenario")%>%
-    ungroup()%>%
-    mutate(sensitivity = i)%>%group_by(scenario, year)%>%
-    dplyr::summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))
-  
-} 
+for (i in names(cost_disyear_categories)) {
+  y_cost_disyear_categories[[i]] <- cost_disyear_categories[[i]] %>%
+    dplyr::bind_rows(.id = "scenario") %>%
+    ungroup() %>%
+    mutate(sensitivity = i) %>%
+    group_by(scenario, year) %>%
+    dplyr::summarise(across(c(par_col), ~ sum(.x, na.rm = FALSE)))
+}
 
 y_cost_disyear_categories_range <- list()
 ref_sce <- list()
@@ -2099,7 +1967,9 @@ for(i in unique(incre_catcost$sensitivity)){
     ggtitle(gtitle )
   
   
-  }
+}
+
+length(incre_plot_sens)
 library(ggpubr)
 library(cowplot)
 print(incre_plot_sens[[1]])
@@ -2129,9 +1999,9 @@ plots_no_legend <- lapply(incre_plot_sens, function(p) {
 # Arrange: 3 plots + legend in 4th cell
 incre_cost_sen <- ggarrange(
   plots_no_legend[[1]], 
-  plots_no_legend[[4]], 
-  plots_no_legend[[5]],
-  
+  plots_no_legend[[3]], 
+  plots_no_legend[[4]],
+  legend,
   nrow = 2, ncol = 2
 )
 
@@ -3044,17 +2914,17 @@ for(i in unique(incre_catcost$sensitivity)){
   }
   incre_plot_sens[[i]] <- 
     ggplot(incre_catcost%>%filter(sensitivity == i), 
-           aes(x = scenario, y = -incre_best, fill = Categories)) +
+           aes(x = scenario, y = incre_best, fill = Categories)) +
     geom_bar(stat = "identity", position = "stack", width = 0.8) +
     scale_fill_manual(values = c( "grey30", "grey40","grey80")) + 
     theme_Publication(base_size = 16) + 
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), 
           legend.direction = "vertical") + 
-    scale_y_continuous(limit = c(-10000000, 100000000), 
-                       breaks = seq(-10000000, 100000000, 10000000),
-                       labels = seq(-10000000, 100000000,  10000000)/1000000) + 
+    scale_y_continuous(limit = c(-80000000, 200000000), 
+                       breaks = seq(-80000000, 200000000, 20000000),
+                       labels = seq(-80000000, 200000000,  20000000)/1000000) + 
     labs(y = "Cost saving (discounted, millions)", x = "Scenarios") + 
-    geom_text( aes(label = paste0(format(round(-incre_best/1000000, 1), nsmall = 1), "m")),
+    geom_text( aes(label = paste0(format(round(incre_best/1000000, 1), nsmall = 1), "m")),
                position = position_stack(vjust = 0.5), 
                size = 6)  + geom_hline(yintercept = 0, linetype ="dashed") + 
     ggtitle(gtitle )
@@ -3062,8 +2932,9 @@ for(i in unique(incre_catcost$sensitivity)){
   
 }
 
-incre_plot_sens[[1]]
+incre_plot_sens[[4]]
 library(ggpubr)
+
 library(cowplot)
 
 incre_plot_sens[[1]] <- incre_plot_sens[[1]] + 
@@ -3094,8 +2965,8 @@ plots_no_legend <- lapply(incre_plot_sens, function(p) {
 
 # Arrange: 5 plots + legend in 6th cell
 incre_cost_sen <- ggarrange(
-  plots_no_legend[[3]], plots_no_legend[[4]], plots_no_legend[[1]],
-  plots_no_legend[[2]], plots_no_legend[[5]], legend,
+  plots_no_legend[[1]], plots_no_legend[[3]],
+  plots_no_legend[[2]], legend,
   nrow = 2, ncol = 3
 )
 
