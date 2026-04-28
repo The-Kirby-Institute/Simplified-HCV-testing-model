@@ -40,7 +40,7 @@ source(file.path(Proj_code, "/model_timestep.R"))
 sce_name <- c("dfList_NP_2024", "dfList_NPPhaseII",
               "dfList_NPPhaseIII_A", "dfList_NPPhaseIII_B")
 
-cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
+cost_types <- c("fixednvariable", "total",  "DAAcost_reduchalf")
 for(scn in sce_name){
   
   for(cost_type in cost_types){ 

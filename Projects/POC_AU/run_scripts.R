@@ -1,7 +1,8 @@
 #### run scripts #### 
 
 # after running {scenario set up_20260122_scaledscaleup.R}
-
+rm(list = ls())
+gc()
 source("~/Projects/Simplified-HCV-testing-model/Projects/POC_AU/02_3. Uncertainty.R", echo = TRUE)
 rm(list = ls())
 gc()

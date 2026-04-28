@@ -63,7 +63,7 @@ gc()
 
 #### cost sensitivity #####
 # run by each scenarios for faster result generation, rather than multiple loop
-cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
+cost_types <- c("fixednvariable", "total",  "DAAcost_reduchalf")
 
 ##### scenarios ##### 
 load(file.path(RDAFolder, paste0(project_name, "scenario_cascade.rda")))

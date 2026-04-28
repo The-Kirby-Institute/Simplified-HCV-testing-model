@@ -1191,7 +1191,7 @@ scenario_fc <- list(
 endY <- 100
 Sce_np <- list()
 
- cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
+ cost_types <- c("fixednvariable", "total", "DAAcost_reduchalf")
 
  for (cost_type in cost_types) {
   
@@ -1199,7 +1199,6 @@ Sce_np <- list()
      cost_type,
      "fixednvariable"       = file.path(DataFolder, "cost"),
      "total"                = file.path(DataFolder, "cost", "sensitivity_total"),
-     "DAAcost_reducquarter" = file.path(DataFolder, "cost", "sensitivity_DAAcost_reducquarter"),
      "DAAcost_reduchalf"    = file.path(DataFolder, "cost", "sensitivity_DAAcost_reduchalf")
    )
    

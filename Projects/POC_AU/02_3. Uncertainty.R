@@ -272,7 +272,7 @@ rm(paramDflist)
 gc()
 
 #### cost uncertainty ####
-cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
+cost_types <- c("fixednvariable", "total",  "DAAcost_reduchalf")
 
 for (cost_type in cost_types) {
   
@@ -285,10 +285,7 @@ for (cost_type in cost_types) {
     #### Sensitivity total cost  ####
     files <- list.files(path = paste0(DataFolder, "/cost/sensitivity_total/", sep = ""), pattern = '*.csv')
   }
-  else if (cost_type == "DAAcost_reducquarter"){
-    files <- list.files(path = paste0(DataFolder, "/cost/sensitivity_DAAcost_reducquarter/", sep = ""), pattern = '*.csv')
-    
-  } 
+  
   else if (cost_type == "DAAcost_reduchalf"){
     files <- list.files(path = paste0(DataFolder, "/cost/sensitivity_DAAcost_reduchalf/", sep = ""), pattern = '*.csv')
     

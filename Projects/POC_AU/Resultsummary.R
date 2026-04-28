@@ -31,7 +31,7 @@ source(file.path(Rcode, "/Functions/plotManuscript.R"))
 source(file.path(Rcode, "/Functions/plotFunctions.R")) 
 source(file.path(Proj_code, "/model_timestep.R")) 
 
-cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
+cost_types <- c("fixednvariable", "total",  "DAAcost_reduchalf")
 for(cost_type in cost_types){ 
   
   load(file.path(OutputFolder, paste0(project_name, "param_simulation_", cost_type, ".rda")))

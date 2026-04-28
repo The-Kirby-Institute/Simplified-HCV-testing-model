@@ -48,13 +48,18 @@ rda2list <- function(file) {
 sce_name <- c("sq","dfList_NP_2024", "dfList_NPPhaseII",
               "dfList_NPPhaseIII_A", "dfList_NPPhaseIII_B")
 
-cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
+cost_types <- c("fixednvariable", "total",  "DAAcost_reduchalf")
 source(file.path(Rcode, "/Functions/plotManuscript.R"))
 source(file.path(Rcode, "/Functions/plotFunctions.R")) 
 source(file.path(Proj_code, "/model_timestep.R")) 
 AUdiscount <- 0.05
 
 cap <- 200000000
+unitC_fibroscan_old <- 62.52                       # bundled cost previously in ctau_ag/ctau_poct
+unitC_fibroscan_SOC <- c(C = 73.44, P = 82.30)     # SOC: community / prison
+unitC_fibroscan_POC <- c(C = 75.59, P = 83.77)     # POC: community / prison
+unitC_eta_other_SOC <- c(C = 1341.14, P = 1063.77)   # community / prison
+unitC_eta_other_POC <- c(C = 1342.61, P = 1059.82)
 endY <- 100
 par_col <- c("best", paste0("set", seq(1, POC_AU$numberSamples,1)))
 
@@ -158,7 +163,6 @@ for(cost_type in cost_types){
   unit_costs <- list(
     "fixednvariable" = c(DAA = 35956.37, secline = 44613.66),
     "total" = c(DAA = 17978.18, secline = 22306.83),
-    "DAAcost_reducquarter" = c(DAA = 26967.27, secline = 33460.24),
     "DAAcost_reduchalf" = c(DAA = 17978.18, secline = 22306.83)
   )
   idx <- match(cost_type, cost_types)
@@ -196,36 +200,93 @@ for(cost_type in cost_types){
     index_col[[i]] <- cbind.data.frame(year = RescostDAA[[i]]$cost_Treatment$year, 
                                        population = RescostDAA[[i]]$cost_Treatment$population)
     
-    cost_TreatOther[[i]] <- cbind(as.data.frame(index_col[[i]]), 
-                                  (RescostDAA[[i]][["cost_Treatment"]][, c(par_col)] - 
-                                     cost_TreatDAA[[i]][, c(par_col)] - 
-                                     RescostDAA[[i]][["cost_Treatment_sc"]][, c(par_col) ]))
-  
-    cost_RetreatOther[[i]] <- cbind(as.data.frame(index_col[[i]]), 
-                                    (RescostDAA[[i]][["cost_Retreat"]][, c(par_col)] - 
-                                       cost_RetreatDAA[[i]][, c(par_col)]))
-  
+    pop_prefix_eta <- substr(as.character(index_col[[i]]$population), 1, 1)
+    SOC_eta_other  <- unitC_eta_other_SOC[pop_prefix_eta]
+    POC_eta_other  <- unitC_eta_other_POC[pop_prefix_eta]
     
-    cost_TreatOther_sc[[i]] <- cbind(as.data.frame(index_col[[i]]), 
-                                     (RescostDAA[[i]][["cost_Treatment_sc"]][, c(par_col)] - 
-                                        cost_TreatDAA_sc[[i]][, c(par_col)]))
-  
+    # Volumes (year x population, already aggregated)
+    n_treat    <- as.matrix(Resflow_year_pop[[i]]$Treatment[,    par_col])
+    n_treat_sc <- as.matrix(Resflow_sc_year_pop[[i]]$Treatment_sc[, par_col])
+    n_retreat  <- as.matrix(Resflow_year_pop[[i]]$Retreat[,     par_col])
+    
+    # cost_TreatOther = SOC_unit x Treatment + POC_unit x Treatment_sc
+    # (sq has Treatment_sc = 0, so collapses to SOC_unit x Treatment cleanly)
+    cost_TreatOther[[i]] <- cbind(
+      as.data.frame(index_col[[i]]),
+      as.data.frame(SOC_eta_other * n_treat + POC_eta_other * n_treat_sc)
+    )
+    
+    # cost_RetreatOther = SOC_unit x Retreat (no _sc lane, SOC unit only per spec)
+    cost_RetreatOther[[i]] <- cbind(
+      as.data.frame(index_col[[i]]),
+      as.data.frame(SOC_eta_other * n_retreat)
+    )
+    
+    # cost_TreatOther_sc = POC_unit x Treatment_sc only
+    cost_TreatOther_sc[[i]] <- cbind(
+      as.data.frame(index_col[[i]]),
+      as.data.frame(POC_eta_other * n_treat_sc)
+    )
+    
     cost_totalDAA[[i]] <- cbind(as.data.frame(index_col[[i]]), 
                                 (cost_TreatDAA[[i]][, c(par_col)] + 
                                    cost_RetreatDAA[[i]][, c(par_col)] + 
                                    cost_TreatDAA_sc[[i]][, c(par_col)]))
   }  
   
+  cost_fibroscan    <- list()
+  cost_fibroscan_sc <- list()
   
   for(i in names(RescostDAA)){
-    RescostDAA[[i]] <- append(RescostDAA[[i]], 
-                              list("cost_TreatDAA" = cost_TreatDAA[[i]], 
-                                   "cost_RetreatDAA" = cost_RetreatDAA[[i]],
-                                   "cost_TreatDAA_sc" = cost_TreatDAA_sc[[i]],
-                                   "cost_TreatOther" = cost_TreatOther[[i]],
-                                   "cost_RetreatOther" = cost_RetreatOther[[i]],
+    # Population-specific unit costs (C* = community, P* = prison)
+    pop_vec    <- as.character(RescostDAA[[i]]$cost_ab$population)
+    pop_prefix <- substr(pop_vec, 1, 1)
+    SOC_unit   <- unitC_fibroscan_SOC[pop_prefix]
+    POC_unit   <- unitC_fibroscan_POC[pop_prefix]
+    
+    # Testing volumes (already aggregated to year x population)
+    n_RNA_total  <- as.matrix(Resflow_year_pop[[i]]$Testing_RNA[,     par_col])
+    n_RNA_sc     <- as.matrix(Resflow_year_pop[[i]]$Testing_RNA_sc[,  par_col])
+    n_POCT_total <- as.matrix(Resflow_year_pop[[i]]$Testing_POCT[,    par_col])
+    n_POCT_sc    <- as.matrix(Resflow_year_pop[[i]]$Testing_POCT_sc[, par_col])
+    
+    # 1. Strip bundled $62.52 fibroscan from existing cost columns
+    RescostDAA[[i]]$cost_RNA[,    par_col] <-
+      RescostDAA[[i]]$cost_RNA[,    par_col] - (n_RNA_total  + n_RNA_sc)  * unitC_fibroscan_old
+    RescostDAA[[i]]$cost_RNA_sc[, par_col] <-
+      RescostDAA[[i]]$cost_RNA_sc[, par_col] -  n_RNA_sc                  * unitC_fibroscan_old
+    RescostDAA[[i]]$cost_POCT[,    par_col] <-
+      RescostDAA[[i]]$cost_POCT[,    par_col] - (n_POCT_total + n_POCT_sc) * unitC_fibroscan_old
+    RescostDAA[[i]]$cost_POCT_sc[, par_col] <-
+      RescostDAA[[i]]$cost_POCT_sc[, par_col] -  n_POCT_sc                 * unitC_fibroscan_old
+    
+    # 2. Build cost_fibroscan: SOC_unit x total + POC_unit x sc  (RNA + POCT combined)
+    cost_fibroscan[[i]] <- cbind(
+      as.data.frame(index_col[[i]]),
+      as.data.frame(
+        (n_RNA_total + n_POCT_total) * SOC_unit +
+          (n_RNA_sc    + n_POCT_sc)    * POC_unit
+      )
+    )
+    
+    # 3. Build cost_fibroscan_sc: POC_unit x sc only
+    cost_fibroscan_sc[[i]] <- cbind(
+      as.data.frame(index_col[[i]]),
+      as.data.frame((n_RNA_sc + n_POCT_sc) * POC_unit)
+    )
+  }
+  
+  for(i in names(RescostDAA)){
+    RescostDAA[[i]] <- append(RescostDAA[[i]],
+                              list("cost_TreatDAA"      = cost_TreatDAA[[i]],
+                                   "cost_RetreatDAA"    = cost_RetreatDAA[[i]],
+                                   "cost_TreatDAA_sc"   = cost_TreatDAA_sc[[i]],
+                                   "cost_TreatOther"    = cost_TreatOther[[i]],
+                                   "cost_RetreatOther"  = cost_RetreatOther[[i]],
                                    "cost_TreatOther_sc" = cost_TreatOther_sc[[i]],
-                                   "cost_totalDAA" = cost_totalDAA[[i]])
+                                   "cost_totalDAA"      = cost_totalDAA[[i]],
+                                   "cost_fibroscan"     = cost_fibroscan[[i]],       # NEW
+                                   "cost_fibroscan_sc"  = cost_fibroscan_sc[[i]])    # NEW
     )
   }
   
@@ -243,9 +304,10 @@ for(cost_type in cost_types){
   RescostDAA_sc <- list()
   for(i in names(RescostDAA)){
     
-    RescostDAA_sc[[i]] <- list("cost_TreatDAA" = cost_TreatDAA_sc[[i]],
-                               "cost_TreatOther" = cost_TreatOther_sc[[i]],
-                               "cost_totalDAA" = cost_TreatDAA_sc[[i]])  
+    RescostDAA_sc[[i]] <- list("cost_TreatDAA"     = cost_TreatDAA_sc[[i]],
+                               "cost_TreatOther"   = cost_TreatOther_sc[[i]],
+                               "cost_fibroscan_sc" = cost_fibroscan_sc[[i]],   # NEW
+                               "cost_totalDAA"     = cost_TreatDAA_sc[[i]])
   }
   
   RescostDAA_sc_totalpop <- list()
@@ -274,12 +336,13 @@ for(cost_type in cost_types){
   Rescost_DAA_sc_dt <- list()
   
   for(i in names(RescostDAA)){ 
-    Rescost_DAA_sc_dt[[i]] <- list("cost_ab_sc" = RescostDAA[[i]]$cost_ab,
-                                   "cost_RNA_sc" = RescostDAA[[i]]$cost_RNA_sc,
-                                   "cost_POCT_sc" = RescostDAA[[i]]$cost_POCT_sc,
-                                   "cost_TreatDAA" = cost_TreatDAA_sc[[i]],
-                                   "cost_TreatOther" = cost_TreatOther_sc[[i]],
-                                   "cost_totalDAA" = cost_TreatDAA_sc[[i]])  
+    Rescost_DAA_sc_dt[[i]] <- list("cost_ab_sc"        = RescostDAA[[i]]$cost_ab,
+                                   "cost_RNA_sc"       = RescostDAA[[i]]$cost_RNA_sc,
+                                   "cost_POCT_sc"      = RescostDAA[[i]]$cost_POCT_sc,
+                                   "cost_TreatDAA"     = cost_TreatDAA_sc[[i]],
+                                   "cost_TreatOther"   = cost_TreatOther_sc[[i]],
+                                   "cost_fibroscan_sc" = cost_fibroscan_sc[[i]],   # NEW
+                                   "cost_totalDAA"     = cost_TreatDAA_sc[[i]])
     
     
   }
@@ -361,16 +424,17 @@ for(cost_type in cost_types){
       Rescost_year_all[[i]][["cost_totalDAA"]]%>%
       mutate(across(c(par_col), ~ ifelse(.>=cap, cap, . ),.names = "{col}"))
     
-    Rescost_year_all[[i]][["cost_total_Cap"]] <- 
-      cbind(year =Rescost_year_all[[i]]$cost_totalDAA$year,
-            as.data.frame(Rescost_year_all[[i]][["cost_compartment"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][["cost_ab"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][["cost_RNA"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][["cost_POCT"]][, c(par_col)] +
-                            Rescost_year_all[[i]][["cost_totalDAA_Cap"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][["cost_TreatOther"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][["cost_RetreatOther"]][, c(par_col)] + 
-                            Rescost_year_all[[i]][["cost_Cured"]][, c(par_col)]))
+    Rescost_year_all[[i]][["cost_total_Cap"]] <-
+      cbind(year = Rescost_year_all[[i]]$cost_totalDAA$year,
+            as.data.frame(Rescost_year_all[[i]][["cost_compartment"]][, c(par_col)] +
+                            Rescost_year_all[[i]][["cost_ab"]][,         c(par_col)] +
+                            Rescost_year_all[[i]][["cost_RNA"]][,        c(par_col)] +
+                            Rescost_year_all[[i]][["cost_POCT"]][,       c(par_col)] +
+                            Rescost_year_all[[i]][["cost_fibroscan"]][,  c(par_col)] +   # NEW
+                            Rescost_year_all[[i]][["cost_totalDAA_Cap"]][, c(par_col)] +
+                            Rescost_year_all[[i]][["cost_TreatOther"]][, c(par_col)] +
+                            Rescost_year_all[[i]][["cost_RetreatOther"]][, c(par_col)] +
+                            Rescost_year_all[[i]][["cost_Cured"]][,      c(par_col)]))
   }
   
   Rescost_year_sc_all <- list()
@@ -488,10 +552,25 @@ for(cost_type in cost_types){
        AUdiscount,
        unitC_DAA,
        unitC_secline_DAA,
+       unitC_fibroscan_old,
+       unitC_fibroscan_SOC,
+       unitC_fibroscan_POC,
        cap,
        file = file.path(OutputFolder,
                         paste0(project_name,"Res_flowcost_", cost_type ,".rda"))) 
-
+  
   gc()
 }
+
+
+ 
+  
+
+
+
+
+
+
+
+
 

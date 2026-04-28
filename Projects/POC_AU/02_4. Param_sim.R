@@ -72,7 +72,7 @@ paramDflist <- lapply(paramDflist, function(x) lapply(x, function(y) y[, , c(1:t
 gc()
 
 #### cost sensitivity #####
-cost_types <- c("fixednvariable", "total", "DAAcost_reducquarter", "DAAcost_reduchalf")
+cost_types <- c("fixednvariable", "total",  "DAAcost_reduchalf")
 
 for (cost_type in cost_types) {
   
