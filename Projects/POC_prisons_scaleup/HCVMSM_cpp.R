@@ -3,6 +3,7 @@
 # ══════════════════════════════════════════════════════════════════════════════
 library(Rcpp)
 library(RcppArmadillo)
+setwd("/Users/jjwu/Projects/Simplified-HCV-testing-model/Projects/POC_prisons_scaleup")
 sourceCpp("hcvmsm_core.cpp")
 
 # ══════════════════════════════════════════════════════════════════════════════

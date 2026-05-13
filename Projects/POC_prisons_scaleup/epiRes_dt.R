@@ -116,6 +116,7 @@ tempPrev_subpop <- list()
 
 tempNOTInfectedRNA_subpop <- list()
 
+
 tempPrevRNA_subpop <- list()
 
 HCVInc_subpop <- list()
@@ -322,10 +323,10 @@ compute_incidence_annual <- function(scenario_name) {
 }
 
 # ── Apply to all scenarios ────────────────────────────────────────────────────
-inc_annual <- bind_rows(lapply(scenario_names, compute_incidence_annual))
+inc_annual <- bind_rows(lapply(names(all_scenarios), compute_incidence_annual))
 
 
-r# ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
 # STEP 1: Compute thresholds
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -565,6 +566,7 @@ for(n in names(Num_box)){
 #### incidence in settings ####
 newInf_commu <- list()
 newInf_prison <- list()
+
 newInf_prisonPWID <- list()
 HCVInc_setting <- list()
 for(n in names(Sce_flow)){ 
@@ -596,6 +598,8 @@ for(n in names(Sce_flow)){
     tibble::as_tibble()
   
 }
+
+
 
 save(Num_box, pop_N, commu_N, prison_N, prisonPWID_N, 
      Num_diag, Num_diag_ab, Num_diag_Treated, 
