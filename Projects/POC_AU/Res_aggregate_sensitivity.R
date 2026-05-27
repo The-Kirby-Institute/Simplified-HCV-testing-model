@@ -2,7 +2,7 @@
 #### this script work with the sensitivty analysis on the unit cost of DAA 
 
 # this script imports the datasets tidy up in Resultssummary.R 
-# {Res_dt.rda} and {epiRes_timestep.rda} 
+# {Res_dt_scenarios.rda} and {Rescost_dt_[scn]_[cost_type].rda}
 # we aggregate the number to annual numbers and apply cost discount in this script. 
 # three datasets we work on in this script: {Num_box}, {Resflow_dt}, {Rescost_dt}
 gc()
@@ -45,8 +45,8 @@ rda2list <- function(file) {
   as.list(e)
 }
 
-sce_name <- c("sq","dfList_NP_2024", "dfList_NPPhaseII",
-              "dfList_NPPhaseIII_A", "dfList_NPPhaseIII_B")
+sce_name <- c("no_np","foundational", "succession",
+              "sustained", "scaleup")
 
 cost_types <- c("fixednvariable", "total",  "DAAcost_reduchalf")
 source(file.path(Rcode, "/Functions/plotManuscript.R"))
@@ -63,14 +63,38 @@ unitC_eta_other_POC <- c(C = 1342.61, P = 1059.82)
 endY <- 100
 par_col <- c("best", paste0("set", seq(1, POC_AU$numberSamples,1)))
 
-for(cost_type in cost_types){
-  files <- list.files(OutputFolder, pattern = paste0(project_name,"Res_dt_.*_", cost_type))
+# NaN-safe element-wise: replace NaN with 0 so NaN + x does not poison the sum
+z <- function(d) { m <- as.matrix(d); m[is.nan(m)] <- 0; m }
 
-  Res_dt <- Map(rda2list, file.path(OutputFolder, files))
+# ---------------------------------------------------------------------------
+# Load epi flows ONCE: Res_dt_scenarios.rda has no cost_type dependence.
+# It contains Num_box, Resflow_dt, Resflow_sc_dt -- each keyed by scenario.
+# ---------------------------------------------------------------------------
+epi_env <- new.env()
+load(file.path(OutputFolder, paste0(project_name, "Res_dt_scenarios.rda")),
+     envir = epi_env)
+
+for(cost_type in cost_types){
   
-  name_file <- sub("POC_AURes_dt_", "", files)
-  
-  names(Res_dt) <- tools::file_path_sans_ext(name_file)
+  # --- Reassemble Res_dt into the nested shape the rest of the script expects:
+  #     Res_dt[[scn]]$Num_box[[1]], $Resflow_dt[[1]], $Resflow_sc_dt[[1]],
+  #     $Rescost_dt[[1]]
+  Res_dt <- list()
+  for(scn in sce_name){
+    cost_env <- new.env()
+    load(file.path(OutputFolder,
+                   paste0(project_name, "Rescost_dt_", scn, "_", cost_type, ".rda")),
+         envir = cost_env)
+    # cost_env$Rescost_dt is a one-element list keyed by scn
+    
+    Res_dt[[scn]] <- list(
+      Num_box       = list(epi_env$Num_box[[scn]]),
+      Resflow_dt    = list(epi_env$Resflow_dt[[scn]]),
+      Resflow_sc_dt = list(epi_env$Resflow_sc_dt[[scn]]),
+      Rescost_dt    = list(cost_env$Rescost_dt[[scn]])
+    )
+    rm(cost_env)
+  }
   
   Res_numbox <- list()
   Resflow_year_pop <- list()
@@ -118,9 +142,9 @@ for(cost_type in cost_types){
         group_by(year, population)%>%
         summarise(across(c(par_col),~ sum(.x, na.rm = FALSE)))%>%
         arrange(year)
-      }
     }
-    
+  }
+  
   
   
   Resflow_sc_year_all <- list()
@@ -398,7 +422,9 @@ for(cost_type in cost_types){
   
   for(i in names(Rescost_sc_year)){ 
     for(indic in names(Rescost_sc_year[[1]])){
-      Rescost_yearcum_sc_pop[[i]] <- Rescost_sc_year[[i]][[indic]]%>%
+      # FIX: was Rescost_yearcum_sc_pop[[i]] <- ... which overwrote every
+      # indicator, leaving only the last one. Now indexed [[i]][[indic]].
+      Rescost_yearcum_sc_pop[[i]][[indic]] <- Rescost_sc_year[[i]][[indic]]%>%
         as_tibble()%>%arrange(population)%>%group_by(population)%>%
         mutate(across(c(par_col), cumsum, .names = "{col}"))
       
@@ -424,17 +450,19 @@ for(cost_type in cost_types){
       Rescost_year_all[[i]][["cost_totalDAA"]]%>%
       mutate(across(c(par_col), ~ ifelse(.>=cap, cap, . ),.names = "{col}"))
     
+    # NaN-safe: z() turns NaN into 0 in each component before summing, so a
+    # NaN in any one component no longer poisons the whole cell.
     Rescost_year_all[[i]][["cost_total_Cap"]] <-
       cbind(year = Rescost_year_all[[i]]$cost_totalDAA$year,
-            as.data.frame(Rescost_year_all[[i]][["cost_compartment"]][, c(par_col)] +
-                            Rescost_year_all[[i]][["cost_ab"]][,         c(par_col)] +
-                            Rescost_year_all[[i]][["cost_RNA"]][,        c(par_col)] +
-                            Rescost_year_all[[i]][["cost_POCT"]][,       c(par_col)] +
-                            Rescost_year_all[[i]][["cost_fibroscan"]][,  c(par_col)] +   # NEW
-                            Rescost_year_all[[i]][["cost_totalDAA_Cap"]][, c(par_col)] +
-                            Rescost_year_all[[i]][["cost_TreatOther"]][, c(par_col)] +
-                            Rescost_year_all[[i]][["cost_RetreatOther"]][, c(par_col)] +
-                            Rescost_year_all[[i]][["cost_Cured"]][,      c(par_col)]))
+            as.data.frame(z(Rescost_year_all[[i]][["cost_compartment"]][,    c(par_col)]) +
+                            z(Rescost_year_all[[i]][["cost_ab"]][,           c(par_col)]) +
+                            z(Rescost_year_all[[i]][["cost_RNA"]][,          c(par_col)]) +
+                            z(Rescost_year_all[[i]][["cost_POCT"]][,         c(par_col)]) +
+                            z(Rescost_year_all[[i]][["cost_fibroscan"]][,    c(par_col)]) +   # NEW
+                            z(Rescost_year_all[[i]][["cost_totalDAA_Cap"]][, c(par_col)]) +
+                            z(Rescost_year_all[[i]][["cost_TreatOther"]][,   c(par_col)]) +
+                            z(Rescost_year_all[[i]][["cost_RetreatOther"]][, c(par_col)]) +
+                            z(Rescost_year_all[[i]][["cost_Cured"]][,        c(par_col)])))
   }
   
   Rescost_year_sc_all <- list()
@@ -561,16 +589,3 @@ for(cost_type in cost_types){
   
   gc()
 }
-
-
- 
-  
-
-
-
-
-
-
-
-
-

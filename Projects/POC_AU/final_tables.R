@@ -1,8 +1,8 @@
 #### manuscript numbers and tables #### 
 library(openxlsx)
 library(readxl)
-dt_path <- "/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/POC_AU/02. Output"
-Prev_dt <- read_excel(file.path(paste0(dt_path, "/PrevInc_epi.xlsx")), sheet = "tempPrevRNA_setting")
+output_path <- "/Users/jjwu/Projects/Simplified-HCV-testing-model/Projects/POC_AU/Output"
+Prev_dt <- read_excel(file.path(paste0(output_path, "/PrevInc_epi.xlsx")), sheet = "tempPrevRNA_setting")
 View(Prev_dt)
 Prev_dt_tab <- Prev_dt%>%filter(setting != "prisonsPWID")%>%
   mutate(year = (year + POC_AU$cabY - 1),
@@ -273,10 +273,10 @@ table_data %>%
 col_est <- c("best", paste0("set", seq(1,1000,1)))
 num_screened <-data.frame()
 num_screened <- xt_screened%>%group_by(year,scenario)%>%
-  dplyr::mutate(across(all_of(c("best",set_cols)),sum, na.rm = TRUE))%>%
+  dplyr::mutate(across(all_of(c("best",col_est)),sum, na.rm = TRUE))%>%
   mutate(scenario = factor(scenario, level = unique(xt_screened$scenario), label = scenario_order))%>%
   slice(1)%>%
-  ungroup()%>%select(!c(population, NP))%>%mutate(across(all_of(set_cols), ~na_if(., 0)))
+  ungroup()%>%select(!c(population, NP))%>%mutate(across(all_of(col_est), ~na_if(., 0)))
 
 
 ref_data <- num_screened%>%
@@ -340,7 +340,7 @@ table_data %>%
   ) %>%
   
   # Spanners for each scenario
-  tab_spanner(label = "(1) No National Program", 
+  tab_spanner(label = "(1) No national program", 
               columns = starts_with(scenario_order[1])) %>%
   tab_spanner(label = "(2) Foundational Implementation", 
               columns = starts_with(scenario_order[2])) %>%
@@ -354,8 +354,8 @@ table_data %>%
   # Rename columns
   cols_label(
     year = "Year",
-    `(1) No National Program_newinfection` = "HCV screened",
-    `(1) No National Program_increase` = "Increase (%)",
+    `(1) No national program_newinfection` = "HCV screened",
+    `(1) No national program_increase` = "Increase (%)",
     `(2) Foundational implementation_newinfection` = "HCV screened",
     `(2) Foundational implementation_increase` = "Increase (%)",
     `(3) Program succession_newinfection` = "HCV screened",
@@ -369,7 +369,7 @@ table_data %>%
   # Reorder columns
   cols_move(
     columns = c(
-      `(1) No National Program_newinfection`, `(1) No National Program_increase`,
+      `(1) No national program_newinfection`, `(1) No national program_increase`,
       `(2) Foundational implementation_newinfection`, `(2) Foundational implementation_increase`,
       `(3) Program succession_newinfection`, `(3) Program succession_increase`,
       `(4) Program sustained_newinfection`, `(4) Program sustained_increase`,
@@ -478,7 +478,7 @@ table_data %>%
   ) %>%
   
   # Spanners for each scenario
-  tab_spanner(label = "(1) No National Program", 
+  tab_spanner(label = "(1) No national program", 
               columns = starts_with(scenario_order[1])) %>%
   tab_spanner(label = "(2) Foundational Implementation", 
               columns = starts_with(scenario_order[2])) %>%
@@ -492,8 +492,8 @@ table_data %>%
   # Rename columns
   cols_label(
     year = "Year",
-    `(1) No National Program_newinfection` = "HCV screened (cumulative)",
-    `(1) No National Program_increase` = "Increase (%)",
+    `(1) No national program_newinfection` = "HCV screened (cumulative)",
+    `(1) No national program_increase` = "Increase (%)",
     `(2) Foundational implementation_newinfection` = "HCV screened (cumulative)",
     `(2) Foundational implementation_increase` = "Increase (%)",
     `(3) Program succession_newinfection` = "HCV screened (cumulative)",
@@ -507,7 +507,7 @@ table_data %>%
   # Reorder columns
   cols_move(
     columns = c(
-      `(1) No National Program_newinfection`, `(1) No National Program_increase`,
+      `(1) No national program_newinfection`, `(1) No national program_increase`,
       `(2) Foundational implementation_newinfection`, `(2) Foundational implementation_increase`,
       `(3) Program succession_newinfection`, `(3) Program succession_increase`,
       `(4) Program sustained_newinfection`, `(4) Program sustained_increase`,
@@ -1292,3 +1292,101 @@ roi_gt_df %>%
 
 
 
+
+
+
+#### 
+# extract coverage of np
+load(file.path(RDAFolder, "POC_AUSimulations_DAAcost_reduchalf.rda"))
+str(fitted_coverages)
+fitted_coverages$Cov_np_C
+View(fitted_coverages)
+
+
+# =============================================================================
+# Overall NP coverage by setting, 2025-2030, across scenarios
+#   Community : annual scale     (Cov_np_C / Cov_neg_C already annual)
+#   Prison    : monthly scale    (Cov_np_P_monthly / Cov_neg_P_monthly as-is)
+#   Positive arm weighted by undiagnosed HCV+ stock; negative arm by neg stock.
+#   Stocks: Community annual-average; Prison monthly-average (matches each scale)
+# =============================================================================
+
+library(dplyr)
+
+load(file.path(RDAFolder, "POC_AUSimulations_DAAcost_reduchalf.rda"))
+stopifnot(exists("Sce_np"), exists("fitted_coverages"))
+
+# --- state sets (match calibration script) ---
+diag_RNA_states <- c("f0_diag_RNA","f1_diag_RNA","f2_diag_RNA","f3_diag_RNA",
+                     "f4_diag_RNA","dc_diag_RNA","hcc_diag_RNA",
+                     "lt_diag_RNA","plt_diag_RNA")
+undiag_states   <- gsub("diag_RNA", "undiag", diag_RNA_states)
+neg_states      <- c("s","f0_cured","f1_cured","f2_cured","f3_cured",
+                     "f4_cured","dc_cured","hcc_cured","lt_cured","plt_cured")
+
+steps_per_year <- 1 / POC_AU$timestep
+
+# annual-AVERAGE stock — for Community (annual scale)
+yr_avg_stock <- function(Sce, pops, states, year) {
+  k  <- year - POC_AU$cabY + 1
+  t0 <- (k - 1) * steps_per_year + 1
+  t1 <-  k      * steps_per_year
+  total <- sum(vapply(states, function(s)
+    sum(Sce$allPops[pops, s, t0:t1], na.rm = TRUE), numeric(1)))
+  total / steps_per_year
+}
+
+# monthly-AVERAGE stock — for Prison (monthly scale): same value as annual-avg,
+# since both are mean stock per timestep. Kept as a separate name for clarity.
+mo_avg_stock <- yr_avg_stock
+
+comm_pops <- which(POC_AU$popNames %in% c("C_PWID","C_fPWID"))
+pris_pops <- which(POC_AU$popNames %in% c("P_PWID","P_fPWID","P_nPWID"))
+
+# --- build table ---
+rows <- list()
+for (i in seq_len(nrow(fitted_coverages))) {
+  fc  <- fitted_coverages[i, ]
+  scn <- fc$scenario
+  yr  <- fc$year
+  if (is.null(Sce_np[[scn]])) stop("Sce_np missing scenario: ", scn)
+  
+  # stocks
+  rna_C <- yr_avg_stock(Sce_np[[scn]], comm_pops, undiag_states, yr)
+  neg_C <- yr_avg_stock(Sce_np[[scn]], comm_pops, neg_states,    yr)
+  rna_P <- mo_avg_stock(Sce_np[[scn]], pris_pops, undiag_states, yr)
+  neg_P <- mo_avg_stock(Sce_np[[scn]], pris_pops, neg_states,    yr)
+  
+  # Community — annual coverage, annual-average stock
+  reached_C  <- fc$Cov_np_C  * rna_C + fc$Cov_neg_C * neg_C
+  eligible_C <- rna_C + neg_C
+  overall_C  <- if (eligible_C > 0) reached_C / eligible_C else NA_real_
+  
+  # Prison — monthly coverage, monthly-average stock (consistent scale)
+  reached_P  <- fc$Cov_np_P_monthly  * rna_P + fc$Cov_neg_P_monthly * neg_P
+  eligible_P <- rna_P + neg_P
+  overall_P  <- if (eligible_P > 0) reached_P / eligible_P else NA_real_
+  
+  rows[[i]] <- tibble(
+    scenario              = scn,
+    year                  = yr,
+    Cov_np_C              = fc$Cov_np_C,
+    Cov_neg_C             = fc$Cov_neg_C,
+    overall_cov_C_annual  = overall_C,
+    Cov_np_P_monthly      = fc$Cov_np_P_monthly,
+    Cov_neg_P_monthly     = fc$Cov_neg_P_monthly,
+    overall_cov_P_monthly = overall_P
+  )
+}
+coverage_tbl <- bind_rows(rows)
+
+cat("\nOverall NP coverage by setting (Community annual, Prison monthly):\n")
+print(coverage_tbl, n = Inf)
+
+# sanity flags
+chk <- coverage_tbl %>%
+  filter(overall_cov_C_annual > 1 | overall_cov_P_monthly > 1)
+if (nrow(chk) > 0) {
+  warning("Overall coverage > 1 in some rows — inspect:")
+  print(chk)
+}

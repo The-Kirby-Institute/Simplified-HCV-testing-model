@@ -20,387 +20,23 @@ library("doMC")
 Rcode <- file.path(codefun_path, "03. Code")
 
 DataFolder <- file.path(data_path, "01. DATA/model input" )
-OutputFolder <- file.path(data_path, "02. Output")
-OutputFig <- file.path(paste0(OutputFolder, "/Figs/PrevInc"))
+RDAFolder <- file.path(data_path, "02. Output" )
+OutputFolder <- file.path(codefun_path, "/Projects/POC_AU/Output")
+OutputFig <- file.path(codefun_path, "Projects/POC_AU/Figs")
+# OutputFig <- file.path(paste0(OutputFolder, "/Figs/PrevInc"))
 # project specific code path 
 Proj_code <- file.path(codefun_path, paste0("projects/", project_name))
 
 
 
-load(file.path(OutputFolder, paste0(project_name, ".rda")))
-load(file.path(OutputFolder, paste0(project_name, "param_simulation_fixednvariable.rda")))
-load(file.path(OutputFolder, paste0(project_name, "Simulations_fixednvariable.rda")))
+load(file.path(RDAFolder, paste0(project_name, ".rda")))
+
+load(file.path(RDAFolder, paste0(project_name, "Simulations_fixednvariable.rda")))
 
 source(file.path(Rcode, "/Functions/plotManuscript.R"))
 source(file.path(Rcode, "/Functions/plotFunctions.R")) 
 source(file.path(Proj_code, "/model_timestep.R")) 
 # simulation outcomes 
-# Sce_sq: pre-national program scenario 
-# Sce_np: national program scenarios 
-
-#### epi outcomes ####  
-# HCV prevalence, incidence 
-endY <- 100
-indicator_flow <- Sce_sq[!names(Sce_sq)%in% c("allPops", "newpop_tran", 
-                                              "newpop_tranState", "HCVdeathState",
-                                              "newDeathState", "death_hcv", 
-                                              "costPops", "QALYPops")]
-
-subpop_N <- lapply(POC_AU$popNames, function(x){ 
-  
-  a <- popResults_MidYear(POC_AU, Sce_sq,
-                          Population = x,
-                          Disease_prog = NULL, 
-                          Cascade = NULL, param = param_sq, 
-                          endYear = endY)%>%ungroup() 
-  
-  a <- popResults_range(POC_AU, a, Population = x,
-                        Disease_prog = NULL , 
-                        Cascade = NULL, end_Y = 100) 
-})
-names(subpop_N) <- POC_AU$popNames
-# all subpop in one list 
-pop_N <- dplyr::bind_rows(subpop_N, .id = 'population')
-
-allpop_N <- popResults_MidYear(POC_AU, Sce_sq,
-                          Population = NULL,
-                          Disease_prog = NULL, 
-                          Cascade = NULL, param = param_sq, 
-                          endYear = endY)%>%ungroup() 
- 
-allpop_N_range <- popResults_range(POC_AU, allpop_N, Population = NULL,
-                        Disease_prog = NULL , 
-                        Cascade = NULL, end_Y = 100)%>%arrange(year) 
-
-# colnames for the parameset and best estimation
-name_parset <- c("best", paste0("set", seq(1, 1000, 1)))
-
-
-# total number 
-
-total_N <- pop_N%>%group_by(year)%>%
-  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))
-
-#### N: community ####
-commu_N <- pop_N%>%filter(population %in% c("C_PWID", "C_fPWID"))%>%
-  dplyr::group_by(year)%>%summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))
-
-#### N: prison ####
-prison_N <- pop_N%>%filter(population %in% c("P_PWID", "P_fPWID", "P_nPWID"))%>%
-  dplyr::group_by(year)%>%summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))
-
-#### N: prisonPWID ####
-prisonPWID_N <- pop_N%>%filter(population %in% c("P_PWID", "P_fPWID"))%>%
-  dplyr::group_by(year)%>%summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))
-
-
-pop_state <- popResults_MidYear(POC_AU, Sce_sq,
-                                Population = POC_AU$popNames,
-                                Disease_prog = POC_AU$progress_name, 
-                                Cascade = POC_AU$cascade_name, param = param_sq, 
-                                endYear = endY)%>%ungroup()%>%
-  as_tibble()
-
-tempNOTInfected_subpop <- pop_state%>%filter(disease_prog!= "a")%>%
-  filter(state == "s")%>%group_by(year, population)%>%
-  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year, population)
-
-tempChronic_subpop <- pop_state%>%filter(disease_prog!= "a")%>%
-  group_by(year, population)%>%
-  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year, population)
-
-# arrange order to align with other dts 
-pop_N <- pop_N%>%arrange(year, population)
-
-
-tempPrev_subpop <- cbind(year = rep(seq(POC_AU$startYear , endY-1 ,1), each = POC_AU$npops),
-                         population = POC_AU$popNames,
-                         
-                         as.data.frame(100*(pop_N[, name_parset] - 
-                                              tempNOTInfected_subpop[ ,name_parset])/ 
-                                         pop_N[ ,name_parset]))%>%
-  tibble::as_tibble()  
-
-
-#prevalence in setting  
-# tempPrev_setting[["setting]]
-
-# community 
-commu_N <- commu_N%>%arrange(year)
-
-tempNOTInfected_commu <- pop_state%>%
-  filter(state == "s" & population %in% c("C_PWID", "C_fPWID"))%>%group_by(year)%>%
-  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year)
-
-
-
-tempPrev_setting <- list()
-
-tempPrev_setting[["commu"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
-                                     as.data.frame(100*(commu_N[, name_parset] - 
-                                                          tempNOTInfected_commu[ ,name_parset])/ 
-                                                     commu_N[ ,name_parset]))%>%tibble::as_tibble()
-
-# prison 
-## PWID + former PWID + nonPWID 
-prison_N <- prison_N%>%arrange(year)
-
-tempNOTInfected_prison <- pop_state%>%
-  filter(state == "s" & population %in% c("P_PWID", "P_fPWID", 
-                                          "P_nPWID"))%>%group_by(year)%>%
-  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year)
-
-
-
-
-tempPrev_setting[["prisons"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
-                                       as.data.frame(100*(prison_N[, name_parset] - 
-                                                            tempNOTInfected_prison[ ,name_parset])/ 
-                                                       prison_N[ ,name_parset]))%>%tibble::as_tibble()
-
-
-# prison_PWID experienced  
-## PWID + former PWID + nonPWID 
-prisonPWID_N <- prisonPWID_N%>%arrange(year)
-
-tempNOTInfected_prisonPWID <- pop_state%>%
-  filter(state == "s" & population %in% c("P_PWID", "P_fPWID"))%>%group_by(year)%>%
-  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year)
-
-
-tempPrev_setting[["prisonsPWID"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
-                                           as.data.frame(100*(prisonPWID_N[, name_parset] - 
-                                                                tempNOTInfected_prisonPWID[ ,name_parset])/ 
-                                                           prisonPWID_N[, name_parset]))%>%tibble::as_tibble()
-
-
-
-##### (B)RNA prevalence ##### 
-#    (I) each subpop
-#   (II) community
-#   (III) Prison
-#   (IV) Prison_f/PWID (P_fPWID, P_PWID)
-#   (V) overall
-
-tempNOTInfectedRNA_subpop <- pop_state%>%
-  filter(cascade %in%  c("s", "cured" ) )%>%group_by(year, population)%>%
-  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year, population)
-
-
-tempPrevRNA_subpop <- cbind(year = rep(seq(POC_AU$startYear , endY-1 ,1), each = POC_AU$npops),
-                            population = POC_AU$popNames,
-                            
-                            as.data.frame(100*(pop_N[, name_parset] - 
-                                                 tempNOTInfectedRNA_subpop[ ,name_parset])/ 
-                                            pop_N[ ,name_parset]))%>%
-  tibble::as_tibble()  
-View(tempPrevRNA_subpop)
-x <- popResults_range(POC_AU, tempPrevRNA_subpop, Population =  POC_AU$popNames,
-                                                   Disease_prog = NULL , 
-                                                   Cascade = NULL, end_Y = 100) 
-View(x)
-#prevalence in setting  
-# tempPrev_setting[["setting]]
-
-
-tempNOTInfectedRNA_commu <- pop_state%>%
-  filter(cascade %in%  c("s", "cured" ) & population %in% c("C_PWID", "C_fPWID"))%>%
-  group_by(year)%>%
-  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year)
-
-
-tempPrevRNA_setting <- list()
-
-tempPrevRNA_setting[["commu"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
-                                        as.data.frame(100*(commu_N[, name_parset] - 
-                                                             tempNOTInfectedRNA_commu[ ,name_parset])/ 
-                                                        commu_N[ ,name_parset]))%>%tibble::as_tibble()
-
-# prison 
-## PWID + former PWID + nonPWID 
-
-
-tempNOTInfectedRNA_prison <- pop_state%>%
-  filter(cascade %in%  c("s", "cured" ) & population %in% c("P_PWID", "P_fPWID", 
-                                                            "P_nPWID"))%>%
-  group_by(year)%>%
-  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year)
-
-
-
-
-tempPrevRNA_setting[["prisons"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
-                                          as.data.frame(100*(prison_N[, name_parset] - 
-                                                               tempNOTInfectedRNA_prison[ ,name_parset])/ 
-                                                          prison_N[ ,name_parset]))%>%tibble::as_tibble()
-
-
-# prison_PWID experienced  
-## PWID + former PWID + nonPWID 
-
-
-tempNOTInfectedRNA_prisonPWID <- pop_state%>%
-  filter(cascade %in%  c("s", "cured" ) & population %in% c("P_PWID", "P_fPWID"))%>%
-  group_by(year)%>%
-  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year)
-
-
-tempPrevRNA_setting[["prisonsPWID"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
-                                              as.data.frame(100*(prisonPWID_N[, name_parset] - 
-                                                                   tempNOTInfectedRNA_prisonPWID[ ,name_parset])/ 
-                                                              prisonPWID_N[ ,name_parset]))%>%tibble::as_tibble()
-
-
-tempPrevRNA_setting_range <- lapply(tempPrevRNA_setting, function(x) popResults_range(POC_AU, x, Population =  NULL,
-                                                                                      Disease_prog = NULL , 
-                                                                                      Cascade = NULL, end_Y = 100) )
-
-names(tempPrevRNA_setting_range) <- names(tempPrevRNA_setting)
-View(tempPrevRNA_setting_range$prisons%>%mutate(year = year + 2015 - 1)%>%select(year, best, q5, q95))
-# overall  
-## all pop 
-tempNOTInfectedRNA_all <- pop_state%>%
-  filter(cascade %in%  c("s", "cured" ) )%>%group_by(year)%>%
-  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year)
-
-View(pop_state)
-tempPrevRNA_all <- cbind(year = rep(seq(POC_AU$startYear , endY-1 ,1), each = 1),
-                            
-                            as.data.frame(100*(allpop_N[, name_parset] - 
-                                                 tempNOTInfectedRNA_all[ ,name_parset])/ 
-                                            allpop_N[ ,name_parset]))%>%
-  tibble::as_tibble()  
-
-tempPrevRNA_all_range <- popResults_range(POC_AU, tempPrevRNA_all, Population =  NULL,
-                      Disease_prog = NULL , 
-                      Cascade = NULL, end_Y = 100) 
-View(tempPrevRNA_all_range%>%mutate(year = year + 2015 - 1)%>%select(year, best, q5, q95))
-##### HCV incidence ##### 
-HCVInfect_subpop <- indicatorResults(POC_AU, Sce_sq, "newInfections", 
-                                     pop=POC_AU$popNames,
-                                     paramR = param_sq, range = NULL,
-                                     endY = endY)
-View(HCVInfect_subpop)
-HCVInfect_subpop_P <- HCVInfect_subpop%>%
-  filter(population %in% c("P_PWID", "P_fPWID", "P_nPWID"))
-
-HCVInfect_subpop_C <- HCVInfect_subpop%>%
-  filter(population %in% c("C_PWID", "C_fPWID"))
-
-pop_N_P <- pop_N%>%
-  filter(population %in% c("P_PWID", "P_fPWID", "P_nPWID"))
-
-pop_N_C <- pop_N%>%
-  filter(population %in% c("C_PWID", "C_fPWID"))
-
-
-HCVInc_subpop_C <- cbind(year = HCVInfect_subpop_C$year,
-                         population = HCVInfect_subpop_C$population,
-                         as.data.frame(100*HCVInfect_subpop_C[, name_parset]/
-                                         pop_N_C[ ,name_parset]))
-HCVInc_subpop_P <- cbind(year = HCVInfect_subpop_P$year,
-                         population = HCVInfect_subpop_P$population,
-                         as.data.frame(100*HCVInfect_subpop_P[, name_parset]/
-                                         (2*pop_N_P[ ,name_parset])))
-
-HCVInc_subpop <- rbind(HCVInc_subpop_C, HCVInc_subpop_P)%>%arrange(year, population)%>%
-  tibble::as_tibble()
-
-
-HCVInfect_setting <- list()
-
-HCVInfect_setting[["commu"]] <- HCVInfect_subpop_C%>%group_by(year)%>%
-  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year)
-
-HCVInfect_setting[["prisons"]] <- HCVInfect_subpop_P%>%group_by(year)%>%
-  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year)
-
-HCVInfect_setting[["prisonsPWID"]] <- HCVInfect_subpop%>%
-  filter(population %in% c("P_PWID", "P_fPWID"))%>%group_by(year)%>%
-  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%arrange(year)
-
-HCVInc_setting <- list()
-
-HCVInc_setting[["commu"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
-                                   as.data.frame(100*(HCVInfect_setting[["commu"]][ , name_parset]/ 
-                                                        commu_N[ ,name_parset])))%>%
-  tibble::as_tibble()
-HCVInc_setting[["prisons"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
-                                     as.data.frame(100*(HCVInfect_setting[["prisons"]][ , name_parset]/ 
-                                                          (2*prison_N[ ,name_parset]))))%>%
-  tibble::as_tibble()
-
-HCVInc_setting[["prisonsPWID"]] <- cbind(year = seq(POC_AU$startYear , endY-1 ,1),
-                                         as.data.frame(100*(HCVInfect_setting[["prisonsPWID"]][ , name_parset]/ 
-                                                              (2*prisonPWID_N[ ,name_parset]))))%>%
-  tibble::as_tibble()
-
-# reinfection
-Cured <- pop_state%>%
-  filter(cascade == "cured")%>%
-  group_by(year, population)%>%
-  summarise(across(c(name_parset),~ sum(.x, na.rm = FALSE)))%>%
-  arrange(year, population)
-
-pop_cured_C <- Cured%>%filter(population %in% c("C_PWID", "C_fPWID"))
-pop_cured_P <- Cured%>%filter(!population %in% c("C_PWID", "C_fPWID"))
-
-HCVInfectRE_subpop <- indicatorResults(POC_AU, Sce_sq, "newreinfection", 
-                                       pop=POC_AU$popNames,
-                                       paramR = param_sq, range = NULL,
-                                       endY = endY)
-HCVInfectRE_subpop_C <- HCVInfectRE_subpop%>%filter(population %in% c("C_PWID", "C_fPWID"))
-HCVInfectRE_subpop_P <- HCVInfectRE_subpop%>%filter(!population %in% c("C_PWID", "C_fPWID")) 
-
-HCVIncre_subpop_C <- cbind(year = HCVInfectRE_subpop_C$year,
-                           population = HCVInfectRE_subpop_C$population,
-                           as.data.frame(100*HCVInfectRE_subpop_C[, name_parset]/
-                                           pop_cured_C[ ,name_parset]))
-HCVIncre_subpop_P <- cbind(year = HCVInfectRE_subpop_P$year,
-                           population = HCVInfectRE_subpop_P$population,
-                           as.data.frame(100*HCVInfectRE_subpop_P[, name_parset]/
-                                           (2*pop_cured_P[ ,name_parset])))
-
-HCVIncre_subpop <- rbind(HCVIncre_subpop_C, HCVIncre_subpop_P)%>%arrange(year, population)%>%
-  tibble::as_tibble()
-
-
-primary_N  <- cbind(year = pop_N$year, 
-                    population = pop_N$population,
-                    as.data.frame(pop_N[ ,name_parset] - Cured[, name_parset]))
-primary_N_C <- primary_N%>%filter(population %in% c("C_PWID", "C_fPWID"))
-primary_N_P <- primary_N%>%filter(!population %in% c("C_PWID", "C_fPWID"))
-
-HCVInfectp_subpop_C <- HCVInfect_subpop_C[, name_parset] - HCVInfectRE_subpop_C[, name_parset]
-HCVInfectp_subpop_P <- HCVInfect_subpop_P[, name_parset] - HCVInfectRE_subpop_P[, name_parset]
-
-HCVIncp_subpop_C <- cbind(year = primary_N_C$year,
-                          population = primary_N_C$population,
-                          as.data.frame(100*HCVInfectp_subpop_C[, name_parset]/
-                                          primary_N_C[ ,name_parset]))
-HCVIncp_subpop_P <- cbind(year = primary_N_P$year,
-                          population = primary_N_P$population,
-                          as.data.frame(100*HCVInfectp_subpop_P[, name_parset]/
-                                          (2*primary_N_P[ ,name_parset])))
-
-HCVIncp_subpop <- rbind(HCVIncp_subpop_C, HCVIncp_subpop_P)%>%arrange(year, population)%>%
-  tibble::as_tibble()
-
-save(tempPrev_subpop, tempPrev_setting,
-     tempPrevRNA_subpop, tempPrevRNA_setting, tempPrevRNA_all,
-     HCVInc_subpop, HCVInc_setting, HCVInfect_subpop,
-     HCVIncre_subpop, HCVIncp_subpop, HCVInfectRE_subpop, 
-     file = file.path(OutputFolder,
-                      paste0(project_name,"PrevInc_sq" ,".rda")))
-
-
-rm(tempPrev_subpop, tempPrev_setting,
-   tempPrevRNA_subpop, tempPrevRNA_setting,tempPrevRNA_all_range,
-   HCVInc_subpop, HCVInc_setting, 
-   HCVIncre_subpop, HCVIncp_subpop, param_sq, HCVInfectRE_subpop,HCVInfect_subpop ) 
-gc()
-
-
 
 ################################# scenarios ####################################
 
@@ -448,7 +84,7 @@ HCVIncre_subpop <- list()
 HCVIncp_subpop <- list()
 
 for(i in names(Sce_np)){
-  load(file.path(OutputFolder, paste0(project_name, "param_sc_",i ,"_", "fixednvariable",".rda"))) 
+  load(file.path(OutputFolder, paste0( project_name, "param_sc_",i ,"_", "fixednvariable",".rda"))) 
   
   indicator_flow <- Sce_np[[i]][!names(Sce_np[[i]])%in% c("allPops", "newpop_tran", 
                                                 "newpop_tranState", "HCVdeathState",
@@ -819,14 +455,11 @@ name_file <- sub("POC_AUPrevInc_", "", files)
 
 names(PrevInc) <- tools::file_path_sans_ext(name_file)
 
-View(PrevInc$dfList_NP_2024$tempPrevRNA_subpop%>%mutate(year = year +2014)%>%filter(year %in% c(2022,2030)))
+View(PrevInc$foundational$tempPrevRNA_subpop%>%mutate(year = year +2014)%>%filter(year %in% c(2022,2030)))
 options(scipen = 999)
 
-#dropping plot_dt file 
-# names(PrevInc)[-7]
 PrevInc_range <- list()
-PrevInc <- PrevInc[!names(PrevInc)%in% c("dfList_NP_2023", "dfList_NPPhaseII_A",
-                                         "dfList_NPPhaseII_B", "plot_dt")]
+
 
 for(i in names(PrevInc)){
   for( n in names(PrevInc[[1]])){ 
@@ -852,9 +485,7 @@ for(i in names(PrevInc)){
     }
 }
 names(PrevInc_range)
-PrevInc_range <- PrevInc_range[!names(PrevInc_range)%in% c("dfList_NP_2023", 
-                                                           "dfList_NPPhaseII_A",
-                                                           "dfList_NPPhaseII_B")]
+
 # turn list inside out 
 PrevInc_range_bind <- PrevInc_range%>%purrr::transpose()%>%
   lapply(., function(x) dplyr::bind_rows(x, .id = 'scenario'))
@@ -867,8 +498,8 @@ pop_labname <- c("PWID in community",  "Former PWID in community",
                  "nonPWID in prisons")
 
 PrevInc_trajectory <- list() 
-sce_level <- c("sq", "dfList_NP_2024", "dfList_NPPhaseII", 
-               "dfList_NPPhaseIII_A", "dfList_NPPhaseIII_B")
+sce_level <- c("no_np", "foundational", "succession", 
+               "sustained", "scaleup")
 sce_label <- c("(1) No national program", "(2) Foundational implementation", 
                "(3) Program succession", "(4) Program sustained", 
                "(5) Program scale-up")
@@ -1505,6 +1136,8 @@ PrevInc_sce_p[[8]] <- PrevInc_sce_p[[8]] +
                               scale_y_continuous(limits = 
                                                    c(0, 10))))) 
 
+"tempPrevRNA_all"
+
 
 for(i in names(PrevInc_sce_p)){ 
   ggsave(file=file.path(OutputFig, paste0(i,"_sce" ,".png")), 
@@ -1610,7 +1243,7 @@ ggsave(file=file.path(OutputFig, paste0("PrevRNA_setting_calibrated","_sce" ,".p
 
 #### incidence
 
-Ince_calibrated <- PrevInc_plot(pj = POC_AU, 
+Incecalibrated <- PrevInc_plot(pj = POC_AU, 
              dt = PrevInc_trajectory$HCVInc_subpop%>%
                filter(scenario %in% c(sce_label[1], sce_label[2])), 
              obdt = observedt_lst$HCVInc_subpop, 
@@ -1641,6 +1274,6 @@ Ince_calibrated <- PrevInc_plot(pj = POC_AU,
   
 
 ggsave(file=file.path(OutputFig, paste0("Inc_subpop_calibrated","_sce" ,".png")), 
-       Ince_calibrated, 
+       Incecalibrated, 
        width = 12, height = 8, bg = "white", dpi = 300) 
 

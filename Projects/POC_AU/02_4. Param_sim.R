@@ -80,7 +80,7 @@ for (cost_type in cost_types) {
   param_sq <- list()
   load(file.path(RDAFolder, paste0(project_name, "param_cost_", cost_type,".rda")))
   for(x in 1:1000){
-    param_sq[[x]] <- HCVMSM(POC_AU, Param_estimates[[x]], Param_Pops[[x]],
+    param_sq[[x]] <- HCV_np(POC_AU, Param_estimates[[x]], Param_Pops[[x]],
                             Param_disease_progress[[x]], param_poparray[[x]],
                             paramDflist[[x]], param_cascade_sc = param_dfList, 
                             fib = Param_fib[[x]], 

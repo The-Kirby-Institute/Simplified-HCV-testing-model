@@ -1,33 +1,27 @@
 # each timesteps 
 # compartments 
 modres.t <- function(pg, Best, endYear, allp = NULL) {
-  df_list <- lapply(Best, as.data.frame.table)
-  if(!is.null(allp)){ 
-    allpop <- df_list[[allp]]
-  }
-  else{ 
-    allpop <- df_list$allPops
-    
-  }
-  allpop <- allpop%>%
-    mutate(time = rep(seq(1.0,(endYear - pg$timestep), pg$timestep), 
-                      each=pg$ncomponent*pg$npops),
-           cascade = sub("^[^_]*_", "", Var2), 
-           disease_prog = sub("\\_.*", "", Var2))%>%
-    dplyr::select(-Var3)%>%ungroup()
+  target <- if (!is.null(allp)) allp else "allPops"
+  allpop <- as.data.frame.table(Best[[target]])
   
-  allpop <- allpop%>%
-    mutate(time = c(rep(seq(pg$startYear, endYear- 1*pg$timestep,
-                            pg$timestep),each = pg$npops*pg$ncomponent)))
+  allpop <- allpop %>%
+    mutate(time = rep(seq(1.0, (endYear - pg$timestep), pg$timestep),
+                      each = pg$ncomponent * pg$npops),
+           cascade = sub("^[^_]*_", "", Var2),
+           disease_prog = sub("\\_.*", "", Var2)) %>%
+    dplyr::select(-Var3) %>% ungroup()
   
-  names(allpop) <- c("population", "state", "best","timestep", "cascade",
+  allpop <- allpop %>%
+    mutate(time = c(rep(seq(pg$startYear, endYear - 1 * pg$timestep,
+                            pg$timestep), each = pg$npops * pg$ncomponent)))
+  
+  names(allpop) <- c("population", "state", "best", "timestep", "cascade",
                      "disease_prog")
   
-  ## MidyearIndex
-  timelong <- seq(pg$startYear, endYear, pg$timestep) 
+  timelong <- seq(pg$startYear, endYear, pg$timestep)
   
-  allpop <- allpop%>%filter(timestep%in% timelong)%>%
-    mutate(year = timestep%/%1)
+  allpop <- allpop %>% filter(timestep %in% timelong) %>%
+    mutate(year = timestep %/% 1)
 }
 
 

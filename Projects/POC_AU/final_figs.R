@@ -56,8 +56,10 @@ source(file.path(codefun_path, "/Projects/POC_AU/figtable_code.R"))
 endY <- 100
 year_obs <- c(POC_AU$simY  +5 - 1  , POC_AU$simY + 10 - 1, POC_AU$simY + 20 - 1)
 par_col <- c("best", paste0("set", seq(1,1000,1)))
-sce_level <- c("sq", "dfList_NP_2024", "dfList_NPPhaseII", 
-               "dfList_NPPhaseIII_A", "dfList_NPPhaseIII_B")
+
+cost_types <- c("fixednvariable", "total",  "DAAcost_reduchalf")
+sce_level <- c("no_np","foundational", "succession",
+               "sustained", "scaleup")
 sce_label <- c("(1) No national program", "(2) Foundational implementation", 
                "(3) Program succession", "(4) Program sustained", 
                "(5) Program scale-up")
@@ -239,7 +241,7 @@ for(i in names(Resflow_cum_all)){
     Resflow_cum_all[[i]][[indic]][is.na(Resflow_cum_all[[i]][[indic]])] <- 0
     Resflow_cum_all_avert[[i]][[indic]] <- cbind(
       year = Resflow_cum_all[[i]][[indic]]$year, 
-      data.frame(Resflow_cum_all[[paste0("sq_", cost_types[1])]][[indic]][, c(par_col)] - 
+      data.frame(Resflow_cum_all[["no_np"]][[indic]][, c(par_col)] - 
                    Resflow_cum_all[[i]][[indic]][, c(par_col)]))
     
     
@@ -293,7 +295,7 @@ for(i in names(Resflow_sc_cum_all)){
     Resflow_sc_cum_all[[i]][[indic]][is.na(Resflow_sc_cum_all[[i]][[indic]])] <- 0
     Resflow_sc_cum_all_avert[[i]][[indic]] <- cbind(
       year = Resflow_sc_cum_all[[i]][[indic]]$year, 
-      dplyr::bind_cols(Resflow_sc_cum_all[[paste0("sq_", cost_types[1])]][[indic]][, c(par_col)] - 
+      dplyr::bind_cols(Resflow_sc_cum_all[["no_np"]][[indic]][, c(par_col)] - 
                          Resflow_sc_cum_all[[i]][[indic]][, c(par_col)]))
   }
 }
@@ -389,10 +391,9 @@ Resflow_all <- list("Resflow_year" = Resflow_year_all_range,
                     "Resflow_cum" = Resflow_cum_all_range, 
                     "Resflow_cum_avert" = Resflow_cum_all_avert_range)
 
-list_name <- c("dfList_NP_2024", "dfList_NPPhaseII", 
-               "dfList_NPPhaseIII_A", "dfList_NPPhaseIII_B", "sq")
+
 Resflow_all <- lapply(Resflow_all, function(x) {
-  names(x) <- list_name 
+  names(x) <- sce_level 
   return(x)
 })
 
@@ -611,7 +612,7 @@ for(i in names(p_pocau_avert)){
 
 
 
-names(Resflow_year_setting_range) <- list_name
+names(Resflow_year_setting_range) <- sce_level
 Resflow_year_setting_range <- Resflow_year_setting_range%>%
   purrr::transpose()%>%
   lapply(., function(x) dplyr::bind_rows(x, .id = 'scenario'))
@@ -886,7 +887,7 @@ HCVNP_ab_setting_fit <-read.csv(file.path(paste0(DataFolder%>%dirname(), "/HCVNP
                            population = factor(population, 
                                                levels = c("commu", "prisons"), 
                                                labels = c("Community", "Prisons")))%>%
-  mutate(scenario = ifelse(year + POC_AU$cabY == 2024, "dfList_NP_2023",  "dfList_NP_2024"),
+  mutate(scenario = ifelse(year + POC_AU$cabY == 2024, "dfList_NP_2023",  "foundational"),
          NP = "NP")%>%
   
   mutate( NP = factor(NP, 
@@ -899,7 +900,7 @@ HCVNP_rna_setting_fit <-read.csv(file.path(paste0(DataFolder%>%dirname(), "/HCVN
                            population = factor(population, 
                                                levels = c("commu", "prisons"), 
                                                labels = c("Community", "Prisons")))%>%
-  mutate(scenario = ifelse(year + POC_AU$cabY == 2024, "dfList_NP_2023" ,"dfList_NP_2024"),
+  mutate(scenario = ifelse(year + POC_AU$cabY == 2024, "dfList_NP_2023" ,"foundational"),
          NP = "NP")%>%
   
   mutate(NP = factor(NP, 
@@ -1222,7 +1223,7 @@ for(i in names(Res_Numbox_y)){
   for(indic in names(Res_Numbox_y[[1]])){
     Res_Numbox_avert[[i]][[indic]] <- cbind(
       year = Res_Numbox_cum[[i]][[indic]]$year, 
-      data.frame(Res_Numbox_cum[[paste0("sq_", cost_types[1])]][[indic]][, c(par_col)] - 
+      data.frame(Res_Numbox_cum[["no_np"]][[indic]][, c(par_col)] - 
                    Res_Numbox_cum[[i]][[indic]][, c(par_col)]))
   }
 }
@@ -1240,9 +1241,9 @@ for(i in names(Res_Numbox_y)){
   }
   
 }
-names(Res_Numbox_y_range) <- list_name
-names(Res_Numbox_cum_range) <- list_name
-names(Res_Numbox_avert_range) <- list_name
+names(Res_Numbox_y_range) <- sce_level
+names(Res_Numbox_cum_range) <- sce_level
+names(Res_Numbox_avert_range) <- sce_level
 Res_Numbox_y_range <- Res_Numbox_y_range%>%purrr::transpose()
 Res_Numbox_cum_range <- Res_Numbox_cum_range%>%purrr::transpose()
 Res_Numbox_avert_range <- Res_Numbox_avert_range%>%purrr::transpose()
@@ -1419,7 +1420,7 @@ for(indic in names(nindic)){
 
 
 
-names(plot_num_avert) <- list_name
+names(plot_num_avert) <- sce_level
 ntitle_avert <- list("Decompensated cirrhosis", "Hepatocellular carcinoma", 
                      "Liver transplant", "Post-liver transplant") 
 ntag <- list("a", "b", "c", "d")
@@ -1430,7 +1431,7 @@ names(lim_avert) <- names(Res_Numbox_avert_range)
 # (c) to (f)
 
 for(indic in names(Res_Numbox_avert_range)){
-  for(s in 1: (length(list_name)-1)){ 
+  for(s in 1: (length(sce_level)-1)){ 
     plot_num_avert[[s]][[indic]] <- 
       ggplot(Res_Numbox_avert_range[[indic]]%>%
                filter(scenario == sce_label[s+1] & year %in% (year_obs)), 
@@ -1540,17 +1541,17 @@ names(Resflowcost_dt) <- tools::file_path_sans_ext(name_file)
 
 Rescost_year_all <- list()
 Rescost_disyear_all <- list()
-# Rescost_year_all$cost_type[1:4]$list_name
+# Rescost_year_all$cost_type[1:4]$sce_level
+
 for(i in c("DAAcost_reduchalf" ,"fixednvariable" ,"total")){
-  Rescost_year_all[[i]] <- list()
-  Rescost_disyear_all[[i]] <- list()
-  for(n in list_name){
-    Rescost_year_all[[i]][[n]] <- Resflowcost_dt[[i]]$Rescost_year_all[[paste0(n,"_", i)]]
-    Rescost_disyear_all[[i]][[n]] <- Resflowcost_dt[[i]]$Rescost_disyear_all[[paste0(n,"_", i)]]
+  
+  for(n in sce_level){
+    Rescost_year_all[[i]][[n]] <- Resflowcost_dt[[i]]$Rescost_year_all[[n]]
+    Rescost_disyear_all[[i]][[n]] <- Resflowcost_dt[[i]]$Rescost_disyear_all[[n]]
   }
-  names(Rescost_year_all[[i]]) <- c(sce_label[2:5], sce_label[1])
-  names(Rescost_disyear_all[[i]]) <- c(sce_label[2:5], sce_label[1])
-  }
+  names(Rescost_year_all[[i]]) <- c(sce_label)
+  names(Rescost_disyear_all[[i]]) <- c(sce_label)
+}
 
 
 cost_y_categories <- list()
@@ -1835,12 +1836,10 @@ x_catcost <- lapply(x_catcost, function(x){
     mutate(sensitivity = factor(sensitivity, 
                                 levels = c("fixednvariable", 
                                            "total", 
-                                           "DAAcost_reduchalf",    
-                                           "DAAcost_reducquarter" ), 
+                                           "DAAcost_reduchalf"), 
                                 labels = c("PBS-listed full price of DAA", 
                                            "NP total program cost",
-                                           "Main analysis", 
-                                           "Cost of DAA: -25%")))
+                                           "Main analysis")))
   return(a)
   })
 
@@ -1896,7 +1895,7 @@ for(i in unique(x_catcost$discount_cap$sensitivity)){
 }
 names(pcatcost)
 
-file_name <- c(cost_types[4], cost_types[3], cost_types[1], cost_types[2])
+file_name <- c( cost_types[3], cost_types[1], cost_types[2])
 for(i in 1:length(pcatcost)){ 
   for(n in names(pcatcost[[1]])){
     
@@ -1904,7 +1903,7 @@ for(i in 1:length(pcatcost)){
            pcatcost[[i]][[n]],  width = 10, height = 8, bg = "white", dpi = 300)  
   }
 }
-pcatcost$`Cost of DAA:-50%`$discount_nocap
+
 #### categories increase #### 
 ref_catcost_cap <- x_catcost$discount_cap%>%group_by(sensitivity)%>%filter(year == 2041 & scenario == sce_label[1] & sensitivity == "PBS-listed full price of DAA")%>%
   select(sensitivity, Categories, ref_best = best, ref_q5 = q5, ref_q95 = q95)
@@ -2870,28 +2869,31 @@ lim_ident <- function(dt, group_index, year_range, summar_col){
 } 
 
 library(readxl)
-prev_dt <- read_excel("/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/POC_AU/02. Output/PrevInc_epi.xlsx", sheet = "tempPrevRNA_setting")
+output_path <- "/Users/jjwu/Projects/Simplified-HCV-testing-model/Projects/POC_AU/Output"
 
-prev_dt <- prev_dt%>%mutate(scenario = factor(scenario, levels = sce_level, labels = sce_label))
-prev_dt <- prev_dt%>%mutate(setting = factor(setting, levels = c("commu", "prisons"), 
+Prev_dt <- read_excel(file.path(paste0(output_path, "/PrevInc_epi.xlsx")), sheet = "tempPrevRNA_setting")
+Prev_dt <- Prev_dt%>%mutate(scenario = factor(scenario, levels = sce_level, labels = sce_label))
+Prev_dt <- Prev_dt%>%mutate(setting = factor(setting, levels = c("commu", "prisons"), 
                                              labels = c("Community", "Prison")))
 
+View(Prev_dt)
 
-
-RNA_prev <- ggplot(prev_dt%>%mutate(year = year + POC_AU$cabY - 1)%>%filter(setting%in%c("Community", "Prison") ), 
+RNA_prev <- ggplot(Prev_dt%>%mutate(year = year + POC_AU$cabY - 1)%>%filter(setting%in%c("Community", "Prison") ), 
        aes(x = year, y = best)) + 
   geom_line(aes(colour = scenario, linetype = scenario), size = 1) + 
   facet_wrap(~ setting, scale ="free", ncol = 2 ) + 
   scale_color_manual(name = "Scenarios", values = col_pal ) + 
   scale_fill_manual(name = "Scenarios", values = col_pal ) + 
   scale_linetype_manual(name = "Scenarios", 
-                        values = c("dashed", rep("solid", length(unique(prev_dt$scenario)) - 1))) + 
+                        values = c("dashed", rep("solid", length(unique(Prev_dt$scenario)) - 1))) + 
   coord_cartesian(xlim = c(2021,2030)) +
   scale_x_continuous(expand = c(0, 0), limits =c(2021,2030) ,
                      breaks = seq(2021,2030, 
                                   by = 1)) + 
   theme(panel.spacing = unit(2, "lines")) + theme_Publication_facet() + 
-  theme(legend.key.size = unit(1,"line")) + 
+  theme(legend.key.size = unit(1,"line"),
+        legend.direction = "vertical") +
+  theme(legend.position = c(0.2, 0.15)) + 
   scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, 1)) + 
   labs(x = "Year", y = "HCV RNA prevalence") 
   
@@ -2920,9 +2922,9 @@ for(i in unique(incre_catcost$sensitivity)){
     theme_Publication(base_size = 16) + 
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), 
           legend.direction = "vertical") + 
-    scale_y_continuous(limit = c(-80000000, 200000000), 
-                       breaks = seq(-80000000, 200000000, 20000000),
-                       labels = seq(-80000000, 200000000,  20000000)/1000000) + 
+    scale_y_continuous(limit = c(-40000000, 100000000), 
+                       breaks = seq(-40000000, 100000000, 20000000),
+                       labels = seq(-40000000, 100000000,  20000000)/1000000) + 
     labs(y = "Cost saving (discounted, millions)", x = "Scenarios") + 
     geom_text( aes(label = paste0(format(round(incre_best/1000000, 1), nsmall = 1), "m")),
                position = position_stack(vjust = 0.5), 
@@ -2942,8 +2944,8 @@ incre_plot_sens[[1]] <- incre_plot_sens[[1]] +
     legend.key.size = unit(1.5, "cm"),
     legend.key.width = unit(1.5, "cm"),    # width of legend keys
     legend.key.height = unit(1, "cm"),     # height of legend keys
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 20),
+    legend.title = element_text(size = 20),
     legend.spacing.y = unit(0.5, "cm")     # spacing between legend items
   ) + theme(legend.position = "right") + 
   scale_y_continuous(limit = c(-40000000, 80000000), 
@@ -2963,15 +2965,15 @@ plots_no_legend <- lapply(incre_plot_sens, function(p) {
   p + theme(legend.position = "none")
 })
 
-# Arrange: 5 plots + legend in 6th cell
+# Arrange: 3 plots + legend in 4th cell
 incre_cost_sen <- ggarrange(
   plots_no_legend[[1]], plots_no_legend[[3]],
   plots_no_legend[[2]], legend,
-  nrow = 2, ncol = 3
+  nrow = 2, ncol = 2
 )
 
 ggsave(file=file.path(OutputFig, paste0("incre_cost_sen.png")), 
-       incre_cost_sen,  width = 21, height = 12, bg = "white", dpi = 300) 
+       incre_cost_sen,  width = 20, height = 16, bg = "white", dpi = 600) 
 
 for(i in 1: length(names(cost_disydaanocap_categories))){ 
   
@@ -3012,25 +3014,3 @@ ggsave(file=file.path(OutputFig%>%dirname(), paste0("costsaving_category_maintex
 
 
 
-#### table for the CEA ####
-#### 1. costs, 2. QALY, 3. incremental costs, 4. incremental QALY, 5. ICERs 
-
-# 1 costs 
-CEA_tolcost <- lapply(x_catcost_total, function(x) x%>%
-                        filter(year == 2041)%>%select(year, scenario, best, q5, q95))
-names(CEA_tolcost) <- names(x_catcost_total)
-
-
-# 2 QALY
-CEA_QALY <- lapply(tab_costqaly_disycum, function(x) x$QALY_compartment%>%
-                     filter(year == 2041)%>%select(year, scenario, best, q5, q95))
-names(CEA_QALY) <- names(tab_costqaly_disycum)
-# 3 incremental cost 
-
-CEA_incrcost <-  lapply(x_catcost_total_incre, function(x) x%>%
-                          filter(year == 2041)%>%select(year, scenario, best, min, q95))
-names(CEA_incrcost) <- names(x_catcost_total_incre)
-
-
-#4 incremental QALY
-CEA_incrqaly <- lapply(Increx, function(x) x$`20y`$QALY$`Foundational implementation`
