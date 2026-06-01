@@ -277,8 +277,8 @@ for ( i in 2:dim(dfList$eta)[[2]]){
 varying_Yint <- 2015
 varying_Yfir <- 2019
 varying_Ymid <- 2020
-varying_Ymid2 <- 2021
-varying_Yend <- 2022
+varying_Ymid2 <- 2022
+varying_Yend <- 2023
 calibration_Y <- 2015
 varyingYpoint_int <- (varying_Yint - calibration_Y)/POC_AU$timestep + 1
 varyingYpoint_fir <- (varying_Yfir - calibration_Y)/POC_AU$timestep + 1
@@ -305,7 +305,7 @@ for ( i in 2:dim(dfList$eta)[[2]]){
       seq(as.numeric(intVal_ab[2]), as.numeric(intVal_ab[2]), length =(varyingYpoint_mid - varyingYpoint_fir - 1)),
       seq(as.numeric(intVal_ab[2]), as.numeric(intVal_ab[2]), length = varyingYpoint_mid2 - varyingYpoint_mid + 1),
       seq(as.numeric(intVal_ab[2]), as.numeric(intVal_ab[2])*1.18, length =(varyingYpoint_end - varyingYpoint_mid2 + 1)),
-      rep(as.numeric(as.numeric(intVal_ab[1])*1.18*1.05), POC_AU$npts - varyingYpoint_end + 1))
+      rep(as.numeric(as.numeric(intVal_ab[1])*1.18), POC_AU$npts - varyingYpoint_end + 1))
   
   dfList$tau_RNA[1, i, c(varyingYpoint_int:POC_AU$npts)] <- 
     c(seq(as.numeric(intVal_RNA[1]),as.numeric(intVal_RNA[1]) , length = (varyingYpoint_mid2 - 2)),
