@@ -1844,7 +1844,6 @@ x_catcost <- lapply(x_catcost, function(x){
   })
 
 
-
 for(i in unique(x_catcost$discount_cap$sensitivity)) {
   pcatcost[[i]] <- list()
 
@@ -1885,7 +1884,7 @@ for(i in unique(x_catcost$discount_cap$sensitivity)){
                        breaks = seq(0, 5000000000, 500000000),
                        labels = seq(0, 5000000000, 500000000)/1000000) + 
     labs(y = "Cost (discounted, millions)") + 
-    geom_text(aes(x = scenario, y = best + 50000000, 
+    geom_text(aes(x = scenario, y = best + 110000000, 
                   label = paste0(format(round(best/1000000, digits = 1), nsmall = 1), "m"), 
                   group = Categories),
               position = position_stack(vjust = 0.5), size = 6) + 
@@ -1894,7 +1893,7 @@ for(i in unique(x_catcost$discount_cap$sensitivity)){
 
 }
 names(pcatcost)
-
+pcatcost$`Main analysis`$discount_nocap
 file_name <- c( cost_types[3], cost_types[1], cost_types[2])
 for(i in 1:length(pcatcost)){ 
   for(n in names(pcatcost[[1]])){
@@ -2904,6 +2903,16 @@ ggsave(file=file.path(OutputFig, paste0("RNAprev_setting_maintext.png")),
 
 
 #### cost_saving plot #### 
+# net savings
+net_labels <- incre_catcost %>%
+  group_by(scenario, sensitivity) %>%
+  summarise(
+    net_saving = sum(incre_best),
+    label_y = sum(incre_best[incre_best > 0]) + 8000000,
+    .groups = "drop"
+  )
+
+
 incre_plot_sens <- list()
 for(i in unique(incre_catcost$sensitivity)){ 
   if(i == "Main analysis"){ 
@@ -2929,12 +2938,27 @@ for(i in unique(incre_catcost$sensitivity)){
     geom_text( aes(label = paste0(format(round(incre_best/1000000, 1), nsmall = 1), "m")),
                position = position_stack(vjust = 0.5), 
                size = 6)  + geom_hline(yintercept = 0, linetype ="dashed") + 
+    geom_text(
+      data = net_labels%>%filter(sensitivity == i),
+      aes(
+        x = scenario,
+        y = label_y,
+        label = paste0("Net saving: ", format(round(net_saving/1000000, 1),, nsmall = 1), "m")
+      ),
+      inherit.aes = FALSE,
+      fontface = "bold",
+      size = 4
+    )
     ggtitle(gtitle )
   
   
 }
 
-incre_plot_sens[[4]]
+
+
+
+
+
 library(ggpubr)
 
 library(cowplot)
@@ -2980,6 +3004,11 @@ for(i in 1: length(names(cost_disydaanocap_categories))){
   ggsave(file=file.path(OutputFig, paste0("incre_cost_sen_", names(cost_disydaanocap_categories)[i],".png")), 
          incre_plot_sens[[i]],  width = 14, height = 12, bg = "white", dpi = 300) 
 }
+
+
+
+
+
 
 ggsave(file=file.path(OutputFig, paste0("incre_cost_maintext.png")), 
        incre_plot_sens[[1]],  width = 14, height = 12, bg = "white", dpi = 300) 
