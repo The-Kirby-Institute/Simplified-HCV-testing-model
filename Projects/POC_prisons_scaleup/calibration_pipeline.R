@@ -13,7 +13,7 @@
 #   carry_forward_prison(), HCV_test()
 # =============================================================================
 
-library(dplyr); library(tidyr)
+library(dplyr); library(tidyr); library(readxl)
 load("/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/POC_AU/02. Output/POC_AU.rda")
 load("/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/POC_AU/02. Output/POC_AUcali.rda")
 load("/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/POC_AU/02. Output/POC_AUcali_timev.rda")
@@ -795,12 +795,14 @@ for (yr in cal_years) {
   
   # D. Apply CT displacement for this year only.
   C_np <- pmin(fp_yr, 1)
-  dfList_CT_current <- scale_CT_eta(dfList_CT_current, dfList, POC_AU,
-                                    yr, yr + 1, C_np, alpha_eta)
-  dfList_CT_current <- scale_CT_RNA(dfList_CT_current, dfList, POC_AU,
-                                    yr, yr + 1, C_np, alpha_rna)
-  dfList_CT_current <- scale_CT_ab( dfList_CT_current, dfList, POC_AU,
-                                    yr, yr + 1, C_np, alpha_ab)
+  dfList_CT_current <- scale_CT_eta(dfList_CT_current, dfList, dfList_NP_current, 
+                                    POC_AU,
+                                    yr, yr + 1)
+  dfList_CT_current <- scale_CT_RNA(dfList_CT_current, dfList,dfList_NP_current, 
+                                    POC_AU,
+                                    yr, yr + 1)
+  dfList_CT_current <- scale_CT_ab( dfList_CT_current, dfList, dfList_NP_current, POC_AU,
+                                    yr, yr + 1)
   
   # E. Run the chained scenario after this year's calibration.
   Sce_chain <- HCV_np(
@@ -940,12 +942,12 @@ for (pass in 2:max_passes) {
     
     # F. Apply CT displacement for this year only
     C_np <- pmin(pmax(fp_yr, 0), 1)
-    dfList_CT_current <- scale_CT_eta(dfList_CT_current, dfList, POC_AU,
-                                      yr, yr + 1, C_np, alpha_eta)
-    dfList_CT_current <- scale_CT_RNA(dfList_CT_current, dfList, POC_AU,
-                                      yr, yr + 1, C_np, alpha_rna)
-    dfList_CT_current <- scale_CT_ab( dfList_CT_current, dfList, POC_AU,
-                                      yr, yr + 1, C_np, alpha_ab)
+    dfList_CT_current <- scale_CT_eta(dfList_CT_current, dfList,dfList_NP_current, POC_AU,
+                                      yr, yr + 1)
+    dfList_CT_current <- scale_CT_RNA(dfList_CT_current, dfList, dfList_NP_current,POC_AU,
+                                      yr, yr + 1)
+    dfList_CT_current <- scale_CT_ab( dfList_CT_current, dfList, dfList_NP_current, POC_AU,
+                                      yr, yr + 1)
   }
   
   # G. Run full scenario with this pass's calibration
