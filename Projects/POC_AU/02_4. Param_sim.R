@@ -1,0 +1,103 @@
+rm(list = ls())
+gc()
+project_name <- "POC_AU"
+options(digits = 15)
+
+codefun_path <- paste("/Users/jjwu/Projects/Simplified-HCV-testing-model")
+
+data_path <- paste("/Users/jjwu/Library/CloudStorage/OneDrive-UNSW/05. PhD Project/Simplified HCV testing model_/Projects/", 
+                   project_name, sep = "")
+# Load useful libraries
+library("lhs")
+library("readr")
+library("dplyr")
+library("tidyr")
+library("purrr")
+library("parallel")
+library("pacman")
+library("doMC")
+library("ggplot2")
+library("viridis") 
+library("openxlsx")
+library(gt)
+library(dplyr)
+Rcode <- file.path(codefun_path, "03. Code")
+
+DataFolder <- file.path(data_path, "01. DATA/model input" )
+RDAFolder <- file.path(data_path, "02. Output" )
+OutputFolder <- file.path(codefun_path, "Projects/POC_AU/Output")
+OutputFig <- file.path(codefun_path, "Projects/POC_AU/Figs")
+
+load(file.path(RDAFolder, paste0(project_name, ".rda")))
+
+load(file.path(RDAFolder, paste0(project_name, "param.rda")))
+load(file.path(RDAFolder, paste0(project_name, "paramDflist.rda")))
+
+source(file.path(Rcode, "/Functions/HCV_model.R"))
+
+source(file.path(Rcode, "/Functions/plotManuscript.R"))
+
+source(file.path(Rcode, "/Functions/plotFunctions.R")) 
+source(file.path(Rcode, "/Functions/check_steady.R")) 
+
+source(file.path(Rcode, "/Functions/plotManuscript.R"))
+source(file.path(Rcode, "/Functions/plotFunctions.R")) 
+
+urrTime <- format(Sys.time(), "%Y-%m-%d_%H-%M-%S")
+runSamples <- TRUE
+saveAsBase <- TRUE  # if TRUE doesn't append time to results and overwrites
+# a base file. Useful for storing main results or
+# testing
+number_samples <- 1000
+
+POC_AU$numberSamples <- number_samples
+
+
+
+
+
+param_sq <- list()
+param_dfList <- lapply(paramDflist[[1]], function(x) x*0)
+
+names(param_dfList) <- names(paramDflist[[1]])
+
+fc <- matrix(0, ncol = dim(paramDflist[[1]]$eta)[3], nrow = POC_AU$npops)
+endY <- 100
+tic <- proc.time()
+trim_pt <- 100*(1/POC_AU$timestep)
+Param_estimates <- lapply(Param_estimates, function(x) x[c(1:trim_pt),]%>%as.data.frame)
+param_poparray <- lapply(param_poparray , function(x) x[, , c(1:trim_pt)])
+gc()
+paramDflist <- lapply(paramDflist, function(x) lapply(x, function(y) y[, , c(1:trim_pt)]))
+gc()
+
+#### cost sensitivity #####
+cost_types <- c("fixednvariable", "total",  "DAAcost_reduchalf")
+
+for (cost_type in cost_types) {
+  
+  tic <- proc.time()
+  param_sq <- list()
+  load(file.path(RDAFolder, paste0(project_name, "param_cost_", cost_type,".rda")))
+  for(x in 1:1000){
+    param_sq[[x]] <- HCV_np(POC_AU, Param_estimates[[x]], Param_Pops[[x]],
+                            Param_disease_progress[[x]], param_poparray[[x]],
+                            paramDflist[[x]], param_cascade_sc = param_dfList, 
+                            fib = Param_fib[[x]], 
+                            modelrun="UN", proj = "POC_AU", end_Y = endY, 
+                            cost = param_cost[[x]], costflow = param_cost_flow[[x]], 
+                            costflow_Neg = param_costflow_Neg[[x]], fc_sc = fc,
+                            fp = NULL)
+  }
+  
+  toc <- proc.time() - tic
+  print(paste0("Completed: ", cost_type, " | Time: ", toc))
+  save(param_sq,
+       file = file.path(OutputFolder,
+                        paste0(project_name, "param_simulation_", cost_type, ".rda")))
+  print(paste0("Saved: ", cost_type))
+  rm(param_sq) 
+  gc()
+}
+  
+
