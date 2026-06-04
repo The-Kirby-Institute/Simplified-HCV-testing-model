@@ -2,9 +2,9 @@
 
 This project contains the code for a model of HCV transmission that can be used to investigate the impact of point-of-care testing and other simplified HCV diagnosis strategies on HCV epidemiology. 
 
-**Development status:** Ongoing development is currently taking place in the [`HCV_model_v2`](https://github.com/The-Kirby-Institute/Simplified-HCV-testing-model/tree/HCV_model_v2) branch.  
+**Development status:** Ongoing development is taking place in the [`main`]
 
-[![DOI](https://zenodo.org/badge/612906740.svg)](https://zenodo.org/badge/latestdoi/612906740) 
+
 
 Model developer, coder and maintainer of this repository: [Joyce Huei-Jiuan Wu](https://github.com/ninowwss)
 
@@ -129,7 +129,7 @@ Note as these are scripts, not functions, care should be taken to ensure the pro
 # Publications 
 
 - **Wu HJ**, Shih ST, Applegate TL, Kwon JA, Cunningham EB, Grebely J, Gray RT. Impact of simplified HCV diagnostic strategies on the HCV epidemic among men who have sex with men in the era of HIV oral pre-exposure prophylaxis in Taiwan: a modelling study. J Int AIDS Soc. 2024 May;27(5):e26251. doi: 10.1002/jia2.26251.
-    - Published results produced using [v1.0.1](https://github.com/The-Kirby-Institute/Simplified-HCV-testing-model/tree/v1.0.1) [![DOI](https://zenodo.org/badge/612906740.svg)](https://zenodo.org/badge/latestdoi/612906740)
+    - Published results produced using [v1.0.1](https://github.com/The-Kirby-Institute/Simplified-HCV-testing-model/tree/v1.0.1) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.612906740.svg)](https://zenodo.org/badge/latestdoi/612906740)
 - **Wu HJ**, Applegate TL, Kwon JA, Cunningham EB, Grebely J, Gray RT, Shih ST. The cost-effectiveness of integrating simplified HCV testing into HIV pre-exposure prophylaxis (PrEP) and treatment services among men who have sex with men in Taiwan. Lancet Reg. Health West. Pac. 2024;48: 101119 doi: 10.1016/j.lanwpc.2024.101119.
     - Published results produced using [v1.0.2](https://github.com/The-Kirby-Institute/Simplified-HCV-testing-model/tree/v1.0.2) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8053111.svg)](https://doi.org/10.5281/zenodo.8053111)
 
