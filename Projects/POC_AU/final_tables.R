@@ -1106,196 +1106,203 @@ for(i in names(program_cost_disy)){
 }
 
 set_cols <- paste0("set", 1:1000)   # or: grep("^set\\d+$", names(df), value = TRUE)
-
 x_catcost_CEA <- lapply(list(cost_disydaacap_categories_bind,cost_disydaanocap_categories_bind), function(x) x%>%
-                          filter(year>= 2022)%>%
-                          group_by(scenario, sensitivity, Categories)%>%
-                          mutate(across(c(par_col, "min", "max", "Med", "Mu", "q5", 
-                                          "q25", "q75", "q95"), cumsum, .names = "{col}"))%>%ungroup()%>%
-                          arrange(scenario, sensitivity))
-
+                                                      filter(year>= 2022)%>%
+                                                       group_by(scenario, sensitivity, Categories)%>%
+                                                       mutate(across(c(par_col, "min", "max", "Med", "Mu", "q5", 
+                                                                                                               "q25", "q75", "q95"), cumsum, .names = "{col}"))%>%ungroup()%>%
+                                                      arrange(scenario, sensitivity))
 names(x_catcost_CEA) <- c("discount_cap", "discount_nocap")
 View(x_catcost_CEA$discount_cap)
 CEA_cost <- x_catcost_CEA$discount_cap%>%group_by(scenario, sensitivity, year)%>%
-  filter(year == 2041)%>%
-  mutate(
-    across(c("best", all_of(set_cols)), ~ sum(.x))
-  ) %>%
-  mutate(
-    min    = min(c_across(all_of(set_cols)),na.rm = TRUE),
-    max    = max(c_across(all_of(set_cols)),na.rm = TRUE),
-    median = median(c_across(all_of(set_cols)),na.rm = TRUE),
-    mean   = mean(c_across(all_of(set_cols)),na.rm = TRUE),
-    q2.5   = quantile(c_across(all_of(set_cols)), 0.025,na.rm = TRUE),
-    q97.5  = quantile(c_across(all_of(set_cols)), 0.975,na.rm = TRUE)
-  )
-
-CEA_cost <- CEA_cost%>%select(!Categories)%>%slice(1)%>%
-  select(sensitivity, scenario, year, best, all_of(set_cols), min, max, median, mean, q2.5, q97.5)
-
-bench_scn <- "(1) No national program"
-
-CEA_incre <- CEA_cost  %>%
-  group_by(sensitivity, year) %>%
-  left_join(
-    CEA_cost  %>%
-      filter(scenario == bench_scn) %>%
-      select(sensitivity, year, best, all_of(set_cols)) %>%
-      rename(best_bench = best) %>%
-      rename_with(~ paste0(.x, "_bench"), all_of(set_cols)),
-    by = c("sensitivity", "year")
-  ) %>%
-  mutate(
-    inc_best = best - best_bench,
-    across(
-      all_of(set_cols),
-      ~ .x - get(paste0(cur_column(), "_bench")),
-      .names = "inc_{col}"
-    )
-  ) %>%
-  rowwise() %>%
-  mutate(
-    inc_min    = min(c_across(starts_with("inc_set")),na.rm = TRUE),
-    inc_max    = max(c_across(starts_with("inc_set")),na.rm = TRUE),
-    inc_median = median(c_across(starts_with("inc_set")),na.rm = TRUE),
-    inc_mean   = mean(c_across(starts_with("inc_set")),na.rm = TRUE),
-    inc_q2.5   = quantile(c_across(starts_with("inc_set")), 0.025,na.rm = TRUE),
-    inc_q97.5  = quantile(c_across(starts_with("inc_set")), 0.975,na.rm = TRUE)
-  ) %>%
-  ungroup() %>%
-  select(-all_of(set_cols), -ends_with("_bench"))
-CEA_incre <- CEA_incre %>%
-  rename(scenario = scenario.x) %>%
-  filter(scenario != bench_scn)%>%
-  select(-scenario.y)
-
-program_cost_2030 <- map_dfr(names(program_cost_discumy), function(i) {
-  map_dfr(names(program_cost_discumy[[i]]), function(m) {
-    program_cost_discumy[[i]][[m]] %>%
-      filter(year == 2030) %>%
-      rowwise() %>%
-      
-      mutate(
-        pc_best = best,
-        pc_q5   = quantile(c_across(all_of(set_cols)), 0.025, na.rm = TRUE),
-        pc_q95  = quantile(c_across(all_of(set_cols)), 0.975, na.rm = TRUE)
+    filter(year == 2041)%>%
+     mutate(
+        across(c("best", all_of(set_cols)), ~ sum(.x))
       ) %>%
-      ungroup() %>%
-      select(pc_best,all_of(set_cols),
-             pc_q5, pc_q95) %>%
-      mutate(sensitivity = i, scenario = m)
+     mutate(
+        min    = min(c_across(all_of(set_cols)),na.rm = TRUE),
+       max    = max(c_across(all_of(set_cols)),na.rm = TRUE),
+        median = median(c_across(all_of(set_cols)),na.rm = TRUE),
+        mean   = mean(c_across(all_of(set_cols)),na.rm = TRUE),
+        q2.5   = quantile(c_across(all_of(set_cols)), 0.025,na.rm = TRUE),
+         q97.5  = quantile(c_across(all_of(set_cols)), 0.975,na.rm = TRUE)
+      )
+CEA_cost <- CEA_cost%>%select(!Categories)%>%slice(1)%>%
+    select(sensitivity, scenario, year, best, all_of(set_cols), min, max, median, mean, q2.5, q97.5)
+bench_scn <- "(1) No national program"
+CEA_incre <- CEA_cost  %>%
+    group_by(sensitivity, year) %>%
+     left_join(
+         CEA_cost  %>%
+            filter(scenario == bench_scn) %>%
+            select(sensitivity, year, best, all_of(set_cols)) %>%
+             rename(best_bench = best) %>%
+            rename_with(~ paste0(.x, "_bench"), all_of(set_cols)),
+        by = c("sensitivity", "year")
+      ) %>%
+     mutate(
+       inc_best = best - best_bench,
+        across(
+            all_of(set_cols),
+             ~ .x - get(paste0(cur_column(), "_bench")),
+             .names = "inc_{col}"
+          )
+       ) %>%
+     rowwise() %>%
+    mutate(
+        inc_min    = min(c_across(starts_with("inc_set")),na.rm = TRUE),
+         inc_max    = max(c_across(starts_with("inc_set")),na.rm = TRUE),
+         inc_median = median(c_across(starts_with("inc_set")),na.rm = TRUE),
+       inc_mean   = mean(c_across(starts_with("inc_set")),na.rm = TRUE),
+        inc_q2.5   = quantile(c_across(starts_with("inc_set")), 0.025,na.rm = TRUE),
+         inc_q97.5  = quantile(c_across(starts_with("inc_set")), 0.975,na.rm = TRUE)
+      ) %>%
+     ungroup() %>%
+    select(-all_of(set_cols), -ends_with("_bench"))
+
+CEA_incre <- CEA_incre %>%
+   rename(scenario = scenario.x) %>%
+    filter(scenario != bench_scn)%>%
+   select(-scenario.y)
+program_cost_2030 <- map_dfr(names(program_cost_discumy), function(i) {
+   map_dfr(names(program_cost_discumy[[i]]), function(m) {
+       program_cost_discumy[[i]][[m]] %>%
+            filter(year == 2030) %>%
+             rowwise() %>%
+            
+            mutate(
+               pc_best = best,
+                pc_q5   = quantile(c_across(all_of(set_cols)), 0.025, na.rm = TRUE),
+                pc_q95  = quantile(c_across(all_of(set_cols)), 0.975, na.rm = TRUE)
+              ) %>%
+            ungroup() %>%
+            select(pc_best,all_of(set_cols),
+                                  pc_q5, pc_q95) %>%
+             mutate(sensitivity = i, scenario = m)
+      })
   })
-})
 program_cost_2030_join <- program_cost_2030 %>%
-  rename_with(~ paste0("pc_", .x), all_of(set_cols)) %>%
-  select(sensitivity, scenario, pc_best, all_of(paste0("pc_", set_cols)))%>%
-  arrange(sensitivity, scenario)
-
+    rename_with(~ paste0("pc_", .x), all_of(set_cols)) %>%
+     select(sensitivity, scenario, pc_best, all_of(paste0("pc_", set_cols)))%>%
+   arrange(sensitivity, scenario)
 pc_set_cols <- paste0("pc_", set_cols)
-
-roi_table <- CEA_incre %>%
-  mutate(scenario = as.character(scenario)) %>%   # match type
-  filter(scenario != bench_scn) %>%
-  select(-c(best,min, max, median, mean, q2.5, q97.5))%>%arrange(sensitivity, scenario)%>%
-  left_join(program_cost_2030_join, by = c("sensitivity", "scenario")) %>%
-  mutate(roi_best = -inc_best / pc_best) %>%
-  mutate(across(
-    all_of(paste0("inc_", set_cols)),
-    ~ -(.x / get(paste0("pc_", sub("inc_", "", cur_column())))),  # strip inc_ prefix
-    .names = "roi_{col}"
-  )) %>%
-  rowwise() %>%
-  rename_with(~ sub("roi_inc_", "roi_", .x), starts_with("roi_inc_"))%>%
-  mutate(
-    roi_min   = min(c_across(starts_with("roi_set")),            na.rm = TRUE),
-    roi_q5    = quantile(c_across(starts_with("roi_set")), 0.025, na.rm = TRUE),
-    roi_q95   = quantile(c_across(starts_with("roi_set")), 0.975, na.rm = TRUE),
-    roi_lower = ifelse(roi_q5 < roi_best, roi_min, roi_q5)
-  ) %>%
-  ungroup() %>%
-  select(sensitivity, scenario, roi_best, roi_q5, roi_q95, -starts_with("roi_set"))
-
-
+# ---- ROI table: ROI = total cost savings / program cost ----
+# Total cost savings = -incremental cost + program cost
+oi_table <- CEA_incre %>%
+     mutate(scenario = as.character(scenario)) %>%   # match type
+    filter(scenario != bench_scn) %>%
+     select(-c(best,min, max, median, mean, q2.5, q97.5))%>%arrange(sensitivity, scenario)%>%
+     left_join(program_cost_2030_join, by = c("sensitivity", "scenario")) %>%
+     mutate(roi_best = (-inc_best + pc_best) / pc_best) %>%
+    mutate(across(
+         all_of(paste0("inc_", set_cols)),
+         ~ (-.x + get(paste0("pc_", sub("inc_", "", cur_column())))) /
+             get(paste0("pc_", sub("inc_", "", cur_column()))),
+        .names = "roi_{col}"
+       )) %>%
+     rowwise() %>%
+    rename_with(~ sub("roi_inc_", "roi_", .x), starts_with("roi_inc_"))%>%
+     mutate(
+        roi_min   = min(c_across(starts_with("roi_set")),            na.rm = TRUE),
+        roi_q5    = quantile(c_across(starts_with("roi_set")), 0.025, na.rm = TRUE),
+         roi_q95   = quantile(c_across(starts_with("roi_set")), 0.975, na.rm = TRUE),
+         roi_lower = ifelse(roi_q5 < roi_best, roi_min, roi_q5)
+      ) %>%
+     ungroup() %>%
+     select(sensitivity, scenario, roi_best, roi_q5, roi_q95, -starts_with("roi_set"))
 # Format helpers
 format_currency_roi <- function(val, lo, hi, unit = "A$", scale = 1e6) {
-  sprintf("%s%s\n(%s%s - %s%s)",
-          unit, format(round(val / scale), big.mark = ","),
-          unit, format(round(lo  / scale), big.mark = ","),
-          unit, format(round(hi  / scale), big.mark = ","))
-}
-
+       sprintf("%s%s\n(%s%s - %s%s)",
+                         unit, format(round(val / scale), big.mark = ","),
+                           unit, format(round(lo  / scale), big.mark = ","),
+                           unit, format(round(hi  / scale), big.mark = ","))
+     }
 format_roi <- function(val, lo, hi) {
-  sprintf("%.2f\n(%.2f - %.2f)", val, lo, hi)
-}
-
-# Incremental cost string
+     sprintf("%.2f\n(%.2f - %.2f)", val, lo, hi)
+   }
+# ---- Total cost savings string ----
+# Total cost savings = -incremental cost + program cost
+  # Per-set: -inc_set{i} + pc_set{i}, then take q2.5 and q97.5 across 1000 sets
 inc_cost_str <- CEA_incre %>%
-  filter(year == 2041) %>%
-  arrange(sensitivity, scenario) %>%
-  mutate(inc_cost_str = format_currency_roi(-inc_best, -inc_q97.5,-inc_q2.5,  
-                                            unit = "A$", scale = 1e6)) %>%
-  select(sensitivity, scenario, inc_cost_str)
-
+     filter(year == 2041) %>%
+     mutate(scenario = as.character(scenario)) %>%
+     filter(scenario != bench_scn) %>%
+     arrange(sensitivity, scenario) %>%
+     left_join(program_cost_2030_join, by = c("sensitivity", "scenario")) %>%
+     # Best estimate: total cost saving = -incremental cost + program cost
+     mutate(ts_best = -inc_best + pc_best) %>%
+    # Per-set total cost saving: -inc_set{i} + pc_set{i}
+     mutate(across(
+         all_of(paste0("inc_", set_cols)),
+         ~ -.x + get(paste0("pc_", sub("inc_", "", cur_column()))),
+        .names = "ts_{col}"
+      )) %>%
+     rename_with(~ sub("ts_inc_", "ts_", .x), starts_with("ts_inc_")) %>%
+     rowwise() %>%
+     mutate(
+         ts_min    = min(c_across(starts_with("ts_set")),    na.rm = TRUE),
+         ts_max    = max(c_across(starts_with("ts_set")),    na.rm = TRUE),
+         ts_median = median(c_across(starts_with("ts_set")), na.rm = TRUE),
+         ts_mean   = mean(c_across(starts_with("ts_set")),   na.rm = TRUE),
+         ts_q2.5   = quantile(c_across(starts_with("ts_set")), 0.025, na.rm = TRUE),
+         ts_q97.5  = quantile(c_across(starts_with("ts_set")), 0.975, na.rm = TRUE)
+       ) %>%
+     ungroup() %>%
+     mutate(inc_cost_str = format_currency_roi(ts_best, ts_q2.5, ts_q97.5,
+                                                                                            unit = "A$", scale = 1e6)) %>%
+     select(sensitivity, scenario, inc_cost_str)
 # Program cost string
 pc_str <- program_cost_2030 %>%
-  arrange(sensitivity, scenario) %>%
-  mutate(pc_str = format_currency_roi(pc_best, pc_q5, pc_q95, 
-                                      unit = "A$", scale = 1e6)) %>%
-  select(sensitivity, scenario, pc_str)
-
+     arrange(sensitivity, scenario) %>%
+    mutate(pc_str = format_currency_roi(pc_best, pc_q5, pc_q95, unit = "A$", scale = 1e6)) %>%
+     select(sensitivity, scenario, pc_str)
 # ROI string
 roi_str <- roi_table %>%
-  arrange(sensitivity, scenario) %>%
-  mutate(roi_str = format_roi(roi_best, roi_q5, roi_q95)) %>%
-  select(sensitivity, scenario, roi_str)
-
+     arrange(sensitivity, scenario) %>%
+     mutate(roi_str = format_roi(roi_best, roi_q5, roi_q95)) %>%
+     select(sensitivity, scenario, roi_str)
 # Combine
 roi_gt_df <- inc_cost_str %>%
-  left_join(pc_str,  by = c("sensitivity", "scenario")) %>%
-  left_join(roi_str, by = c("sensitivity", "scenario"))
+    left_join(pc_str,  by = c("sensitivity", "scenario")) %>%
+   left_join(roi_str, by = c("sensitivity", "scenario"))
 library(gt)
 # GT table
-roi_gt_df %>%
-  gt(groupname_col = "sensitivity") %>%
-  tab_header(title = "Return on Investment Analysis") %>%
-  cols_label(
-    scenario     = "Scenarios",
-    inc_cost_str = html("Net savings, million<br>(discounted)"),
-    pc_str       = html("Program Cost, million<br>(discounted)"),
-    roi_str      = html("ROI<br>(net savings / program cost)")
-  ) %>%
-  cols_align(align = "center", columns = -scenario) %>%
-  cols_align(align = "left",   columns = scenario) %>%
-  tab_footnote(
-    footnote = "Values are presented as estimate (95% credible interval). ROI = net savings divided by program cost."
-  ) %>%
-  tab_options(
-    table.width                          = pct(100),
-    table.font.size                      = px(11),
-    heading.title.font.size              = px(14),
-    heading.title.font.weight            = "bold",
-    heading.align                        = "left",
-    column_labels.font.weight            = "bold",
-    column_labels.border.top.width       = px(2),
-    column_labels.border.top.color       = "black",
-    column_labels.border.bottom.width    = px(1),
-    column_labels.border.bottom.color    = "black",
-    row_group.font.weight                = "bold",
-    row_group.border.top.width           = px(1),
-    row_group.border.bottom.width        = px(0),
-    table_body.border.bottom.width       = px(2),
-    table_body.border.bottom.color       = "black",
-    table_body.hlines.width              = px(0),
-    footnotes.font.size                  = px(10)
-  ) %>%
-  gtsave(file = file.path(OutputFig%>%dirname(), "HCV_ROI_scenarios.docx"))
+   roi_gt_df %>%
+     gt(groupname_col = "sensitivity") %>%
+     tab_header(title = "Return on Investment Analysis") %>%
+     cols_label(
+         scenario     = "Scenarios",
+         inc_cost_str = html("Total cost savings, million<br>(discounted)"),
+        pc_str       = html("Program Cost, million<br>(discounted)"),
+         roi_str      = html("ROI<br>(total cost savings / program cost)")
+       ) %>%
+     cols_align(align = "center", columns = -scenario) %>%
+     cols_align(align = "left",   columns = scenario) %>%
+    tab_footnote(
+         footnote = "Values are presented as estimate (95% credible interval). ROI = total cost savings divided by program cost; ROI > 1 indicates a positive return on investment."
+       ) %>%
+     tab_options(
+         table.width                          = pct(100),
+         table.font.size                      = px(11),
+         heading.title.font.size              = px(14),
+         heading.title.font.weight            = "bold",
+         heading.align                        = "left",
+         column_labels.font.weight            = "bold",
+         column_labels.border.top.width       = px(2),
+         column_labels.border.top.color       = "black",
+         column_labels.border.bottom.width    = px(1),
+         column_labels.border.bottom.color    = "black",
+         row_group.font.weight                = "bold",
+         row_group.border.top.width           = px(1),
+         row_group.border.bottom.width        = px(0),
+         table_body.border.bottom.width       = px(2),
+         table_body.border.bottom.color       = "black",
+         table_body.hlines.width              = px(0),
+         footnotes.font.size                  = px(10)
+       ) %>%
+     gtsave(file = file.path(OutputFig%>%dirname(), "HCV_ROI_scenarios.docx"))
 
 
-
-
-
-
-#### 
 # extract coverage of np
 load(file.path(RDAFolder, "POC_AUSimulations_DAAcost_reduchalf.rda"))
 str(fitted_coverages)
