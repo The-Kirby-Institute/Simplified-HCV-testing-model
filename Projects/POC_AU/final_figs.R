@@ -2889,18 +2889,22 @@ RNA_prev <- ggplot(Prev_dt%>%mutate(year = year + POC_AU$cabY - 1)%>%filter(sett
   scale_x_continuous(expand = c(0, 0), limits =c(2021,2030) ,
                      breaks = seq(2021,2030, 
                                   by = 1)) + 
+  labs(tag = "C", x = "Year", y = "HCV RNA prevalence")  +
   theme(panel.spacing = unit(2, "lines")) + theme_Publication_facet() + 
+  
+  scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, 1)) +
   theme(legend.key.size = unit(1,"line"),
         legend.direction = "vertical") +
-  theme(legend.position = c(0.2, 0.15)) + 
-  scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, 1)) + 
-  labs(x = "Year", y = "HCV RNA prevalence") 
+  theme(legend.position = "bottom")
+  
+  
+  
   
 ggsave(file=file.path(OutputFig, paste0("RNAprev_setting_maintext.png")), 
        RNA_prev, 
-       width = 12, height = 8, bg = "white", dpi = 300)   
+       width = 8, height = 6, bg = "white", dpi = 300)   
 
-
+legend <- get_legend_manual(RNA_prev)
 
 #### cost_saving plot #### 
 # net savings

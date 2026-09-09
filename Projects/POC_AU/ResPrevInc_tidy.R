@@ -493,9 +493,9 @@ names(PrevInc_range_bind) <- names(PrevInc_range[[1]])
 library("openxlsx")
 write.xlsx(x = PrevInc_range_bind, file.path(OutputFolder, "PrevInc_epi.xlsx"), append = TRUE)
 
-pop_labname <- c("PWID in community",  "Former PWID in community", 
-                 "PWID in prisons",  "Former PWID in prisons", 
-                 "nonPWID in prisons")
+pop_labname <- c("Current PWID in community",  "Non-current PWID in community", 
+                 "Current PWID in prisons",  "Non-current PWID in prisons", 
+                 "Non-PWID in prisons")
 
 PrevInc_trajectory <- list() 
 sce_level <- c("no_np", "foundational", "succession", 
@@ -516,7 +516,7 @@ for(i in names(PrevInc_range_bind)){
       mutate(population = factor(setting, 
                                  levels = c("commu", "prisons", "prisonsPWID"), 
                                  labels = c("Community", "Prisons", 
-                                            "Current & former PWID in prisons")))
+                                            "Current & non-current PWID in prisons")))
   } else if(i == "tempPrevRNA_all"){ 
     PrevInc_range_bind[[i]] <-  
       PrevInc_range_bind[[i]]
@@ -1136,7 +1136,7 @@ PrevInc_sce_p[[8]] <- PrevInc_sce_p[[8]] +
                               scale_y_continuous(limits = 
                                                    c(0, 10))))) 
 
-"tempPrevRNA_all"
+
 
 
 for(i in names(PrevInc_sce_p)){ 
